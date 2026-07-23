@@ -1,0 +1,39 @@
+{
+	"schemaVersion": 1,
+	"id": "chat_canvas",
+	"version": "${version}",
+	"name": "Chat Canvas",
+	"description": "A visual editor foundation for a customizable Minecraft chat canvas.",
+	"authors": [
+		"寿云"
+	],
+	"contact": {
+		"homepage": "https://github.com/ikunkk02-afk/Chat-Canvas",
+		"sources": "https://github.com/ikunkk02-afk/Chat-Canvas",
+		"issues": "https://github.com/ikunkk02-afk/Chat-Canvas/issues"
+	},
+	"license": "MIT",
+	"icon": "assets/chat_canvas/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"main": [
+			"io.github.ikunkk02.chatcanvas.ChatCanvas"
+		],
+		"client": [
+			"io.github.ikunkk02.chatcanvas.ChatCanvasClient"
+		],
+		"modmenu": [
+			"io.github.ikunkk02.chatcanvas.integration.ModMenuIntegration"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
+		"fabric-api": ">=0.116.14",
+		"owo": ">=0.12.15.4"
+	},
+	"suggests": {
+		"modmenu": ">=11.0.4"
+	}
+}

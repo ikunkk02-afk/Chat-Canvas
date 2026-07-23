@@ -1,0 +1,49 @@
+# gradle
+
+.gradle/
+build/
+out/
+classes/
+
+# eclipse
+
+*.launch
+
+# idea
+
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# vscode
+
+.settings/
+.vscode/
+bin/
+.classpath
+.project
+
+# macos
+
+*.DS_Store
+
+# fabric
+
+run/
+logs/
+crash-reports/
+
+# java
+
+hs_err_*.log
+replay_*.log
+*.hprof
+*.jfr
+*.log
+
+# local credentials and personal overrides
+
+.env
+.env.*
+/config/
