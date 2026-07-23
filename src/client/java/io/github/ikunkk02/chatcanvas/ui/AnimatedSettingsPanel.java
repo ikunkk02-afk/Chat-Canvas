@@ -47,7 +47,11 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.Locale;
 
+import io.github.ikunkk02.chatcanvas.ChatCanvas;
+
 public final class AnimatedSettingsPanel {
+	private static final boolean DEBUG_CLIP = false;
+
 	private static final int PANEL_MARGIN = 16;
 	private static final int PANEL_TOP = 48;
 	private static final int PANEL_PADDING = 12;
@@ -106,7 +110,7 @@ public final class AnimatedSettingsPanel {
 	private String playerSearch = "";
 	private long rosterRevision = Long.MIN_VALUE;
 	private PlayerColorConfig lastPlayerColors;
-	private StackLayout pageHost;
+	private ClippedPageViewport pageHost;
 	private SpringValue spring;
 	private Side side;
 	private Category activeCategory = Category.LAYOUT;
@@ -146,6 +150,18 @@ public final class AnimatedSettingsPanel {
 		this.component.zIndex(20);
 		setPageButtonsActive(true);
 		syncFromSession();
+
+		if (DEBUG_CLIP) {
+			MinecraftClient client = MinecraftClient.getInstance();
+			int fbWidth = client.getWindow().getFramebufferWidth();
+			int fbHeight = client.getWindow().getFramebufferHeight();
+			double scale = client.getWindow().getScaleFactor();
+			ChatCanvas.LOGGER.info(
+				"[ChatCanvas DEBUG] panel={}x{} atX={} viewport={}x{} guiScale={} framebuffer={}x{} activePage=LAYOUT",
+				panelWidth, panelHeight, (int) Math.round(targetX()),
+				pageWidth(), contentHeight(panelHeight),
+				scale, fbWidth, fbHeight);
+		}
 	}
 
 	private FlowLayout buildComponent() {
@@ -160,11 +176,10 @@ public final class AnimatedSettingsPanel {
 				.formatted(Formatting.GRAY)));
 		panel.child(categoryTabs());
 
-		pageHost = Containers.stack(
+		pageHost = new ClippedPageViewport(
 				Sizing.fill(100),
 				Sizing.fixed(contentHeight(panelHeight))
 		);
-		pageHost.allowOverflow(false);
 		CategoryPage layoutPage = buildPage(buildLayoutBody());
 		CategoryPage textPage = buildPage(buildTextBody());
 		CategoryPage backgroundPage = buildPage(buildBackgroundBody());
@@ -183,13 +198,14 @@ public final class AnimatedSettingsPanel {
 		playerColorsPage.stack.positioning(Positioning.absolute(pageWidth() * 3, 0));
 		mentionPage.stack.positioning(Positioning.absolute(pageWidth() * 4, 0));
 		commandPage.stack.positioning(Positioning.absolute(pageWidth() * 5, 0));
-		pageHost.child(layoutPage.stack);
-		pageHost.child(textPage.stack);
-		pageHost.child(backgroundPage.stack);
-		pageHost.child(playerColorsPage.stack);
-		pageHost.child(mentionPage.stack);
-		pageHost.child(commandPage.stack);
+		pageHost.addPage(layoutPage.stack);
+		pageHost.addPage(textPage.stack);
+		pageHost.addPage(backgroundPage.stack);
+		pageHost.addPage(playerColorsPage.stack);
+		pageHost.addPage(mentionPage.stack);
+		pageHost.addPage(commandPage.stack);
 		panel.child(pageHost);
+		pageHost.setActivePage(Category.LAYOUT.ordinal());
 
 		FlowLayout actions = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(FOOTER_HEIGHT));
 		actions.padding(Insets.top(4));
@@ -1159,6 +1175,7 @@ public final class AnimatedSettingsPanel {
 
 	private void switchCategory(Category category) {
 		if (category == activeCategory) return;
+		Category previous = activeCategory;
 		activeCategory = category;
 		double target = category.ordinal() * pageWidth();
 		categorySpring.setValue(target);
@@ -1166,6 +1183,10 @@ public final class AnimatedSettingsPanel {
 		categoryTransitioning = false;
 		updateCategoryTransition(0.0);
 		setPageButtonsActive(true);
+		if (pageHost != null) {
+			pageHost.setActivePage(category.ordinal());
+			pageHost.setTransitionPage(-1);
+		}
 	}
 
 	public void syncFromSession() {
@@ -1362,9 +1383,15 @@ public final class AnimatedSettingsPanel {
 			pages.get(category).stack.positioning(
 					Positioning.absolute(category.ordinal() * pageWidth() - pageOffset, 0));
 		}
-		if (categoryTransitioning && categorySpring.settled()) {
+		if (categoryTransitioning && !categorySpring.settled()) {
+			int targetOrdinal = (int) Math.round(categorySpring.target() / pageWidth());
+			if (pageHost != null) pageHost.setTransitionPage(targetOrdinal);
+		} else if (categoryTransitioning && categorySpring.settled()) {
 			categoryTransitioning = false;
 			setPageButtonsActive(true);
+			if (pageHost != null) pageHost.setTransitionPage(-1);
+		} else if (pageHost != null) {
+			pageHost.setTransitionPage(-1);
 		}
 	}
 
@@ -1393,6 +1420,8 @@ public final class AnimatedSettingsPanel {
 		component.sizing(Sizing.fixed(panelWidth), Sizing.fixed(panelHeight));
 		if (pageHost != null) {
 			pageHost.sizing(Sizing.fill(100), Sizing.fixed(contentHeight(panelHeight)));
+			pageHost.setActivePage(activeCategory.ordinal());
+			pageHost.setTransitionPage(-1);
 		}
 		categorySpring.setValue(pageProgress * pageWidth());
 		categorySpring.setTarget(activeCategory.ordinal() * pageWidth());
