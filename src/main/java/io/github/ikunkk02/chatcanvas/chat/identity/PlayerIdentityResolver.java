@@ -1,5 +1,6 @@
 package io.github.ikunkk02.chatcanvas.chat.identity;
 
+import io.github.ikunkk02.chatcanvas.chat.style.TextIndexing;
 import net.minecraft.text.Text;
 
 import java.util.Locale;
@@ -25,10 +26,12 @@ public final class PlayerIdentityResolver {
 				? senderStart + localName
 				: boundedIndexOf(fullText, playerName, 0);
 		if (nameStart < 0) return Optional.empty();
+		var range = TextIndexing.utf16RangeToCodePoints(
+				fullText, nameStart, nameStart + playerName.length());
 		return Optional.of(new ChatMessageMetadata(
 				new PlayerChatIdentity(uuid, playerName, true),
-				nameStart,
-				nameStart + playerName.length()
+				range.startCodePoint(),
+				range.endCodePoint()
 		));
 	}
 
@@ -37,11 +40,13 @@ public final class PlayerIdentityResolver {
 		if (finalMessage == null || metadata == null) return Optional.empty();
 		String text = finalMessage.getString();
 		String name = metadata.sender().playerName();
-		int exact = boundedIndexOf(text, name, Math.min(metadata.nameStart(), text.length()));
+		int preferredUtf16 = TextIndexing.codePointToUtf16(text, metadata.nameStart());
+		int exact = boundedIndexOf(text, name, preferredUtf16);
 		if (exact < 0) exact = boundedIndexOf(text, name, 0);
 		if (exact < 0) return Optional.empty();
+		var range = TextIndexing.utf16RangeToCodePoints(text, exact, exact + name.length());
 		return Optional.of(new ChatMessageMetadata(
-				metadata.sender(), exact, exact + name.length()));
+				metadata.sender(), range.startCodePoint(), range.endCodePoint()));
 	}
 
 	public static int boundedIndexOf(String text, String needle, int preferredStart) {

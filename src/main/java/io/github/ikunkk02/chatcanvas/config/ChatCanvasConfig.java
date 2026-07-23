@@ -64,6 +64,10 @@ public final class ChatCanvasConfig {
 		return settings.playerColors();
 	}
 
+	public synchronized MentionConfig mention() {
+		return settings.mention();
+	}
+
 	public synchronized List<Integer> recentColors() {
 		return settings.recentColors();
 	}
@@ -95,7 +99,8 @@ public final class ChatCanvasConfig {
 
 	public synchronized boolean save(LayoutConfig value) {
 		return save(new ChatCanvasSettings(
-				value, settings.text(), settings.background(), settings.playerColors(), settings.recentColors()));
+				value, settings.text(), settings.background(), settings.playerColors(),
+				settings.mention(), settings.recentColors()));
 	}
 
 	public synchronized boolean save(ChatCanvasSettings value) {
@@ -182,11 +187,24 @@ public final class ChatCanvasConfig {
 						colorMapOr(playerColors, "nameOverrides"),
 						booleanOr(playerColors, "showNameHitboxes", false)
 				).sanitized();
+		MentionConfig mentionDefaults = MentionConfig.DEFAULT;
+		JsonObject mention = objectOr(root, "mention", null);
+		MentionConfig parsedMention = mention == null
+				? mentionDefaults
+				: new MentionConfig(
+						booleanOr(mention, "doubleClickEnabled", mentionDefaults.doubleClickEnabled()),
+						intOr(mention, "doubleClickIntervalMs", mentionDefaults.doubleClickIntervalMs()),
+						booleanOr(mention, "highlightEnabled", mentionDefaults.highlightEnabled()),
+						intOr(mention, "highlightColor", mentionDefaults.highlightColor()),
+						booleanOr(mention, "highlightBold", mentionDefaults.highlightBold()),
+						booleanOr(mention, "requireAtSymbol", mentionDefaults.requireAtSymbol())
+				).sanitized();
 		return new ChatCanvasSettings(
 				parsedLayout,
 				parsedText,
 				parsedBackground,
 				parsedPlayerColors,
+				parsedMention,
 				recentColorsOr(root, "recentColors")
 		);
 	}
@@ -235,6 +253,16 @@ public final class ChatCanvasConfig {
 		playerObject.add("nameOverrides", colorMapToJson(playerColors.nameOverrides()));
 		playerObject.addProperty("showNameHitboxes", playerColors.showNameHitboxes());
 		root.add("playerColors", playerObject);
+
+		MentionConfig mention = value.mention();
+		JsonObject mentionObject = new JsonObject();
+		mentionObject.addProperty("doubleClickEnabled", mention.doubleClickEnabled());
+		mentionObject.addProperty("doubleClickIntervalMs", mention.doubleClickIntervalMs());
+		mentionObject.addProperty("highlightEnabled", mention.highlightEnabled());
+		mentionObject.addProperty("highlightColor", mention.highlightColor());
+		mentionObject.addProperty("highlightBold", mention.highlightBold());
+		mentionObject.addProperty("requireAtSymbol", mention.requireAtSymbol());
+		root.add("mention", mentionObject);
 
 		JsonArray recentColors = new JsonArray();
 		for (int color : value.recentColors()) {

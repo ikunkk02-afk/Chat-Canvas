@@ -3,6 +3,7 @@ package io.github.ikunkk02.chatcanvas;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatLineWidthCache;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatLayoutRuntime;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatCapture;
+import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerNameDoubleClickHandler;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.editor.ChatCanvasEditorScreen;
 import net.fabricmc.api.ClientModInitializer;
@@ -46,6 +47,11 @@ public final class ChatCanvasClient implements ClientModInitializer {
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			ChatLayoutRuntime.tick(client);
+			if (client.currentScreen instanceof net.minecraft.client.gui.screen.ChatScreen chatScreen) {
+				PlayerNameDoubleClickHandler.instance().tick(chatScreen);
+			} else {
+				PlayerNameDoubleClickHandler.instance().reset();
+			}
 			while (openEditor.wasPressed()) {
 				if (!(client.currentScreen instanceof ChatCanvasEditorScreen)) {
 					client.setScreen(new ChatCanvasEditorScreen(client.currentScreen));

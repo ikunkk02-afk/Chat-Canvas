@@ -1,6 +1,7 @@
 package io.github.ikunkk02.chatcanvas.chat.identity;
 
 import com.mojang.authlib.GameProfile;
+import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerNameDoubleClickHandler;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.network.message.MessageSignatureData;
@@ -32,6 +33,7 @@ public final class PlayerChatCapture {
 			PlayerRosterTracker.clear();
 			ChatMessageMetadataRegistry.instance().clearAll();
 			PlayerNameHitboxRegistry.clear();
+			PlayerNameDoubleClickHandler.instance().reset();
 		});
 	}
 

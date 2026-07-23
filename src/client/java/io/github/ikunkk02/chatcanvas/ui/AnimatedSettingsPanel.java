@@ -7,6 +7,7 @@ import io.github.ikunkk02.chatcanvas.config.ChatTextAlignment;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.config.MessageBackgroundMode;
+import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorMode;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatIdentity;
@@ -72,6 +73,11 @@ public final class AnimatedSettingsPanel {
 	private ButtonComponent playerAutomaticButton;
 	private ButtonComponent playerVanillaButton;
 	private ButtonComponent hitboxDebugButton;
+	private ButtonComponent mentionDoubleClickButton;
+	private ButtonComponent mentionHighlightButton;
+	private ButtonComponent mentionBoldButton;
+	private ButtonComponent mentionRequireAtButton;
+	private ButtonComponent mentionColorButton;
 	private FlowLayout playerListBody;
 	private String playerSearch = "";
 	private long rosterRevision = Long.MIN_VALUE;
@@ -139,18 +145,22 @@ public final class AnimatedSettingsPanel {
 		CategoryPage textPage = buildPage(buildTextBody());
 		CategoryPage backgroundPage = buildPage(buildBackgroundBody());
 		CategoryPage playerColorsPage = buildPage(buildPlayerColorsBody());
+		CategoryPage mentionPage = buildPage(buildMentionBody());
 		pages.put(Category.LAYOUT, layoutPage);
 		pages.put(Category.TEXT, textPage);
 		pages.put(Category.BACKGROUND, backgroundPage);
 		pages.put(Category.PLAYER_COLORS, playerColorsPage);
+		pages.put(Category.MENTION, mentionPage);
 		layoutPage.stack.positioning(Positioning.absolute(0, 0));
 		textPage.stack.positioning(Positioning.absolute(pageWidth(), 0));
 		backgroundPage.stack.positioning(Positioning.absolute(pageWidth() * 2, 0));
 		playerColorsPage.stack.positioning(Positioning.absolute(pageWidth() * 3, 0));
+		mentionPage.stack.positioning(Positioning.absolute(pageWidth() * 4, 0));
 		pageHost.child(layoutPage.stack);
 		pageHost.child(textPage.stack);
 		pageHost.child(backgroundPage.stack);
 		pageHost.child(playerColorsPage.stack);
+		pageHost.child(mentionPage.stack);
 		panel.child(pageHost);
 
 		FlowLayout actions = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(FOOTER_HEIGHT));
@@ -229,7 +239,6 @@ public final class AnimatedSettingsPanel {
 
 		body.child(sectionLabel("chat_canvas.settings.coming_soon"));
 		for (String key : new String[]{
-				"chat_canvas.category.mention",
 				"chat_canvas.category.fade",
 				"chat_canvas.category.command",
 				"chat_canvas.category.compatibility"
@@ -244,6 +253,120 @@ public final class AnimatedSettingsPanel {
 			body.child(disabled);
 		}
 		return body;
+	}
+
+	private FlowLayout buildMentionBody() {
+		FlowLayout body = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		body.padding(Insets.bottom(8));
+		body.gap(7);
+		body.child(sectionLabel("chat_canvas.category.mention"));
+		body.child(Components.label(
+				Text.translatable("chat_canvas.mention.hint").formatted(Formatting.GRAY)));
+
+		mentionDoubleClickButton = mentionToggleButton(
+				"chat_canvas.mention.double_click",
+				config -> config.withDoubleClickEnabled(!config.doubleClickEnabled()));
+		body.child(mentionDoubleClickButton);
+
+		MentionNumericScrubberComponent interval = new MentionNumericScrubberComponent(
+				session,
+				Text.translatable("chat_canvas.mention.double_click_interval")
+						.formatted(Formatting.LIGHT_PURPLE),
+				geometryChanged,
+				committed);
+		scrubbers.add(interval);
+		body.child(interval);
+
+		mentionHighlightButton = mentionToggleButton(
+				"chat_canvas.mention.highlight",
+				config -> config.withHighlightEnabled(!config.highlightEnabled()));
+		body.child(mentionHighlightButton);
+
+		mentionColorButton = ModernUiTheme.button(Text.empty(), clicked -> {
+			MentionConfig before = session.mention();
+			colorPickerLauncher.open(clicked, new ModernColorPickerPopup.Request(
+					before.highlightColor(),
+					MentionConfig.DEFAULT.highlightColor(),
+					session.recentColors().colors(),
+					color -> {
+						session.setMention(session.mention().withHighlightColor(color));
+						geometryChanged.run();
+						syncFromSession();
+					},
+					color -> {
+						session.recentColors().add(color);
+						session.commit();
+						committed.run();
+						syncFromSession();
+					},
+					() -> {
+						session.setMention(before);
+						geometryChanged.run();
+						syncFromSession();
+					}
+			));
+		});
+		mentionColorButton.sizing(Sizing.fill(100), Sizing.fixed(22));
+		mentionColorButton.renderer((context, component, delta) -> {
+			int background = component.active()
+					? component.isHovered() ? 0xE04B5970 : 0xC8374256
+					: 0x55343A48;
+			ModernUiTheme.roundedRect(context, component.getX(), component.getY(),
+					component.getWidth(), component.getHeight(), 5, background);
+			ModernUiTheme.border(context, component.getX(), component.getY(),
+					component.getWidth(), component.getHeight(), 0x554F6079);
+			ModernUiTheme.roundedRect(context, component.getX() + 5, component.getY() + 4,
+					14, component.getHeight() - 8, 3,
+					0xFF000000 | session.mention().highlightColor());
+			context.drawRectOutline(component.getX() + 5, component.getY() + 4,
+					14, component.getHeight() - 8, 0x997B899D);
+		});
+		registerPageButton(Category.MENTION, mentionColorButton);
+		body.child(mentionColorButton);
+
+		mentionBoldButton = mentionToggleButton(
+				"chat_canvas.mention.highlight_bold",
+				config -> config.withHighlightBold(!config.highlightBold()));
+		body.child(mentionBoldButton);
+
+		mentionRequireAtButton = mentionToggleButton(
+				"chat_canvas.mention.require_at",
+				config -> config.withRequireAtSymbol(!config.requireAtSymbol()));
+		body.child(mentionRequireAtButton);
+
+		ButtonComponent defaults = ModernUiTheme.button(
+				Text.translatable("chat_canvas.mention.restore_defaults"), button -> {
+					MentionConfig before = session.mention();
+					session.restoreMentionDefaults();
+					if (!before.equals(session.mention())) {
+						geometryChanged.run();
+						committed.run();
+					}
+					syncFromSession();
+				});
+		defaults.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.MENTION, defaults);
+		body.child(defaults);
+		return body;
+	}
+
+	private ButtonComponent mentionToggleButton(
+			String translationKey,
+			java.util.function.UnaryOperator<MentionConfig> toggle) {
+		ButtonComponent button = ModernUiTheme.button(Text.empty(), clicked -> {
+			MentionConfig before = session.mention();
+			session.setMention(toggle.apply(before));
+			if (!before.equals(session.mention())) {
+				session.commit();
+				geometryChanged.run();
+				committed.run();
+			}
+			syncFromSession();
+		});
+		button.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.MENTION, button);
+		button.id(translationKey);
+		return button;
 	}
 
 	private FlowLayout buildPlayerColorsBody() {
@@ -824,10 +947,37 @@ public final class AnimatedSettingsPanel {
 		}
 		syncBackgroundButtons();
 		syncPlayerColorButtons();
+		syncMentionButtons();
 		if (lastPlayerColors == null || !lastPlayerColors.equals(session.playerColors())
 				|| rosterRevision != PlayerRosterTracker.revision()) {
 			rebuildPlayerRows();
 		}
+	}
+
+	private void syncMentionButtons() {
+		MentionConfig config = session.mention();
+		setToggleMessage(mentionDoubleClickButton, "chat_canvas.mention.double_click",
+				config.doubleClickEnabled());
+		setToggleMessage(mentionHighlightButton, "chat_canvas.mention.highlight",
+				config.highlightEnabled());
+		setToggleMessage(mentionBoldButton, "chat_canvas.mention.highlight_bold",
+				config.highlightBold());
+		setToggleMessage(mentionRequireAtButton, "chat_canvas.mention.require_at",
+				config.requireAtSymbol());
+		if (mentionColorButton != null) {
+			mentionColorButton.setMessage(colorButtonText(
+					"chat_canvas.mention.highlight_color", config.highlightColor()));
+		}
+	}
+
+	private static void setToggleMessage(
+			ButtonComponent button, String translationKey, boolean enabled) {
+		if (button == null) return;
+		button.setMessage(Text.translatable(translationKey)
+				.append(Text.literal("  "))
+				.append(Text.translatable(enabled
+						? "chat_canvas.state.on"
+						: "chat_canvas.state.off")));
 	}
 
 	private void syncPlayerColorButtons() {
@@ -1038,7 +1188,8 @@ public final class AnimatedSettingsPanel {
 		LAYOUT("chat_canvas.category.layout"),
 		TEXT("chat_canvas.category.text"),
 		BACKGROUND("chat_canvas.category.background"),
-		PLAYER_COLORS("chat_canvas.category.player_colors");
+		PLAYER_COLORS("chat_canvas.category.player_colors"),
+		MENTION("chat_canvas.category.mention");
 
 		private final String translationKey;
 

@@ -4,6 +4,7 @@ import io.wispforest.owo.ui.core.OwoUIDrawContext;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
+import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.text.Text;
 
@@ -20,6 +21,8 @@ public record ChatRenderContext(
 		ChatTextConfig textConfig,
 		ChatBackgroundConfig backgroundConfig,
 		PlayerColorConfig playerColorConfig,
+		MentionConfig mentionConfig,
+		String localPlayerName,
 		double vanillaBackgroundOpacity
 ) {
 	public int right() {

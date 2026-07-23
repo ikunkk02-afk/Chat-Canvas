@@ -4,6 +4,9 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.text.OrderedText;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatIdentity;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerIdentityResolver;
+import io.github.ikunkk02.chatcanvas.chat.mention.MentionMatcher;
+import io.github.ikunkk02.chatcanvas.chat.style.TextIndexing;
+import io.github.ikunkk02.chatcanvas.chat.style.TextRange;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -13,29 +16,51 @@ public final class ChatLayoutCalculator {
 	private final List<ChatLine> cachedLines = new ArrayList<>();
 	private List<PreviewChatMessage> cachedMessages = List.of();
 	private int cachedWidth = -1;
+	private String cachedMentionName = "";
+	private boolean cachedRequireAt;
 
-	public List<ChatLine> calculate(TextRenderer renderer, List<PreviewChatMessage> messages, int width) {
+	public List<ChatLine> calculate(TextRenderer renderer, List<PreviewChatMessage> messages, int width,
+									String localPlayerName, boolean requireAtSymbol) {
 		int safeWidth = Math.max(1, width);
-		if (messages == cachedMessages && safeWidth == cachedWidth) {
+		String mentionName = localPlayerName == null ? "" : localPlayerName;
+		if (messages == cachedMessages && safeWidth == cachedWidth
+				&& mentionName.equals(cachedMentionName) && requireAtSymbol == cachedRequireAt) {
 			return cachedLines;
 		}
 
 		cachedMessages = messages;
 		cachedWidth = safeWidth;
+		cachedMentionName = mentionName;
+		cachedRequireAt = requireAtSymbol;
 		cachedLines.clear();
 		for (PreviewChatMessage message : messages) {
-			boolean foundName = false;
-			for (OrderedText line : renderer.wrapLines(message.text(), safeWidth)) {
-				Range range = !foundName && message.sender() != null
-						? findRange(line, message.sender().playerName())
-						: null;
-				if (range != null) foundName = true;
+			String plain = message.text().getString();
+			TextRange globalNameRange = null;
+			if (message.sender() != null) {
+				int nameStart = PlayerIdentityResolver.boundedIndexOf(
+						plain, message.sender().playerName(), 0);
+				if (nameStart >= 0) {
+					globalNameRange = TextIndexing.utf16RangeToCodePoints(
+							plain, nameStart, nameStart + message.sender().playerName().length());
+				}
+			}
+			List<TextRange> globalMentions = MentionMatcher.findMentions(
+					plain, mentionName, requireAtSymbol);
+			List<OrderedText> wrapped = renderer.wrapLines(message.text(), safeWidth);
+			int[] source = plain.codePoints().toArray();
+			int sourceCursor = 0;
+			for (OrderedText line : wrapped) {
+				LineMapping mapping = mapLine(line, source, sourceCursor);
+				sourceCursor = Math.max(sourceCursor, mapping.nextSourceIndex());
+				TextRange nameRange = globalNameRange == null
+						? null
+						: mapping.localRange(globalNameRange);
 				cachedLines.add(new ChatLine(
 						line,
 						renderer.getWidth(line),
-						range == null ? null : message.sender(),
-						range == null ? -1 : range.start(),
-						range == null ? -1 : range.end()
+						nameRange == null ? null : message.sender(),
+						nameRange,
+						mapping.localRanges(globalMentions)
 				));
 			}
 		}
@@ -45,43 +70,63 @@ public final class ChatLayoutCalculator {
 	public void invalidate() {
 		cachedWidth = -1;
 		cachedMessages = List.of();
+		cachedMentionName = "";
 	}
 
-	private static Range findRange(OrderedText line, String name) {
-		StringBuilder plain = new StringBuilder();
+	private static LineMapping mapLine(OrderedText line, int[] source, int sourceCursor) {
 		java.util.ArrayList<Integer> indices = new java.util.ArrayList<>();
-		java.util.ArrayList<Integer> offsets = new java.util.ArrayList<>();
+		int[] cursor = {sourceCursor};
 		line.accept((index, style, codePoint) -> {
-			offsets.add(plain.length());
-			indices.add(index);
-			plain.appendCodePoint(codePoint);
+			int match = nextSource(source, cursor[0], codePoint);
+			indices.add(match);
+			if (match >= 0) cursor[0] = match + 1;
 			return true;
 		});
-		int match = PlayerIdentityResolver.boundedIndexOf(plain.toString(), name, 0);
-		if (match < 0) return null;
-		int end = match + name.length();
-		int first = -1;
-		int last = -1;
-		for (int i = 0; i < offsets.size(); i++) {
-			int glyphStart = offsets.get(i);
-			int glyphEnd = i + 1 < offsets.size() ? offsets.get(i + 1) : plain.length();
-			if (glyphEnd > match && glyphStart < end) {
-				if (first < 0) first = indices.get(i);
-				last = indices.get(i) + glyphEnd - glyphStart;
-			}
+		return new LineMapping(indices.stream().mapToInt(Integer::intValue).toArray(), cursor[0]);
+	}
+
+	private static int nextSource(int[] source, int from, int codePoint) {
+		if (from < source.length && source[from] == codePoint) return from;
+		for (int index = from; index < Math.min(source.length, from + 32); index++) {
+			if (source[index] == codePoint) return index;
+			if (source[index] != '\n' && source[index] != '\r'
+					&& !Character.isWhitespace(source[index])) break;
 		}
-		return first < 0 ? null : new Range(first, last);
+		return -1;
 	}
 
 	public record ChatLine(
 			OrderedText text,
 			int width,
 			@Nullable PlayerChatIdentity sender,
-			int nameStart,
-			int nameEnd
+			@Nullable TextRange playerNameRange,
+			List<TextRange> mentionRanges
 	) {
+		public ChatLine {
+			mentionRanges = mentionRanges == null ? List.of() : List.copyOf(mentionRanges);
+		}
 	}
 
-	private record Range(int start, int end) {
+	private record LineMapping(int[] globalIndices, int nextSourceIndex) {
+		private TextRange localRange(TextRange globalRange) {
+			int first = -1;
+			int last = -1;
+			for (int local = 0; local < globalIndices.length; local++) {
+				if (globalRange.contains(globalIndices[local])) {
+					if (first < 0) first = local;
+					last = local + 1;
+				}
+			}
+			return first < 0 ? null : new TextRange(first, last);
+		}
+
+		private List<TextRange> localRanges(List<TextRange> ranges) {
+			List<TextRange> result = new ArrayList<>();
+			for (TextRange range : ranges) {
+				TextRange local = localRange(range);
+				if (local != null) result.add(local);
+			}
+			return List.copyOf(result);
+		}
 	}
 }

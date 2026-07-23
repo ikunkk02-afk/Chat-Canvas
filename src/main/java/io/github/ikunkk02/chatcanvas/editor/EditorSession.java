@@ -4,6 +4,7 @@ import io.github.ikunkk02.chatcanvas.config.ChatCanvasSettings;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.config.LayoutConfig;
+import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import io.github.ikunkk02.chatcanvas.config.PixelLayout;
 import io.github.ikunkk02.chatcanvas.config.RecentColorStore;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
@@ -16,6 +17,7 @@ public final class EditorSession {
 	private ChatTextConfig text;
 	private ChatBackgroundConfig background;
 	private PlayerColorConfig playerColors;
+	private MentionConfig mention;
 	private int screenWidth;
 	private int screenHeight;
 
@@ -25,13 +27,15 @@ public final class EditorSession {
 
 	public EditorSession(ChatCanvasSettings original, int screenWidth, int screenHeight) {
 		ChatCanvasSettings safe = original.sanitized();
-		this.original = new EditorSnapshot(safe.layout(), safe.text(), safe.background(), safe.playerColors());
+		this.original = new EditorSnapshot(
+				safe.layout(), safe.text(), safe.background(), safe.playerColors(), safe.mention());
 		this.screenWidth = Math.max(1, screenWidth);
 		this.screenHeight = Math.max(1, screenHeight);
 		this.layout = this.original.layout().toPixels(this.screenWidth, this.screenHeight);
 		this.text = this.original.text();
 		this.background = this.original.background();
 		this.playerColors = this.original.playerColors();
+		this.mention = this.original.mention();
 		this.recentColors = new RecentColorStore(safe.recentColors());
 		this.history = new EditorHistory(snapshot());
 	}
@@ -52,6 +56,10 @@ public final class EditorSession {
 		return playerColors;
 	}
 
+	public MentionConfig mention() {
+		return mention;
+	}
+
 	public RecentColorStore recentColors() {
 		return recentColors;
 	}
@@ -65,7 +73,8 @@ public final class EditorSession {
 				LayoutConfig.fromPixels(layout, screenWidth, screenHeight),
 				text,
 				background,
-				playerColors
+				playerColors,
+				mention
 		);
 	}
 
@@ -76,6 +85,7 @@ public final class EditorSession {
 				snapshot.text(),
 				snapshot.background(),
 				snapshot.playerColors(),
+				snapshot.mention(),
 				recentColors.colors()
 		);
 	}
@@ -100,11 +110,16 @@ public final class EditorSession {
 		playerColors = value.sanitized();
 	}
 
+	public void setMention(MentionConfig value) {
+		mention = value.sanitized();
+	}
+
 	public void apply(EditorSnapshot value) {
 		layout = value.layout().toPixels(screenWidth, screenHeight);
 		text = value.text();
 		background = value.background();
 		playerColors = value.playerColors();
+		mention = value.mention();
 	}
 
 	public void resizeViewport(int width, int height) {
@@ -131,6 +146,11 @@ public final class EditorSession {
 
 	public void restorePlayerColorDefaults() {
 		setPlayerColors(PlayerColorConfig.DEFAULT);
+		commit();
+	}
+
+	public void restoreMentionDefaults() {
+		setMention(MentionConfig.DEFAULT);
 		commit();
 	}
 

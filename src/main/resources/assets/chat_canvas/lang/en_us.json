@@ -80,5 +80,16 @@
   "chat_canvas.player_colors.restore_defaults": "Restore Default Player Color Settings",
   "chat_canvas.player_colors.offline_hint": "Join a world to manage online players",
   "chat_canvas.player_colors.unreliable_sender": "Could not reliably identify sender",
-  "chat_canvas.player_colors.show_hitboxes": "Show Name Hitboxes"
+  "chat_canvas.player_colors.show_hitboxes": "Show Name Hitboxes",
+  "chat_canvas.mention.double_click": "Double-click Names to Mention",
+  "chat_canvas.mention.double_click_interval": "Double-click Interval",
+  "chat_canvas.mention.highlight": "Mention Highlighting",
+  "chat_canvas.mention.highlight_color": "Highlight Color",
+  "chat_canvas.mention.highlight_bold": "Bold Mention Highlight",
+  "chat_canvas.mention.require_at": "Only Recognize Mentions with @",
+  "chat_canvas.mention.restore_defaults": "Restore Default Mention Settings",
+  "chat_canvas.mention.input_too_long": "Not enough room in the chat input",
+  "chat_canvas.mention.cannot_mention_self": "You cannot mention yourself",
+  "chat_canvas.mention.hint": "Double-click a player name in chat to mention them.",
+  "chat_canvas.unit.milliseconds": "ms"
 }

@@ -1,5 +1,6 @@
 package io.github.ikunkk02.chatcanvas.chat.identity;
 
+import io.github.ikunkk02.chatcanvas.chat.style.TextIndexing;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableTextContent;
 
@@ -48,10 +49,11 @@ public final class PluginChatFallbackResolver {
 					matches.clear();
 					longest = name.length();
 				}
+				var range = TextIndexing.utf16RangeToCodePoints(plain, start, end);
 				matches.add(new ChatMessageMetadata(
 						new PlayerChatIdentity(player.uuid(), player.playerName(), false),
-						start,
-						end
+						range.startCodePoint(),
+						range.endCodePoint()
 				));
 			}
 		}

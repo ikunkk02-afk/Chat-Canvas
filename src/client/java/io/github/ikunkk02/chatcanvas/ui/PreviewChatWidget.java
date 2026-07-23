@@ -176,20 +176,22 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 				session.text(),
 				session.background(),
 				session.playerColors(),
+				session.mention(),
+				Text.translatable("chat_canvas.preview.shouyun_name").getString(),
 				MinecraftClient.getInstance().options.getTextBackgroundOpacity().getValue()
 		));
 		drawEditorAssist(context, layout);
 	}
 
 	private List<PreviewChatMessage> previewMessages() {
+		String shouyunName = Text.translatable("chat_canvas.preview.shouyun_name").getString();
 		MutableText steve = Text.literal("Steve: ").formatted(Formatting.WHITE)
+				.append(Text.literal("@" + shouyunName + " ").formatted(Formatting.WHITE))
 				.append(Text.translatable("chat_canvas.preview.steve").formatted(Formatting.WHITE));
 		MutableText alex = Text.literal("Alex: ").formatted(Formatting.WHITE)
 				.append(Text.translatable("chat_canvas.preview.alex").formatted(Formatting.WHITE));
-		String shouyunName = Text.translatable("chat_canvas.preview.shouyun_name").getString();
 		MutableText shouyun = Text.literal(shouyunName).formatted(Formatting.WHITE)
 				.append(Text.literal(": ").formatted(Formatting.WHITE))
-				.append(Text.literal("@Steve ").formatted(Formatting.GOLD))
 				.append(Text.translatable("chat_canvas.preview.shouyun_body").formatted(Formatting.WHITE));
 		MutableText system = Text.translatable("chat_canvas.preview.system").formatted(Formatting.GREEN, Formatting.ITALIC);
 		return List.of(

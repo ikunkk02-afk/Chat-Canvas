@@ -23,6 +23,7 @@ class ChatCanvasConfigTest {
 		assertEquals(ChatTextConfig.DEFAULT, config.text());
 		assertEquals(ChatBackgroundConfig.DEFAULT, config.background());
 		assertEquals(PlayerColorConfig.DEFAULT, config.playerColors());
+		assertEquals(MentionConfig.DEFAULT, config.mention());
 		assertTrue(config.recentColors().isEmpty());
 
 		LayoutConfig custom = new LayoutConfig(0.12, 0.31, 0.42, 0.22);
@@ -36,8 +37,9 @@ class ChatCanvasConfigTest {
 				false, PlayerColorMode.VANILLA, java.util.List.of(0x123456),
 				java.util.Map.of("12345678-1234-5678-9abc-123456789abc", 0x654321),
 				java.util.Map.of("Steve", 0xABCDEF), true);
+		MentionConfig mention = new MentionConfig(false, 480, true, 0x123456, false, false);
 		assertTrue(config.save(new ChatCanvasSettings(
-				custom, text, background, playerColors,
+				custom, text, background, playerColors, mention,
 				java.util.List.of(0x123456, 0x654321))));
 		ChatCanvasConfig reloaded = new ChatCanvasConfig(path);
 		reloaded.load();
@@ -45,6 +47,7 @@ class ChatCanvasConfigTest {
 		assertEquals(text, reloaded.text());
 		assertEquals(background, reloaded.background());
 		assertEquals(playerColors, reloaded.playerColors());
+		assertEquals(mention, reloaded.mention());
 		assertEquals(java.util.List.of(0x123456, 0x654321), reloaded.recentColors());
 	}
 
@@ -167,6 +170,7 @@ class ChatCanvasConfigTest {
 				config.background().verticalPadding());
 		assertTrue(config.background().inputBorderEnabled());
 		assertEquals(PlayerColorConfig.DEFAULT, config.playerColors());
+		assertEquals(MentionConfig.DEFAULT, config.mention());
 		assertEquals(java.util.List.of(0x123456, 0xFFFFFF), config.recentColors());
 	}
 }

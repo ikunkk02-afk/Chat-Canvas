@@ -5,6 +5,7 @@ import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.config.LayoutConfig;
 import io.github.ikunkk02.chatcanvas.config.MessageBackgroundMode;
+import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
 import org.junit.jupiter.api.Test;
 
@@ -77,6 +78,22 @@ class EditorHistoryTest {
 
 		assertEquals(PlayerColorConfig.DEFAULT, history.undo().orElseThrow().playerColors());
 		assertEquals(disabled, history.redo().orElseThrow().playerColors());
+	}
+
+	@Test
+	void mentionSettingsShareTheSameUndoTimeline() {
+		EditorSnapshot initial = new EditorSnapshot(
+				LayoutConfig.DEFAULT, ChatTextConfig.DEFAULT,
+				ChatBackgroundConfig.DEFAULT, PlayerColorConfig.DEFAULT, MentionConfig.DEFAULT);
+		MentionConfig changed = MentionConfig.DEFAULT
+				.withDoubleClickIntervalMs(500)
+				.withHighlightBold(false);
+		EditorHistory history = new EditorHistory(initial);
+		history.record(new EditorSnapshot(
+				LayoutConfig.DEFAULT, ChatTextConfig.DEFAULT,
+				ChatBackgroundConfig.DEFAULT, PlayerColorConfig.DEFAULT, changed));
+		assertEquals(MentionConfig.DEFAULT, history.undo().orElseThrow().mention());
+		assertEquals(changed, history.redo().orElseThrow().mention());
 	}
 
 	private static EditorSnapshot snapshot(LayoutConfig layout, ChatTextConfig text) {

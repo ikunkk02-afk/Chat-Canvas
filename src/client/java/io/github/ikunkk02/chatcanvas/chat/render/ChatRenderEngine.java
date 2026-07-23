@@ -14,6 +14,7 @@ import io.github.ikunkk02.chatcanvas.config.PixelLayout;
 import net.minecraft.text.Text;
 import net.minecraft.text.OrderedText;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameColorProvider;
+import io.github.ikunkk02.chatcanvas.chat.style.StyledRangePipeline;
 
 import java.util.List;
 
@@ -28,6 +29,7 @@ public final class ChatRenderEngine {
 	private final AnimationClock animationClock = new AnimationClock();
 	private final AnimatedFloat openProgress = new AnimatedFloat(1.0f, 20.0f);
 	private final PlayerNameColorProvider playerColors = new PlayerNameColorProvider();
+	private final StyledRangePipeline stylePipeline = new StyledRangePipeline();
 
 	private List<PreviewChatMessage> messages = List.of();
 	private PreviewChatState state = PreviewChatState.OPEN;
@@ -78,6 +80,8 @@ public final class ChatRenderEngine {
 				textConfig,
 				backgroundConfig,
 				baseContext.playerColorConfig(),
+				baseContext.mentionConfig(),
+				baseContext.localPlayerName(),
 				baseContext.vanillaBackgroundOpacity()
 		);
 
@@ -104,7 +108,11 @@ public final class ChatRenderEngine {
 				fontScale
 		);
 		List<ChatLayoutCalculator.ChatLine> lines =
-				layoutCalculator.calculate(context.textRenderer(), messages, wrapWidth);
+				layoutCalculator.calculate(
+						context.textRenderer(), messages, wrapWidth,
+						context.localPlayerName(),
+						context.mentionConfig() == null
+								|| context.mentionConfig().requireAtSymbol());
 		ChatVerticalMetrics verticalMetrics = ChatTextLayout.verticalMetrics(
 				context.textRenderer().fontHeight,
 				context.textRenderer().fontHeight,
@@ -153,6 +161,8 @@ public final class ChatRenderEngine {
 							textConfig,
 							backgroundConfig,
 							context.playerColorConfig(),
+							context.mentionConfig(),
+							context.localPlayerName(),
 							context.vanillaBackgroundOpacity()
 					),
 					ChatBackgroundMetrics.messageBounds(
@@ -171,13 +181,15 @@ public final class ChatRenderEngine {
 					vanillaLineOpacity * context.vanillaBackgroundOpacity()
 			);
 			OrderedText renderedLine = line.text();
-			if (line.sender() != null) {
-				var color = playerColors.colorFor(line.sender());
-				if (color.isPresent()) {
-					renderedLine = PlayerColoredOrderedText.colorRange(
-							renderedLine, line.nameStart(), line.nameEnd(), color.getAsInt());
-				}
-			}
+			var color = line.sender() == null
+					? java.util.OptionalInt.empty()
+					: playerColors.colorFor(line.sender());
+			renderedLine = stylePipeline.apply(
+					renderedLine,
+					line.playerNameRange(),
+					color,
+					line.mentionRanges(),
+					context.mentionConfig());
 			lineRenderer.draw(context, renderedLine, lineX, 0, lineOpacity, textConfig.shadow());
 			context.drawContext().getMatrices().pop();
 			lineY -= screenLineHeight;

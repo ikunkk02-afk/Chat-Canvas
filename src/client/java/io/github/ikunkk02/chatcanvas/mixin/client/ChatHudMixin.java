@@ -13,7 +13,9 @@ import io.github.ikunkk02.chatcanvas.chat.layout.ChatLayoutRuntime;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatTextLayout;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatVerticalMetrics;
 import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
-import io.github.ikunkk02.chatcanvas.chat.render.PlayerColoredOrderedText;
+import io.github.ikunkk02.chatcanvas.chat.style.OrderedTextStyleOverlay;
+import io.github.ikunkk02.chatcanvas.chat.style.StyledRangePipeline;
+import io.github.ikunkk02.chatcanvas.chat.style.TextRange;
 import io.github.ikunkk02.chatcanvas.chat.identity.ChatMessageMetadataRegistry;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerColorRuntime;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameHitbox;
@@ -85,6 +87,8 @@ public abstract class ChatHudMixin {
 	@Unique
 	private final Map<OrderedText, ChatHudLine.Visible> chat_canvas$lineLookup =
 			new IdentityHashMap<>();
+	@Unique
+	private final StyledRangePipeline chat_canvas$stylePipeline = new StyledRangePipeline();
 
 	@Inject(method = "render", at = @At("HEAD"))
 	private void chat_canvas$pushLayoutTransform(DrawContext context, int currentTick,
@@ -259,14 +263,18 @@ public abstract class ChatHudMixin {
 		int drawX = (int) Math.round(metrics.drawX());
 		int configuredColor = ChatTextLayout.multiplyAlpha(color, config.textOpacity());
 		OrderedText renderedText = text;
-		ChatMessageMetadataRegistry.VisibleMetadata player =
+		ChatMessageMetadataRegistry.VisibleMetadata metadata =
 				ChatMessageMetadataRegistry.instance().visibleMetadata(text);
-		if (player != null) {
-			var playerColor = PlayerColorRuntime.provider().colorFor(player.sender());
-			if (playerColor.isPresent()) {
-				renderedText = PlayerColoredOrderedText.colorRange(
-						text, player.nameStart(), player.nameEnd(), playerColor.getAsInt());
-			}
+		if (metadata != null) {
+			var playerColor = metadata.sender() == null
+					? java.util.OptionalInt.empty()
+					: PlayerColorRuntime.provider().colorFor(metadata.sender());
+			renderedText = chat_canvas$stylePipeline.apply(
+					text,
+					metadata.playerNameRange(),
+					playerColor,
+					metadata.mentionRanges(),
+					ChatCanvasConfig.instance().mention());
 		}
 		int result;
 		if (config.shadow()) {
@@ -274,8 +282,8 @@ public abstract class ChatHudMixin {
 		} else {
 			result = context.drawText(renderer, renderedText, drawX, y, configuredColor, false);
 		}
-		if (player != null) {
-			chat_canvas$recordPlayerNameHitbox(context, renderer, text, player, drawX, y);
+		if (metadata != null && metadata.sender() != null && metadata.playerNameRange() != null) {
+			chat_canvas$recordPlayerNameHitbox(context, renderer, text, metadata, drawX, y);
 		}
 		return result;
 	}
@@ -460,10 +468,10 @@ public abstract class ChatHudMixin {
 	private void chat_canvas$recordPlayerNameHitbox(
 			DrawContext context, TextRenderer renderer, OrderedText text,
 			ChatMessageMetadataRegistry.VisibleMetadata player, int drawX, int y) {
-		int prefixWidth = renderer.getWidth(PlayerColoredOrderedText.selectRange(
-				text, Integer.MIN_VALUE, player.nameStart()));
-		int nameWidth = renderer.getWidth(PlayerColoredOrderedText.selectRange(
-				text, player.nameStart(), player.nameEnd()));
+		TextRange nameRange = player.playerNameRange();
+		int prefixWidth = renderer.getWidth(OrderedTextStyleOverlay.selectRange(
+				text, new TextRange(0, nameRange.startCodePoint())));
+		int nameWidth = renderer.getWidth(OrderedTextStyleOverlay.selectRange(text, nameRange));
 		if (nameWidth <= 0) return;
 
 		Matrix4f matrix = context.getMatrices().peek().getPositionMatrix();

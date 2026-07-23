@@ -1,5 +1,10 @@
 package io.github.ikunkk02.chatcanvas.chat.identity;
 
+import io.github.ikunkk02.chatcanvas.chat.mention.MentionMatcher;
+import io.github.ikunkk02.chatcanvas.chat.style.TextRange;
+import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
+import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.hud.ChatHudLine;
 import net.minecraft.network.message.MessageSignatureData;
 import net.minecraft.text.OrderedText;
@@ -26,6 +31,9 @@ public final class ChatMessageMetadataRegistry {
 	private final Deque<Text> pendingOrder = new ArrayDeque<>();
 	private final IdentityHashMap<ChatHudLine, ChatMessageMetadata> messages =
 			new IdentityHashMap<>();
+	private final IdentityHashMap<ChatHudLine, MentionAnalysis> mentions =
+			new IdentityHashMap<>();
+	private final Deque<ChatHudLine> mentionOrder = new ArrayDeque<>();
 	private final IdentityHashMap<OrderedText, VisibleMetadata> visible =
 			new IdentityHashMap<>();
 
@@ -50,16 +58,31 @@ public final class ChatMessageMetadataRegistry {
 	}
 
 	public synchronized void registerVisibleLines(ChatHudLine message, List<OrderedText> lines) {
-		ChatMessageMetadata metadata = metadataFor(message);
-		if (metadata == null) return;
-		String playerName = metadata.sender().playerName();
-		boolean registered = false;
-		for (OrderedText line : lines) {
-			if (registered) break;
-			Range range = findRange(line, playerName);
-			if (range != null) {
-				visible.put(line, new VisibleMetadata(metadata.sender(), range.start(), range.end()));
-				registered = true;
+		ChatMessageMetadata sender = metadataFor(message);
+		String plain = message.content().getString();
+		MentionKey key = currentMentionKey();
+		MentionAnalysis mentionAnalysis = mentions.get(message);
+		if (mentionAnalysis == null || !mentionAnalysis.key().equals(key)) {
+			mentionAnalysis = new MentionAnalysis(
+					key,
+					MentionMatcher.findMentions(plain, key.playerName(), key.requireAtSymbol()));
+			if (!mentions.containsKey(message)) mentionOrder.addLast(message);
+			mentions.put(message, mentionAnalysis);
+			while (mentionOrder.size() > CAPACITY) {
+				ChatHudLine oldest = mentionOrder.pollFirst();
+				if (oldest != null) mentions.remove(oldest);
+			}
+		}
+		List<LineIndex> indices = mapLines(plain, lines);
+		for (int index = 0; index < lines.size(); index++) {
+			LineIndex lineIndex = indices.get(index);
+			TextRange senderRange = sender == null
+					? null
+					: lineIndex.localRange(sender.nameStart(), sender.nameEnd());
+			List<TextRange> mentionRanges = lineIndex.localRanges(mentionAnalysis.ranges());
+			if (senderRange != null || !mentionRanges.isEmpty()) {
+				visible.put(lines.get(index), new VisibleMetadata(
+						sender == null ? null : sender.sender(), senderRange, mentionRanges));
 			}
 		}
 	}
@@ -76,6 +99,8 @@ public final class ChatMessageMetadataRegistry {
 		IdentityHashMap<ChatHudLine, Boolean> live = new IdentityHashMap<>();
 		for (ChatHudLine line : retained) live.put(line, Boolean.TRUE);
 		messages.keySet().removeIf(line -> !live.containsKey(line));
+		mentions.keySet().removeIf(line -> !live.containsKey(line));
+		mentionOrder.removeIf(line -> !live.containsKey(line));
 
 		java.util.HashSet<MessageSignatureData> liveSignatures = new java.util.HashSet<>();
 		for (ChatHudLine line : retained) {
@@ -89,6 +114,8 @@ public final class ChatMessageMetadataRegistry {
 		pendingByText.clear();
 		pendingOrder.clear();
 		messages.clear();
+		mentions.clear();
+		mentionOrder.clear();
 		visible.clear();
 	}
 
@@ -120,16 +147,6 @@ public final class ChatMessageMetadataRegistry {
 		return found;
 	}
 
-	private static Range findRange(OrderedText line, String name) {
-		StringBuilder plain = new StringBuilder();
-		line.accept((index, style, codePoint) -> {
-			plain.appendCodePoint(codePoint);
-			return true;
-		});
-		int match = PlayerIdentityResolver.boundedIndexOf(plain.toString(), name, 0);
-		return match < 0 ? null : new Range(match, match + name.length());
-	}
-
 	private void trimSignatures() {
 		Iterator<Map.Entry<MessageSignatureData, ChatMessageMetadata>> iterator =
 				signatures.entrySet().iterator();
@@ -159,9 +176,88 @@ public final class ChatMessageMetadataRegistry {
 		}
 	}
 
-	public record VisibleMetadata(PlayerChatIdentity sender, int nameStart, int nameEnd) {
+	private static MentionKey currentMentionKey() {
+		MinecraftClient client = MinecraftClient.getInstance();
+		String playerName = client.player == null
+				? ""
+				: client.player.getGameProfile().getName();
+		return new MentionKey(
+				PlayerColorConfig.normalizeName(playerName),
+				ChatCanvasConfig.instance().mention().requireAtSymbol());
 	}
 
-	private record Range(int start, int end) {
+	private static List<LineIndex> mapLines(String source, List<OrderedText> lines) {
+		int[] sourceCodePoints = source.codePoints().toArray();
+		int[] cursor = {0};
+		List<LineIndex> result = new java.util.ArrayList<>(lines.size());
+		for (OrderedText line : lines) {
+			List<Integer> globalIndices = new java.util.ArrayList<>();
+			line.accept((ignored, style, codePoint) -> {
+				int mapped = findNextSourceIndex(sourceCodePoints, cursor[0], codePoint);
+				if (mapped >= 0) {
+					globalIndices.add(mapped);
+					cursor[0] = mapped + 1;
+				} else {
+					globalIndices.add(-1);
+				}
+				return true;
+			});
+			result.add(new LineIndex(globalIndices.stream().mapToInt(Integer::intValue).toArray()));
+		}
+		return result;
+	}
+
+	private static int findNextSourceIndex(int[] source, int from, int codePoint) {
+		if (from < source.length && source[from] == codePoint) return from;
+		int limit = Math.min(source.length, from + 32);
+		for (int index = from; index < limit; index++) {
+			int candidate = source[index];
+			if (candidate == codePoint) return index;
+			if (candidate != '\n' && candidate != '\r' && !Character.isWhitespace(candidate)) {
+				break;
+			}
+		}
+		return -1;
+	}
+
+	public record VisibleMetadata(
+			PlayerChatIdentity sender,
+			TextRange playerNameRange,
+			List<TextRange> mentionRanges
+	) {
+		public VisibleMetadata {
+			mentionRanges = mentionRanges == null ? List.of() : List.copyOf(mentionRanges);
+		}
+	}
+
+	private record MentionKey(String playerName, boolean requireAtSymbol) {
+	}
+
+	private record MentionAnalysis(MentionKey key, List<TextRange> ranges) {
+	}
+
+	private record LineIndex(int[] globalCodePointIndices) {
+		private TextRange localRange(int globalStart, int globalEnd) {
+			int first = -1;
+			int last = -1;
+			for (int local = 0; local < globalCodePointIndices.length; local++) {
+				int global = globalCodePointIndices[local];
+				if (global >= globalStart && global < globalEnd) {
+					if (first < 0) first = local;
+					last = local + 1;
+				}
+			}
+			return first < 0 ? null : new TextRange(first, last);
+		}
+
+		private List<TextRange> localRanges(List<TextRange> globalRanges) {
+			if (globalRanges == null || globalRanges.isEmpty()) return List.of();
+			List<TextRange> result = new java.util.ArrayList<>();
+			for (TextRange range : globalRanges) {
+				TextRange local = localRange(range.startCodePoint(), range.endCodePoint());
+				if (local != null) result.add(local);
+			}
+			return List.copyOf(result);
+		}
 	}
 }

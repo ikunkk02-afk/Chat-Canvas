@@ -91,9 +91,14 @@ public final class ChatLayoutRuntime {
 	}
 
 	private record RefreshSignature(int internalWrapWidth, int horizontalPadding,
-									long effectiveScaleBits) {
+									long effectiveScaleBits, String localPlayerName,
+									boolean requireAtSymbol) {
 		private static RefreshSignature from(ChatHudTransform transform) {
 			int horizontalPadding = ChatCanvasConfig.instance().background().horizontalPadding();
+			MinecraftClient client = MinecraftClient.getInstance();
+			String localPlayerName = client.player == null
+					? ""
+					: client.player.getGameProfile().getName().toLowerCase(java.util.Locale.ROOT);
 			return new RefreshSignature(
 					ChatBackgroundMetrics.wrapWidth(
 							transform.internalWrapWidth(),
@@ -101,7 +106,9 @@ public final class ChatLayoutRuntime {
 							transform.effectiveChatScale()
 					),
 					horizontalPadding,
-					Double.doubleToLongBits(transform.effectiveChatScale())
+					Double.doubleToLongBits(transform.effectiveChatScale()),
+					localPlayerName,
+					ChatCanvasConfig.instance().mention().requireAtSymbol()
 			);
 		}
 	}

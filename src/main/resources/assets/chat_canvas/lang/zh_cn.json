@@ -80,5 +80,16 @@
   "chat_canvas.player_colors.restore_defaults": "恢复默认玩家颜色设置",
   "chat_canvas.player_colors.offline_hint": "进入世界后可管理在线玩家",
   "chat_canvas.player_colors.unreliable_sender": "未能可靠识别发送者",
-  "chat_canvas.player_colors.show_hitboxes": "显示名字命中框"
+  "chat_canvas.player_colors.show_hitboxes": "显示名字命中框",
+  "chat_canvas.mention.double_click": "双击名字艾特",
+  "chat_canvas.mention.double_click_interval": "双击间隔",
+  "chat_canvas.mention.highlight": "艾特高亮",
+  "chat_canvas.mention.highlight_color": "高亮颜色",
+  "chat_canvas.mention.highlight_bold": "高亮粗体",
+  "chat_canvas.mention.require_at": "仅识别带 @ 的艾特",
+  "chat_canvas.mention.restore_defaults": "恢复默认艾特设置",
+  "chat_canvas.mention.input_too_long": "输入框长度不足",
+  "chat_canvas.mention.cannot_mention_self": "不能艾特自己",
+  "chat_canvas.mention.hint": "双击玩家名字即可艾特。",
+  "chat_canvas.unit.milliseconds": "毫秒"
 }
