@@ -1,5 +1,9 @@
 package io.github.ikunkk02.chatcanvas.ui;
 
+import io.github.ikunkk02.chatcanvas.chat.render.ChatRenderContext;
+import io.github.ikunkk02.chatcanvas.chat.render.ChatRenderEngine;
+import io.github.ikunkk02.chatcanvas.chat.render.PreviewChatMessage;
+import io.github.ikunkk02.chatcanvas.chat.render.PreviewChatState;
 import io.github.ikunkk02.chatcanvas.config.PixelLayout;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.github.ikunkk02.chatcanvas.editor.LayoutEditorMath;
@@ -11,29 +15,26 @@ import io.wispforest.owo.ui.core.Sizing;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.text.MutableText;
-import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public final class PreviewChatWidget extends BaseComponent {
 	private static final int HANDLE_THICKNESS = 6;
 	private static final int SNAP_DISTANCE = 7;
-	private static final int CONTENT_PADDING = 10;
+	private static final int HANDLE_SIZE = 4;
 
 	private final EditorSession session;
 	private final Runnable changedCallback;
 	private final Runnable committedCallback;
-	private final List<OrderedText> wrappedLines = new ArrayList<>();
+	private final ChatRenderEngine renderEngine = new ChatRenderEngine();
 
 	private ResizeHandle hoveredHandle = ResizeHandle.NONE;
 	private ResizeHandle activeHandle = ResizeHandle.NONE;
 	private PixelLayout dragStartLayout;
 	private double dragStartMouseX;
 	private double dragStartMouseY;
-	private int cachedWrapWidth = -1;
 	private boolean geometryChanged;
 	private boolean snappedX;
 	private boolean snappedY;
@@ -47,6 +48,7 @@ public final class PreviewChatWidget extends BaseComponent {
 		this.screenHeight = screenHeight;
 		this.changedCallback = changedCallback;
 		this.committedCallback = committedCallback;
+		this.renderEngine.messages(previewMessages());
 		PixelLayout layout = session.layout();
 		this.sizing(Sizing.fixed(layout.width()), Sizing.fixed(layout.height()));
 		this.positioning(Positioning.absolute(layout.x(), layout.y()));
@@ -57,7 +59,6 @@ public final class PreviewChatWidget extends BaseComponent {
 		if (this.width != layout.width() || this.height != layout.height()) {
 			this.width = layout.width();
 			this.height = layout.height();
-			cachedWrapWidth = -1;
 		}
 		this.moveTo(layout.x(), layout.y());
 	}
@@ -135,38 +136,22 @@ public final class PreviewChatWidget extends BaseComponent {
 	@Override
 	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
 		PixelLayout layout = session.layout();
-		ModernUiTheme.shadow(context, layout.x(), layout.y(), layout.width(), layout.height());
-		ModernUiTheme.roundedRect(context, layout.x(), layout.y(), layout.width(), layout.height(), 6, 0xD9151820);
-		ModernUiTheme.border(context, layout.x(), layout.y(), layout.width(), layout.height(), 0xAA63718A);
-
-		drawHandleHighlight(context, layout, hoveredHandle);
-		rebuildWrappedTextIfNeeded(layout.width() - CONTENT_PADDING * 2);
-		context.enableScissor(
-				layout.x() + CONTENT_PADDING,
-				layout.y() + CONTENT_PADDING,
-				layout.right() - CONTENT_PADDING,
-				layout.bottom() - CONTENT_PADDING
-		);
 		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
-		int textY = layout.bottom() - CONTENT_PADDING - renderer.fontHeight;
-		for (int index = wrappedLines.size() - 1; index >= 0 && textY >= layout.y() + CONTENT_PADDING; index--) {
-			context.drawText(renderer, wrappedLines.get(index), layout.x() + CONTENT_PADDING, textY, 0xFFF1F3F7, true);
-			textY -= renderer.fontHeight + 2;
-		}
-		context.disableScissor();
+		renderEngine.render(new ChatRenderContext(
+				context,
+				renderer,
+				layout.x(),
+				layout.y(),
+				layout.width(),
+				layout.height(),
+				1.0f,
+				renderEngine.state() == PreviewChatState.OPEN ? 1.0f : 0.0f,
+				Text.translatable("chat_canvas.preview.input_placeholder")
+		));
+		drawEditorAssist(context, layout);
 	}
 
-	private void rebuildWrappedTextIfNeeded(int wrapWidth) {
-		if (wrapWidth == cachedWrapWidth) return;
-		cachedWrapWidth = wrapWidth;
-		wrappedLines.clear();
-		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
-		for (Text message : previewMessages()) {
-			wrappedLines.addAll(renderer.wrapLines(message, Math.max(20, wrapWidth)));
-		}
-	}
-
-	private List<Text> previewMessages() {
+	private List<PreviewChatMessage> previewMessages() {
 		MutableText steve = Text.literal("Steve: ").formatted(Formatting.AQUA)
 				.append(Text.translatable("chat_canvas.preview.steve").formatted(Formatting.WHITE));
 		MutableText alex = Text.literal("Alex: ").formatted(Formatting.LIGHT_PURPLE)
@@ -176,20 +161,40 @@ public final class PreviewChatWidget extends BaseComponent {
 				.append(Text.literal("@Steve ").formatted(Formatting.GOLD))
 				.append(Text.translatable("chat_canvas.preview.shouyun_body").formatted(Formatting.WHITE));
 		MutableText system = Text.translatable("chat_canvas.preview.system").formatted(Formatting.GREEN, Formatting.ITALIC);
-		return List.of(steve, alex, shouyun, system);
+		return List.of(
+				new PreviewChatMessage(steve),
+				new PreviewChatMessage(alex),
+				new PreviewChatMessage(shouyun),
+				new PreviewChatMessage(system)
+		);
 	}
 
-	private void drawHandleHighlight(OwoUIDrawContext context, PixelLayout layout, ResizeHandle handle) {
-		if (handle == ResizeHandle.NONE) return;
+	private void drawEditorAssist(OwoUIDrawContext context, PixelLayout layout) {
+		if (hoveredHandle == ResizeHandle.NONE && activeHandle == ResizeHandle.NONE) return;
 		int color = activeHandle != ResizeHandle.NONE ? 0xFF8EB8FF : 0xCC70A7FF;
-		if (handle == ResizeHandle.MOVE) {
-			ModernUiTheme.border(context, layout.x(), layout.y(), layout.width(), layout.height(), color);
-			return;
-		}
-		if (handle.north()) context.fill(layout.x() + 5, layout.y() - 1, layout.right() - 5, layout.y() + 2, color);
-		if (handle.south()) context.fill(layout.x() + 5, layout.bottom() - 2, layout.right() - 5, layout.bottom() + 1, color);
-		if (handle.west()) context.fill(layout.x() - 1, layout.y() + 5, layout.x() + 2, layout.bottom() - 5, color);
-		if (handle.east()) context.fill(layout.right() - 2, layout.y() + 5, layout.right() + 1, layout.bottom() - 5, color);
+		context.fill(layout.x(), layout.y(), layout.right(), layout.y() + 1, color);
+		context.fill(layout.x(), layout.bottom() - 1, layout.right(), layout.bottom(), color);
+		context.fill(layout.x(), layout.y(), layout.x() + 1, layout.bottom(), color);
+		context.fill(layout.right() - 1, layout.y(), layout.right(), layout.bottom(), color);
+
+		int centerX = layout.x() + layout.width() / 2;
+		int centerY = layout.y() + layout.height() / 2;
+		drawHandle(context, layout.x(), layout.y(), color);
+		drawHandle(context, centerX, layout.y(), color);
+		drawHandle(context, layout.right(), layout.y(), color);
+		drawHandle(context, layout.x(), centerY, color);
+		drawHandle(context, layout.right(), centerY, color);
+		drawHandle(context, layout.x(), layout.bottom(), color);
+		drawHandle(context, centerX, layout.bottom(), color);
+		drawHandle(context, layout.right(), layout.bottom(), color);
+	}
+
+	private void drawHandle(OwoUIDrawContext context, int centerX, int centerY, int color) {
+		int half = HANDLE_SIZE / 2;
+		context.fill(centerX - half, centerY - half, centerX - half + HANDLE_SIZE,
+				centerY - half + HANDLE_SIZE, 0xE6151820);
+		context.fill(centerX - half + 1, centerY - half + 1, centerX - half + HANDLE_SIZE - 1,
+				centerY - half + HANDLE_SIZE - 1, color);
 	}
 
 	private static CursorStyle cursorFor(ResizeHandle handle) {
@@ -213,5 +218,13 @@ public final class PreviewChatWidget extends BaseComponent {
 
 	public boolean snappedY() {
 		return snappedY;
+	}
+
+	public PreviewChatState previewState() {
+		return renderEngine.state();
+	}
+
+	public void setPreviewState(PreviewChatState state) {
+		renderEngine.state(state);
 	}
 }

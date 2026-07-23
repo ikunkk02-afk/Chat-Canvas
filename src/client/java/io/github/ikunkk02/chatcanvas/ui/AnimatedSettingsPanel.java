@@ -2,6 +2,7 @@ package io.github.ikunkk02.chatcanvas.ui;
 
 import io.github.ikunkk02.chatcanvas.animation.MotionPreset;
 import io.github.ikunkk02.chatcanvas.animation.SpringValue;
+import io.github.ikunkk02.chatcanvas.chat.render.PreviewChatState;
 import io.github.ikunkk02.chatcanvas.config.PixelLayout;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.wispforest.owo.ui.component.ButtonComponent;
@@ -21,6 +22,8 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public final class AnimatedSettingsPanel {
 	private static final int PANEL_MARGIN = 16;
@@ -31,9 +34,13 @@ public final class AnimatedSettingsPanel {
 	private final Runnable committed;
 	private final Runnable saveAction;
 	private final Runnable cancelAction;
+	private final Supplier<PreviewChatState> previewState;
+	private final Consumer<PreviewChatState> previewStateChanged;
 	private final FlowLayout component;
 	private final Map<Field, TextBoxComponent> fields = new EnumMap<>(Field.class);
 
+	private ButtonComponent openPreviewButton;
+	private ButtonComponent closedPreviewButton;
 	private SpringValue spring;
 	private Side side;
 	private int screenWidth;
@@ -44,12 +51,16 @@ public final class AnimatedSettingsPanel {
 
 	public AnimatedSettingsPanel(EditorSession session, int screenWidth, int screenHeight,
 								 Runnable geometryChanged, Runnable committed,
-								 Runnable saveAction, Runnable cancelAction) {
+								 Runnable saveAction, Runnable cancelAction,
+								 Supplier<PreviewChatState> previewState,
+								 Consumer<PreviewChatState> previewStateChanged) {
 		this.session = session;
 		this.geometryChanged = geometryChanged;
 		this.committed = committed;
 		this.saveAction = saveAction;
 		this.cancelAction = cancelAction;
+		this.previewState = previewState;
+		this.previewStateChanged = previewStateChanged;
 		this.screenWidth = screenWidth;
 		this.screenHeight = screenHeight;
 		this.panelWidth = panelWidth(screenWidth);
@@ -77,6 +88,9 @@ public final class AnimatedSettingsPanel {
 		FlowLayout body = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
 		body.gap(7);
 		body.child(sectionLabel("chat_canvas.category.layout"));
+		body.child(Components.label(Text.translatable("chat_canvas.preview.state")
+				.formatted(Formatting.GRAY)));
+		body.child(previewStateRow());
 		body.child(inputRow(Field.X, "chat_canvas.option.x"));
 		body.child(inputRow(Field.Y, "chat_canvas.option.y"));
 		body.child(inputRow(Field.WIDTH, "chat_canvas.option.width"));
@@ -132,6 +146,34 @@ public final class AnimatedSettingsPanel {
 		actions.child(save);
 		panel.child(actions);
 		return panel;
+	}
+
+	private FlowLayout previewStateRow() {
+		FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
+		row.gap(6);
+		openPreviewButton = ModernUiTheme.button(Text.empty(), button -> {
+			previewStateChanged.accept(PreviewChatState.OPEN);
+			syncPreviewButtons();
+		});
+		closedPreviewButton = ModernUiTheme.button(Text.empty(), button -> {
+			previewStateChanged.accept(PreviewChatState.CLOSED);
+			syncPreviewButtons();
+		});
+		openPreviewButton.sizing(Sizing.fill(50), Sizing.fixed(22));
+		closedPreviewButton.sizing(Sizing.fill(50), Sizing.fixed(22));
+		row.child(openPreviewButton);
+		row.child(closedPreviewButton);
+		syncPreviewButtons();
+		return row;
+	}
+
+	private void syncPreviewButtons() {
+		if (openPreviewButton == null || closedPreviewButton == null) return;
+		boolean open = previewState.get() == PreviewChatState.OPEN;
+		openPreviewButton.setMessage(Text.literal(open ? "● " : "○ ")
+				.append(Text.translatable("chat_canvas.preview.state.open")));
+		closedPreviewButton.setMessage(Text.literal(open ? "○ " : "● ")
+				.append(Text.translatable("chat_canvas.preview.state.closed")));
 	}
 
 	private FlowLayout inputRow(Field field, String translationKey) {

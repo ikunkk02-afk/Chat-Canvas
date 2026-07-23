@@ -29,5 +29,9 @@
   "chat_canvas.preview.alex": "I can come along.",
   "chat_canvas.preview.shouyun_name": "Shouyun",
   "chat_canvas.preview.shouyun_body": "wait for me to get ready.",
-  "chat_canvas.preview.system": "System: Chat Canvas edit mode is enabled."
+  "chat_canvas.preview.system": "System: Chat Canvas edit mode is enabled.",
+  "chat_canvas.preview.state": "Preview state",
+  "chat_canvas.preview.state.open": "Chat open",
+  "chat_canvas.preview.state.closed": "Chat closed",
+  "chat_canvas.preview.input_placeholder": "Type a message..."
 }

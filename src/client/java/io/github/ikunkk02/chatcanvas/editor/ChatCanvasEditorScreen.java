@@ -62,7 +62,8 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 		settingsPanel = new AnimatedSettingsPanel(session, width, height,
 				this::onGeometryChanged, this::refreshHistoryButtons,
-				this::saveAndClose, this::cancelAndClose);
+				this::saveAndClose, this::cancelAndClose,
+				preview::previewState, preview::setPreviewState);
 		root.child(settingsPanel.component());
 
 		toolbar = buildToolbar();

@@ -29,5 +29,9 @@
   "chat_canvas.preview.alex": "我可以一起去。",
   "chat_canvas.preview.shouyun_name": "寿云",
   "chat_canvas.preview.shouyun_body": "等我准备一下。",
-  "chat_canvas.preview.system": "系统：Chat Canvas 编辑模式已开启。"
+  "chat_canvas.preview.system": "系统：Chat Canvas 编辑模式已开启。",
+  "chat_canvas.preview.state": "预览状态",
+  "chat_canvas.preview.state.open": "聊天已打开",
+  "chat_canvas.preview.state.closed": "聊天已关闭",
+  "chat_canvas.preview.input_placeholder": "输入消息……"
 }
