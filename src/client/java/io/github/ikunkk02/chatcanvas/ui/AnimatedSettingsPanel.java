@@ -7,9 +7,15 @@ import io.github.ikunkk02.chatcanvas.config.ChatTextAlignment;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.config.MessageBackgroundMode;
+import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
+import io.github.ikunkk02.chatcanvas.config.PlayerColorMode;
+import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatIdentity;
+import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameColorProvider;
+import io.github.ikunkk02.chatcanvas.chat.identity.PlayerRosterTracker;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.Components;
+import io.wispforest.owo.ui.component.TextBoxComponent;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.ScrollContainer;
@@ -29,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.Locale;
 
 public final class AnimatedSettingsPanel {
 	private static final int PANEL_MARGIN = 16;
@@ -52,6 +59,7 @@ public final class AnimatedSettingsPanel {
 	private final Map<Category, List<ButtonComponent>> pageButtons = new EnumMap<>(Category.class);
 	private final Map<Category, CategoryPage> pages = new EnumMap<>(Category.class);
 	private final SpringValue categorySpring;
+	private final PlayerNameColorProvider playerColorProvider = new PlayerNameColorProvider();
 
 	private ButtonComponent openPreviewButton;
 	private ButtonComponent closedPreviewButton;
@@ -60,6 +68,14 @@ public final class AnimatedSettingsPanel {
 	private ButtonComponent inputColorButton;
 	private ButtonComponent borderColorButton;
 	private ButtonComponent inputBorderButton;
+	private ButtonComponent playerColorsEnabledButton;
+	private ButtonComponent playerAutomaticButton;
+	private ButtonComponent playerVanillaButton;
+	private ButtonComponent hitboxDebugButton;
+	private FlowLayout playerListBody;
+	private String playerSearch = "";
+	private long rosterRevision = Long.MIN_VALUE;
+	private PlayerColorConfig lastPlayerColors;
 	private StackLayout pageHost;
 	private SpringValue spring;
 	private Side side;
@@ -122,15 +138,19 @@ public final class AnimatedSettingsPanel {
 		CategoryPage layoutPage = buildPage(buildLayoutBody());
 		CategoryPage textPage = buildPage(buildTextBody());
 		CategoryPage backgroundPage = buildPage(buildBackgroundBody());
+		CategoryPage playerColorsPage = buildPage(buildPlayerColorsBody());
 		pages.put(Category.LAYOUT, layoutPage);
 		pages.put(Category.TEXT, textPage);
 		pages.put(Category.BACKGROUND, backgroundPage);
+		pages.put(Category.PLAYER_COLORS, playerColorsPage);
 		layoutPage.stack.positioning(Positioning.absolute(0, 0));
 		textPage.stack.positioning(Positioning.absolute(pageWidth(), 0));
 		backgroundPage.stack.positioning(Positioning.absolute(pageWidth() * 2, 0));
+		playerColorsPage.stack.positioning(Positioning.absolute(pageWidth() * 3, 0));
 		pageHost.child(layoutPage.stack);
 		pageHost.child(textPage.stack);
 		pageHost.child(backgroundPage.stack);
+		pageHost.child(playerColorsPage.stack);
 		panel.child(pageHost);
 
 		FlowLayout actions = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(FOOTER_HEIGHT));
@@ -209,7 +229,6 @@ public final class AnimatedSettingsPanel {
 
 		body.child(sectionLabel("chat_canvas.settings.coming_soon"));
 		for (String key : new String[]{
-				"chat_canvas.category.player_colors",
 				"chat_canvas.category.mention",
 				"chat_canvas.category.fade",
 				"chat_canvas.category.command",
@@ -224,6 +243,122 @@ public final class AnimatedSettingsPanel {
 			disabled.sizing(Sizing.fill(100), Sizing.fixed(20));
 			body.child(disabled);
 		}
+		return body;
+	}
+
+	private FlowLayout buildPlayerColorsBody() {
+		FlowLayout body = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		body.padding(Insets.bottom(8));
+		body.gap(7);
+		body.child(sectionLabel("chat_canvas.category.player_colors"));
+
+		playerColorsEnabledButton = ModernUiTheme.button(Text.empty(), button -> {
+			PlayerColorConfig before = session.playerColors();
+			session.setPlayerColors(before.withEnabled(!before.enabled()));
+			session.commit();
+			geometryChanged.run();
+			committed.run();
+			syncFromSession();
+		});
+		playerColorsEnabledButton.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.PLAYER_COLORS, playerColorsEnabledButton);
+		body.child(playerColorsEnabledButton);
+
+		body.child(Components.label(Text.translatable("chat_canvas.player_colors.mode")
+				.formatted(Formatting.LIGHT_PURPLE)));
+		FlowLayout modes = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
+		modes.gap(6);
+		playerAutomaticButton = ModernUiTheme.button(Text.empty(), button ->
+				setPlayerColorMode(PlayerColorMode.AUTOMATIC));
+		playerVanillaButton = ModernUiTheme.button(Text.empty(), button ->
+				setPlayerColorMode(PlayerColorMode.VANILLA));
+		playerAutomaticButton.sizing(Sizing.fill(50), Sizing.fixed(22));
+		playerVanillaButton.sizing(Sizing.fill(50), Sizing.fixed(22));
+		registerPageButton(Category.PLAYER_COLORS, playerAutomaticButton);
+		registerPageButton(Category.PLAYER_COLORS, playerVanillaButton);
+		modes.child(playerAutomaticButton);
+		modes.child(playerVanillaButton);
+		body.child(modes);
+
+		body.child(sectionLabel("chat_canvas.player_colors.palette"));
+		FlowLayout palette = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		palette.gap(4);
+		FlowLayout paletteRow = null;
+		for (int index = 0; index < session.playerColors().palette().size(); index++) {
+			if (index % 6 == 0) {
+				paletteRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(22));
+				paletteRow.gap(4);
+				palette.child(paletteRow);
+			}
+			final int paletteIndex = index;
+			ButtonComponent swatch = ModernUiTheme.button(Text.empty(),
+					button -> openPaletteColorPicker(button, paletteIndex));
+			swatch.sizing(Sizing.fixed(22), Sizing.fixed(22));
+			swatch.renderer((context, component, delta) -> {
+				int color = session.playerColors().palette().get(
+						Math.min(paletteIndex, session.playerColors().palette().size() - 1));
+				ModernUiTheme.roundedRect(context, component.getX(), component.getY(),
+						component.getWidth(), component.getHeight(), 4, 0xFF000000 | color);
+				ModernUiTheme.border(context, component.getX(), component.getY(),
+						component.getWidth(), component.getHeight(), 0xAAFFFFFF);
+			});
+			registerPageButton(Category.PLAYER_COLORS, swatch);
+			paletteRow.child(swatch);
+		}
+		body.child(palette);
+		ButtonComponent restorePalette = ModernUiTheme.button(
+				Text.translatable("chat_canvas.player_colors.restore_palette"), button -> {
+					PlayerColorConfig before = session.playerColors();
+					session.setPlayerColors(before.withDefaultPalette());
+					if (!before.equals(session.playerColors())) {
+						session.commit();
+						geometryChanged.run();
+						committed.run();
+					}
+					syncFromSession();
+				});
+		restorePalette.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.PLAYER_COLORS, restorePalette);
+		body.child(restorePalette);
+
+		body.child(sectionLabel("chat_canvas.player_colors.online"));
+		TextBoxComponent search = Components.textBox(Sizing.fill(100));
+		search.setPlaceholder(Text.translatable("chat_canvas.player_colors.search"));
+		search.onChanged().subscribe(value -> {
+			playerSearch = value == null ? "" : value;
+			rebuildPlayerRows();
+		});
+		body.child(search);
+		playerListBody = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		playerListBody.gap(4);
+		body.child(playerListBody);
+		rebuildPlayerRows();
+
+		hitboxDebugButton = ModernUiTheme.button(Text.empty(), button -> {
+			PlayerColorConfig before = session.playerColors();
+			session.setPlayerColors(before.withShowNameHitboxes(!before.showNameHitboxes()));
+			session.commit();
+			geometryChanged.run();
+			committed.run();
+			syncFromSession();
+		});
+		hitboxDebugButton.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.PLAYER_COLORS, hitboxDebugButton);
+		body.child(hitboxDebugButton);
+
+		ButtonComponent defaults = ModernUiTheme.button(
+				Text.translatable("chat_canvas.player_colors.restore_defaults"), button -> {
+					PlayerColorConfig before = session.playerColors();
+					session.restorePlayerColorDefaults();
+					if (!before.equals(session.playerColors())) {
+						geometryChanged.run();
+						committed.run();
+					}
+					syncFromSession();
+				});
+		defaults.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.PLAYER_COLORS, defaults);
+		body.child(defaults);
 		return body;
 	}
 
@@ -523,6 +658,151 @@ public final class AnimatedSettingsPanel {
 		return button;
 	}
 
+	private void setPlayerColorMode(PlayerColorMode mode) {
+		PlayerColorConfig before = session.playerColors();
+		if (before.mode() == mode) return;
+		session.setPlayerColors(before.withMode(mode));
+		session.commit();
+		geometryChanged.run();
+		committed.run();
+		syncFromSession();
+	}
+
+	private void openPaletteColorPicker(ButtonComponent anchor, int index) {
+		PlayerColorConfig before = session.playerColors();
+		int initial = before.palette().get(index);
+		int defaultColor = PlayerColorConfig.DEFAULT_PALETTE.get(
+				Math.min(index, PlayerColorConfig.DEFAULT_PALETTE.size() - 1));
+		colorPickerLauncher.open(anchor, new ModernColorPickerPopup.Request(
+				initial,
+				defaultColor,
+				session.recentColors().colors(),
+				color -> {
+					session.setPlayerColors(session.playerColors().withPaletteColor(index, color));
+					lastPlayerColors = session.playerColors();
+					geometryChanged.run();
+				},
+				color -> {
+					session.recentColors().add(color);
+					session.commit();
+					lastPlayerColors = session.playerColors();
+					committed.run();
+					rebuildPlayerRows();
+				},
+				() -> {
+					session.setPlayerColors(before);
+					lastPlayerColors = before;
+					geometryChanged.run();
+					rebuildPlayerRows();
+				}
+		));
+	}
+
+	private void rebuildPlayerRows() {
+		if (playerListBody == null) return;
+		playerListBody.clearChildren();
+		if (PlayerRosterTracker.usingPreviewPlayers()) {
+			playerListBody.child(Components.label(
+					Text.translatable("chat_canvas.player_colors.offline_hint")
+							.formatted(Formatting.GRAY)));
+		}
+		String query = playerSearch.trim().toLowerCase(Locale.ROOT);
+		for (PlayerChatIdentity player : PlayerRosterTracker.editorPlayers()) {
+			if (!query.isEmpty()
+					&& !player.playerName().toLowerCase(Locale.ROOT).contains(query)) {
+				continue;
+			}
+			playerListBody.child(playerRow(player));
+		}
+		rosterRevision = PlayerRosterTracker.revision();
+		lastPlayerColors = session.playerColors();
+	}
+
+	private FlowLayout playerRow(PlayerChatIdentity player) {
+		FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
+		row.gap(4);
+		row.verticalAlignment(VerticalAlignment.CENTER);
+		ButtonComponent color = ModernUiTheme.button(Text.empty(),
+				button -> openPlayerColorPicker(button, player));
+		color.sizing(Sizing.fixed(24), Sizing.fixed(20));
+		color.renderer((context, component, delta) -> {
+			playerColorProvider.updateConfig(session.playerColors());
+			int rgb = playerColorProvider.colorFor(player).orElse(0xFFFFFF);
+			ModernUiTheme.roundedRect(context, component.getX(), component.getY(),
+					component.getWidth(), component.getHeight(), 4, 0xFF000000 | rgb);
+			ModernUiTheme.border(context, component.getX(), component.getY(),
+					component.getWidth(), component.getHeight(), 0xAAFFFFFF);
+		});
+		color.mouseDown().subscribe((mouseX, mouseY, button) -> {
+			if (button != 1) return false;
+			restorePlayerAutomatic(player);
+			return true;
+		});
+		row.child(color);
+
+		var name = Components.label(Text.literal(player.playerName()).formatted(Formatting.WHITE));
+		name.horizontalSizing(Sizing.fixed(112));
+		row.child(name);
+		boolean custom = session.playerColors().hasOverride(player.uuid(), player.playerName());
+		var state = Components.label(Text.translatable(custom
+				? "chat_canvas.player_colors.custom"
+				: "chat_canvas.player_colors.automatic").formatted(
+				custom ? Formatting.GOLD : Formatting.GRAY));
+		state.horizontalSizing(Sizing.fixed(46));
+		row.child(state);
+
+		ButtonComponent reset = ModernUiTheme.button(
+				Text.literal("↺"),
+				button -> restorePlayerAutomatic(player));
+		reset.tooltip(Text.translatable("chat_canvas.player_colors.restore_automatic"));
+		reset.sizing(Sizing.fixed(24), Sizing.fixed(20));
+		reset.active(custom);
+		row.child(reset);
+		return row;
+	}
+
+	private void openPlayerColorPicker(ButtonComponent anchor, PlayerChatIdentity player) {
+		PlayerColorConfig before = session.playerColors();
+		playerColorProvider.updateConfig(before);
+		int initial = playerColorProvider.colorFor(player).orElse(0xFFFFFF);
+		colorPickerLauncher.open(anchor, new ModernColorPickerPopup.Request(
+				initial,
+				initial,
+				session.recentColors().colors(),
+				color -> {
+					session.setPlayerColors(session.playerColors()
+							.withUuidOverride(player.uuid(), color));
+					lastPlayerColors = session.playerColors();
+					geometryChanged.run();
+				},
+				color -> {
+					session.recentColors().add(color);
+					session.commit();
+					lastPlayerColors = session.playerColors();
+					committed.run();
+					rebuildPlayerRows();
+				},
+				() -> {
+					session.setPlayerColors(before);
+					lastPlayerColors = before;
+					geometryChanged.run();
+					rebuildPlayerRows();
+				}
+		));
+	}
+
+	private void restorePlayerAutomatic(PlayerChatIdentity player) {
+		PlayerColorConfig before = session.playerColors();
+		PlayerColorConfig after = before.withoutOverrides(player.uuid(), player.playerName());
+		if (before.equals(after)) return;
+		session.setPlayerColors(after);
+		session.commit();
+		geometryChanged.run();
+		committed.run();
+		rebuildPlayerRows();
+		syncFromSession();
+	}
+
 	private void switchCategory(Category category) {
 		if (category == activeCategory) return;
 		activeCategory = category;
@@ -543,6 +823,41 @@ public final class AnimatedSettingsPanel {
 									: "chat_canvas.state.off")));
 		}
 		syncBackgroundButtons();
+		syncPlayerColorButtons();
+		if (lastPlayerColors == null || !lastPlayerColors.equals(session.playerColors())
+				|| rosterRevision != PlayerRosterTracker.revision()) {
+			rebuildPlayerRows();
+		}
+	}
+
+	private void syncPlayerColorButtons() {
+		PlayerColorConfig config = session.playerColors();
+		if (playerColorsEnabledButton != null) {
+			playerColorsEnabledButton.setMessage(
+					Text.translatable("chat_canvas.player_colors.enabled")
+							.append(Text.literal("  "))
+							.append(Text.translatable(config.enabled()
+									? "chat_canvas.state.on"
+									: "chat_canvas.state.off")));
+		}
+		if (playerAutomaticButton != null) {
+			playerAutomaticButton.setMessage(Text.literal(
+					config.mode() == PlayerColorMode.AUTOMATIC ? "● " : "○ ")
+					.append(Text.translatable("chat_canvas.player_colors.automatic")));
+		}
+		if (playerVanillaButton != null) {
+			playerVanillaButton.setMessage(Text.literal(
+					config.mode() == PlayerColorMode.VANILLA ? "● " : "○ ")
+					.append(Text.translatable("chat_canvas.player_colors.vanilla")));
+		}
+		if (hitboxDebugButton != null) {
+			hitboxDebugButton.setMessage(
+					Text.translatable("chat_canvas.player_colors.show_hitboxes")
+							.append(Text.literal("  "))
+							.append(Text.translatable(config.showNameHitboxes()
+									? "chat_canvas.state.on"
+									: "chat_canvas.state.off")));
+		}
 	}
 
 	private void syncBackgroundButtons() {
@@ -585,6 +900,9 @@ public final class AnimatedSettingsPanel {
 	public void update(double deltaSeconds) {
 		updatePanelSide(deltaSeconds);
 		updateCategoryTransition(deltaSeconds);
+		if (rosterRevision != PlayerRosterTracker.revision()) {
+			rebuildPlayerRows();
+		}
 	}
 
 	private void updatePanelSide(double deltaSeconds) {
@@ -719,7 +1037,8 @@ public final class AnimatedSettingsPanel {
 	private enum Category {
 		LAYOUT("chat_canvas.category.layout"),
 		TEXT("chat_canvas.category.text"),
-		BACKGROUND("chat_canvas.category.background");
+		BACKGROUND("chat_canvas.category.background"),
+		PLAYER_COLORS("chat_canvas.category.player_colors");
 
 		private final String translationKey;
 

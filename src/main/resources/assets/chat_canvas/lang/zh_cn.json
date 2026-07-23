@@ -66,5 +66,19 @@
   "chat_canvas.color_picker.hex": "十六进制颜色",
   "chat_canvas.color_picker.recent": "最近使用",
   "chat_canvas.color_picker.restore_default": "恢复默认颜色",
-  "chat_canvas.color_picker.invalid": "无效的颜色值"
+  "chat_canvas.color_picker.invalid": "无效的颜色值",
+  "chat_canvas.player_colors.enabled": "启用玩家颜色",
+  "chat_canvas.player_colors.mode": "颜色模式",
+  "chat_canvas.player_colors.automatic": "自动分配",
+  "chat_canvas.player_colors.vanilla": "保留原始颜色",
+  "chat_canvas.player_colors.palette": "自动颜色池",
+  "chat_canvas.player_colors.online": "在线玩家",
+  "chat_canvas.player_colors.search": "搜索玩家",
+  "chat_canvas.player_colors.custom": "自定义",
+  "chat_canvas.player_colors.restore_automatic": "恢复自动颜色",
+  "chat_canvas.player_colors.restore_palette": "恢复默认颜色池",
+  "chat_canvas.player_colors.restore_defaults": "恢复默认玩家颜色设置",
+  "chat_canvas.player_colors.offline_hint": "进入世界后可管理在线玩家",
+  "chat_canvas.player_colors.unreliable_sender": "未能可靠识别发送者",
+  "chat_canvas.player_colors.show_hitboxes": "显示名字命中框"
 }

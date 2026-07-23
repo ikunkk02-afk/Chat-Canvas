@@ -18,6 +18,9 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatIdentity;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 import java.util.List;
 
@@ -172,26 +175,36 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 				Text.translatable("chat_canvas.preview.input_placeholder"),
 				session.text(),
 				session.background(),
+				session.playerColors(),
 				MinecraftClient.getInstance().options.getTextBackgroundOpacity().getValue()
 		));
 		drawEditorAssist(context, layout);
 	}
 
 	private List<PreviewChatMessage> previewMessages() {
-		MutableText steve = Text.literal("Steve: ").formatted(Formatting.AQUA)
+		MutableText steve = Text.literal("Steve: ").formatted(Formatting.WHITE)
 				.append(Text.translatable("chat_canvas.preview.steve").formatted(Formatting.WHITE));
-		MutableText alex = Text.literal("Alex: ").formatted(Formatting.LIGHT_PURPLE)
+		MutableText alex = Text.literal("Alex: ").formatted(Formatting.WHITE)
 				.append(Text.translatable("chat_canvas.preview.alex").formatted(Formatting.WHITE));
-		MutableText shouyun = Text.translatable("chat_canvas.preview.shouyun_name").formatted(Formatting.YELLOW)
-				.append(Text.literal(": ").formatted(Formatting.YELLOW))
+		String shouyunName = Text.translatable("chat_canvas.preview.shouyun_name").getString();
+		MutableText shouyun = Text.literal(shouyunName).formatted(Formatting.WHITE)
+				.append(Text.literal(": ").formatted(Formatting.WHITE))
 				.append(Text.literal("@Steve ").formatted(Formatting.GOLD))
 				.append(Text.translatable("chat_canvas.preview.shouyun_body").formatted(Formatting.WHITE));
 		MutableText system = Text.translatable("chat_canvas.preview.system").formatted(Formatting.GREEN, Formatting.ITALIC);
 		return List.of(
-				new PreviewChatMessage(steve),
-				new PreviewChatMessage(alex),
-				new PreviewChatMessage(shouyun),
+				new PreviewChatMessage(steve, previewIdentity("Steve")),
+				new PreviewChatMessage(alex, previewIdentity("Alex")),
+				new PreviewChatMessage(shouyun, previewIdentity(shouyunName)),
 				new PreviewChatMessage(system)
+		);
+	}
+
+	private static PlayerChatIdentity previewIdentity(String name) {
+		return new PlayerChatIdentity(
+				UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes(StandardCharsets.UTF_8)),
+				name,
+				true
 		);
 	}
 

@@ -3,6 +3,7 @@ package io.github.ikunkk02.chatcanvas.chat.render;
 import io.wispforest.owo.ui.core.OwoUIDrawContext;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
+import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.text.Text;
 
@@ -18,6 +19,7 @@ public record ChatRenderContext(
 		Text inputPlaceholder,
 		ChatTextConfig textConfig,
 		ChatBackgroundConfig backgroundConfig,
+		PlayerColorConfig playerColorConfig,
 		double vanillaBackgroundOpacity
 ) {
 	public int right() {

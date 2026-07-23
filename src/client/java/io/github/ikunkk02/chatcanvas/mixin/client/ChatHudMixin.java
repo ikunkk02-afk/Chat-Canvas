@@ -13,6 +13,11 @@ import io.github.ikunkk02.chatcanvas.chat.layout.ChatLayoutRuntime;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatTextLayout;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatVerticalMetrics;
 import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
+import io.github.ikunkk02.chatcanvas.chat.render.PlayerColoredOrderedText;
+import io.github.ikunkk02.chatcanvas.chat.identity.ChatMessageMetadataRegistry;
+import io.github.ikunkk02.chatcanvas.chat.identity.PlayerColorRuntime;
+import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameHitbox;
+import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameHitboxRegistry;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
@@ -27,6 +32,8 @@ import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
+import org.joml.Vector4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -40,6 +47,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.text.StringVisitable;
 
 @Mixin(ChatHud.class)
 public abstract class ChatHudMixin {
@@ -49,6 +57,8 @@ public abstract class ChatHudMixin {
 	private MinecraftClient client;
 	@Shadow
 	private List<ChatHudLine.Visible> visibleMessages;
+	@Shadow
+	private List<ChatHudLine> messages;
 	@Shadow
 	public abstract int getWidth();
 	@Shadow
@@ -81,6 +91,7 @@ public abstract class ChatHudMixin {
 												 int mouseX, int mouseY, boolean focused,
 												 CallbackInfo ci) {
 		ChatHudTransform transform = ChatLayoutRuntime.currentTransform();
+		PlayerNameHitboxRegistry.beginFrame();
 		chat_canvas$frameBackground = ChatCanvasConfig.instance().background();
 		context.enableScissor(
 				transform.bounds().left(),
@@ -218,6 +229,22 @@ public abstract class ChatHudMixin {
 	}
 
 	@WrapOperation(
+			method = "addVisibleMessage",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/client/util/ChatMessages;breakRenderedChatMessageLines(Lnet/minecraft/text/StringVisitable;ILnet/minecraft/client/font/TextRenderer;)Ljava/util/List;"
+			)
+	)
+	private List<OrderedText> chat_canvas$bindVisiblePlayerNameRanges(
+			StringVisitable text, int width, TextRenderer renderer,
+			Operation<List<OrderedText>> original,
+			@Local(argsOnly = true) ChatHudLine message) {
+		List<OrderedText> lines = original.call(text, width, renderer);
+		ChatMessageMetadataRegistry.instance().registerVisibleLines(message, lines);
+		return lines;
+	}
+
+	@WrapOperation(
 			method = "render",
 			at = @At(
 					value = "INVOKE",
@@ -231,10 +258,26 @@ public abstract class ChatHudMixin {
 		ChatLineMetrics metrics = chat_canvas$metrics(text);
 		int drawX = (int) Math.round(metrics.drawX());
 		int configuredColor = ChatTextLayout.multiplyAlpha(color, config.textOpacity());
-		if (config.shadow()) {
-			return original.call(context, renderer, text, drawX, y, configuredColor);
+		OrderedText renderedText = text;
+		ChatMessageMetadataRegistry.VisibleMetadata player =
+				ChatMessageMetadataRegistry.instance().visibleMetadata(text);
+		if (player != null) {
+			var playerColor = PlayerColorRuntime.provider().colorFor(player.sender());
+			if (playerColor.isPresent()) {
+				renderedText = PlayerColoredOrderedText.colorRange(
+						text, player.nameStart(), player.nameEnd(), playerColor.getAsInt());
+			}
 		}
-		return context.drawText(renderer, text, drawX, y, configuredColor, false);
+		int result;
+		if (config.shadow()) {
+			result = original.call(context, renderer, renderedText, drawX, y, configuredColor);
+		} else {
+			result = context.drawText(renderer, renderedText, drawX, y, configuredColor, false);
+		}
+		if (player != null) {
+			chat_canvas$recordPlayerNameHitbox(context, renderer, text, player, drawX, y);
+		}
+		return result;
 	}
 
 	@WrapOperation(
@@ -282,10 +325,27 @@ public abstract class ChatHudMixin {
 		cir.setReturnValue((int) Math.round(chat_canvas$metrics(line).indicatorX()));
 	}
 
-	@Inject(method = {"refresh", "clear"}, at = @At("HEAD"))
+	@Inject(method = "refresh", at = @At("HEAD"))
 	private void chat_canvas$clearLineMetrics(CallbackInfo ci) {
 		chat_canvas$lineLookup.clear();
 		ChatLineWidthCache.clear();
+		ChatMessageMetadataRegistry.instance().clearVisible();
+	}
+
+	@Inject(method = "clear", at = @At("HEAD"))
+	private void chat_canvas$clearMessageMetadata(boolean clearHistory, CallbackInfo ci) {
+		chat_canvas$lineLookup.clear();
+		ChatLineWidthCache.clear();
+		ChatMessageMetadataRegistry.instance().clearAll();
+		PlayerNameHitboxRegistry.clear();
+	}
+
+	@Inject(
+			method = "addMessage(Lnet/minecraft/client/gui/hud/ChatHudLine;)V",
+			at = @At("RETURN")
+	)
+	private void chat_canvas$pruneMessageMetadata(ChatHudLine message, CallbackInfo ci) {
+		ChatMessageMetadataRegistry.instance().retainMessages(messages);
 	}
 
 	@ModifyVariable(method = "toChatLineX", at = @At("HEAD"), argsOnly = true, ordinal = 0)
@@ -394,5 +454,40 @@ public abstract class ChatHudMixin {
 		return chat_canvas$frameBackground == null
 				? ChatCanvasConfig.instance().background()
 				: chat_canvas$frameBackground;
+	}
+
+	@Unique
+	private void chat_canvas$recordPlayerNameHitbox(
+			DrawContext context, TextRenderer renderer, OrderedText text,
+			ChatMessageMetadataRegistry.VisibleMetadata player, int drawX, int y) {
+		int prefixWidth = renderer.getWidth(PlayerColoredOrderedText.selectRange(
+				text, Integer.MIN_VALUE, player.nameStart()));
+		int nameWidth = renderer.getWidth(PlayerColoredOrderedText.selectRange(
+				text, player.nameStart(), player.nameEnd()));
+		if (nameWidth <= 0) return;
+
+		Matrix4f matrix = context.getMatrices().peek().getPositionMatrix();
+		Vector4f topLeft = new Vector4f(drawX + prefixWidth, y, 0.0f, 1.0f).mul(matrix);
+		Vector4f bottomRight = new Vector4f(
+				drawX + prefixWidth + nameWidth,
+				y + renderer.fontHeight,
+				0.0f,
+				1.0f
+		).mul(matrix);
+		ChatHudLine.Visible line = chat_canvas$lineLookup.get(text);
+		int messageIndex = line == null ? -1 : visibleMessages.indexOf(line);
+		PlayerNameHitboxRegistry.add(new PlayerNameHitbox(
+				player.sender().uuid(),
+				player.sender().playerName(),
+				messageIndex,
+				Math.min(topLeft.x, bottomRight.x),
+				Math.min(topLeft.y, bottomRight.y),
+				Math.max(topLeft.x, bottomRight.x),
+				Math.max(topLeft.y, bottomRight.y)
+		));
+		if (ChatCanvasConfig.instance().playerColors().showNameHitboxes()) {
+			context.drawBorder(drawX + prefixWidth, y, nameWidth,
+					renderer.fontHeight, 0xFFE66B6B);
+		}
 	}
 }

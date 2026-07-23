@@ -19,6 +19,8 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public final class ChatCanvasConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -58,6 +60,10 @@ public final class ChatCanvasConfig {
 		return settings.background();
 	}
 
+	public synchronized PlayerColorConfig playerColors() {
+		return settings.playerColors();
+	}
+
 	public synchronized List<Integer> recentColors() {
 		return settings.recentColors();
 	}
@@ -89,7 +95,7 @@ public final class ChatCanvasConfig {
 
 	public synchronized boolean save(LayoutConfig value) {
 		return save(new ChatCanvasSettings(
-				value, settings.text(), settings.background(), settings.recentColors()));
+				value, settings.text(), settings.background(), settings.playerColors(), settings.recentColors()));
 	}
 
 	public synchronized boolean save(ChatCanvasSettings value) {
@@ -163,10 +169,24 @@ public final class ChatCanvasConfig {
 						intOr(background, "inputBorderColor", backgroundDefaults.inputBorderColor()),
 						doubleOr(background, "inputBorderOpacity", backgroundDefaults.inputBorderOpacity())
 				).sanitized();
+
+		PlayerColorConfig playerDefaults = PlayerColorConfig.DEFAULT;
+		JsonObject playerColors = objectOr(root, "playerColors", null);
+		PlayerColorConfig parsedPlayerColors = playerColors == null
+				? playerDefaults
+				: new PlayerColorConfig(
+						booleanOr(playerColors, "enabled", playerDefaults.enabled()),
+						playerColorModeOr(playerColors, "mode", playerDefaults.mode()),
+						colorListOr(playerColors, "palette", playerDefaults.palette()),
+						colorMapOr(playerColors, "uuidOverrides"),
+						colorMapOr(playerColors, "nameOverrides"),
+						booleanOr(playerColors, "showNameHitboxes", false)
+				).sanitized();
 		return new ChatCanvasSettings(
 				parsedLayout,
 				parsedText,
 				parsedBackground,
+				parsedPlayerColors,
 				recentColorsOr(root, "recentColors")
 		);
 	}
@@ -201,6 +221,20 @@ public final class ChatCanvasConfig {
 		backgroundObject.addProperty("inputBorderColor", background.inputBorderColor());
 		backgroundObject.addProperty("inputBorderOpacity", background.inputBorderOpacity());
 		root.add("background", backgroundObject);
+
+		PlayerColorConfig playerColors = value.playerColors();
+		JsonObject playerObject = new JsonObject();
+		playerObject.addProperty("enabled", playerColors.enabled());
+		playerObject.addProperty("mode", playerColors.mode().name());
+		JsonArray palette = new JsonArray();
+		for (int color : playerColors.palette()) {
+			palette.add(color);
+		}
+		playerObject.add("palette", palette);
+		playerObject.add("uuidOverrides", colorMapToJson(playerColors.uuidOverrides()));
+		playerObject.add("nameOverrides", colorMapToJson(playerColors.nameOverrides()));
+		playerObject.addProperty("showNameHitboxes", playerColors.showNameHitboxes());
+		root.add("playerColors", playerObject);
 
 		JsonArray recentColors = new JsonArray();
 		for (int color : value.recentColors()) {
@@ -275,6 +309,57 @@ public final class ChatCanvasConfig {
 		} catch (RuntimeException ignored) {
 			return fallback;
 		}
+	}
+
+	private static PlayerColorMode playerColorModeOr(JsonObject object, String key,
+													 PlayerColorMode fallback) {
+		JsonElement element = object.get(key);
+		if (element == null || element.isJsonNull() || !element.isJsonPrimitive()) {
+			return fallback;
+		}
+		try {
+			return PlayerColorMode.valueOf(element.getAsString().toUpperCase(Locale.ROOT));
+		} catch (RuntimeException ignored) {
+			return fallback;
+		}
+	}
+
+	private static List<Integer> colorListOr(JsonObject object, String key, List<Integer> fallback) {
+		JsonElement element = object.get(key);
+		if (element == null || !element.isJsonArray()) return fallback;
+		List<Integer> colors = new ArrayList<>();
+		for (JsonElement candidate : element.getAsJsonArray()) {
+			if (candidate == null || !candidate.isJsonPrimitive()) continue;
+			try {
+				int color = candidate.getAsInt();
+				if (color >= 0 && color <= 0xFFFFFF) colors.add(color);
+			} catch (RuntimeException ignored) {
+				// Ignore malformed entries.
+			}
+		}
+		return colors.isEmpty() ? fallback : colors;
+	}
+
+	private static Map<String, Integer> colorMapOr(JsonObject object, String key) {
+		JsonElement element = object.get(key);
+		if (element == null || !element.isJsonObject()) return Map.of();
+		Map<String, Integer> result = new LinkedHashMap<>();
+		for (Map.Entry<String, JsonElement> entry : element.getAsJsonObject().entrySet()) {
+			if (entry.getValue() == null || !entry.getValue().isJsonPrimitive()) continue;
+			try {
+				int color = entry.getValue().getAsInt();
+				if (color >= 0 && color <= 0xFFFFFF) result.put(entry.getKey(), color);
+			} catch (RuntimeException ignored) {
+				// Ignore malformed entries.
+			}
+		}
+		return result;
+	}
+
+	private static JsonObject colorMapToJson(Map<String, Integer> values) {
+		JsonObject result = new JsonObject();
+		values.forEach(result::addProperty);
+		return result;
 	}
 
 	private static List<Integer> recentColorsOr(JsonObject root, String key) {

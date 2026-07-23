@@ -6,6 +6,7 @@ import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.config.LayoutConfig;
 import io.github.ikunkk02.chatcanvas.config.PixelLayout;
 import io.github.ikunkk02.chatcanvas.config.RecentColorStore;
+import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
 
 public final class EditorSession {
 	private final EditorSnapshot original;
@@ -14,6 +15,7 @@ public final class EditorSession {
 	private PixelLayout layout;
 	private ChatTextConfig text;
 	private ChatBackgroundConfig background;
+	private PlayerColorConfig playerColors;
 	private int screenWidth;
 	private int screenHeight;
 
@@ -23,12 +25,13 @@ public final class EditorSession {
 
 	public EditorSession(ChatCanvasSettings original, int screenWidth, int screenHeight) {
 		ChatCanvasSettings safe = original.sanitized();
-		this.original = new EditorSnapshot(safe.layout(), safe.text(), safe.background());
+		this.original = new EditorSnapshot(safe.layout(), safe.text(), safe.background(), safe.playerColors());
 		this.screenWidth = Math.max(1, screenWidth);
 		this.screenHeight = Math.max(1, screenHeight);
 		this.layout = this.original.layout().toPixels(this.screenWidth, this.screenHeight);
 		this.text = this.original.text();
 		this.background = this.original.background();
+		this.playerColors = this.original.playerColors();
 		this.recentColors = new RecentColorStore(safe.recentColors());
 		this.history = new EditorHistory(snapshot());
 	}
@@ -45,6 +48,10 @@ public final class EditorSession {
 		return background;
 	}
 
+	public PlayerColorConfig playerColors() {
+		return playerColors;
+	}
+
 	public RecentColorStore recentColors() {
 		return recentColors;
 	}
@@ -57,7 +64,8 @@ public final class EditorSession {
 		return new EditorSnapshot(
 				LayoutConfig.fromPixels(layout, screenWidth, screenHeight),
 				text,
-				background
+				background,
+				playerColors
 		);
 	}
 
@@ -67,6 +75,7 @@ public final class EditorSession {
 				snapshot.layout(),
 				snapshot.text(),
 				snapshot.background(),
+				snapshot.playerColors(),
 				recentColors.colors()
 		);
 	}
@@ -87,10 +96,15 @@ public final class EditorSession {
 		background = value.sanitized();
 	}
 
+	public void setPlayerColors(PlayerColorConfig value) {
+		playerColors = value.sanitized();
+	}
+
 	public void apply(EditorSnapshot value) {
 		layout = value.layout().toPixels(screenWidth, screenHeight);
 		text = value.text();
 		background = value.background();
+		playerColors = value.playerColors();
 	}
 
 	public void resizeViewport(int width, int height) {
@@ -112,6 +126,11 @@ public final class EditorSession {
 
 	public void restoreBackgroundDefaults() {
 		setBackground(ChatBackgroundConfig.DEFAULT);
+		commit();
+	}
+
+	public void restorePlayerColorDefaults() {
+		setPlayerColors(PlayerColorConfig.DEFAULT);
 		commit();
 	}
 

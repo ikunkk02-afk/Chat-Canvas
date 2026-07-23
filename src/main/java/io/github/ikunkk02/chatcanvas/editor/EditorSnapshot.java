@@ -4,23 +4,30 @@ import io.github.ikunkk02.chatcanvas.config.ChatCanvasSettings;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.config.LayoutConfig;
+import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
 
 public record EditorSnapshot(
 		LayoutConfig layout,
 		ChatTextConfig text,
-		ChatBackgroundConfig background
+		ChatBackgroundConfig background,
+		PlayerColorConfig playerColors
 ) {
 	public EditorSnapshot(LayoutConfig layout, ChatTextConfig text) {
-		this(layout, text, ChatBackgroundConfig.DEFAULT);
+		this(layout, text, ChatBackgroundConfig.DEFAULT, PlayerColorConfig.DEFAULT);
+	}
+
+	public EditorSnapshot(LayoutConfig layout, ChatTextConfig text, ChatBackgroundConfig background) {
+		this(layout, text, background, PlayerColorConfig.DEFAULT);
 	}
 
 	public EditorSnapshot {
 		layout = layout == null ? LayoutConfig.DEFAULT : layout.sanitized();
 		text = text == null ? ChatTextConfig.DEFAULT : text.sanitized();
 		background = background == null ? ChatBackgroundConfig.DEFAULT : background.sanitized();
+		playerColors = playerColors == null ? PlayerColorConfig.DEFAULT : playerColors.sanitized();
 	}
 
 	public ChatCanvasSettings settings() {
-		return new ChatCanvasSettings(layout, text, background);
+		return new ChatCanvasSettings(layout, text, background, playerColors, java.util.List.of());
 	}
 }

@@ -66,5 +66,19 @@
   "chat_canvas.color_picker.hex": "Hex Color",
   "chat_canvas.color_picker.recent": "Recently Used",
   "chat_canvas.color_picker.restore_default": "Default Color",
-  "chat_canvas.color_picker.invalid": "Invalid color value"
+  "chat_canvas.color_picker.invalid": "Invalid color value",
+  "chat_canvas.player_colors.enabled": "Enable Player Colors",
+  "chat_canvas.player_colors.mode": "Color Mode",
+  "chat_canvas.player_colors.automatic": "Automatic",
+  "chat_canvas.player_colors.vanilla": "Keep Original Colors",
+  "chat_canvas.player_colors.palette": "Automatic Color Palette",
+  "chat_canvas.player_colors.online": "Online Players",
+  "chat_canvas.player_colors.search": "Search players",
+  "chat_canvas.player_colors.custom": "Custom",
+  "chat_canvas.player_colors.restore_automatic": "Auto",
+  "chat_canvas.player_colors.restore_palette": "Restore Default Palette",
+  "chat_canvas.player_colors.restore_defaults": "Restore Default Player Color Settings",
+  "chat_canvas.player_colors.offline_hint": "Join a world to manage online players",
+  "chat_canvas.player_colors.unreliable_sender": "Could not reliably identify sender",
+  "chat_canvas.player_colors.show_hitboxes": "Show Name Hitboxes"
 }

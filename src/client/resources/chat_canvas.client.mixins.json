@@ -7,7 +7,8 @@
     "ChatHudAccessor",
     "ChatHudMixin",
     "ChatScreenAccessor",
-    "ChatScreenMixin"
+    "ChatScreenMixin",
+    "ClientPlayNetworkHandlerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

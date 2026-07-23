@@ -5,6 +5,7 @@ import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.config.LayoutConfig;
 import io.github.ikunkk02.chatcanvas.config.MessageBackgroundMode;
+import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -61,6 +62,21 @@ class EditorHistoryTest {
 
 		assertEquals(ChatBackgroundConfig.DEFAULT, history.undo().orElseThrow().background());
 		assertEquals(hidden, history.redo().orElseThrow().background());
+	}
+
+	@Test
+	void playerColorsShareTheSameUndoTimeline() {
+		EditorSnapshot initial = new EditorSnapshot(
+				LayoutConfig.DEFAULT, ChatTextConfig.DEFAULT,
+				ChatBackgroundConfig.DEFAULT, PlayerColorConfig.DEFAULT);
+		EditorHistory history = new EditorHistory(initial);
+		PlayerColorConfig disabled = PlayerColorConfig.DEFAULT.withEnabled(false);
+		history.record(new EditorSnapshot(
+				LayoutConfig.DEFAULT, ChatTextConfig.DEFAULT,
+				ChatBackgroundConfig.DEFAULT, disabled));
+
+		assertEquals(PlayerColorConfig.DEFAULT, history.undo().orElseThrow().playerColors());
+		assertEquals(disabled, history.redo().orElseThrow().playerColors());
 	}
 
 	private static EditorSnapshot snapshot(LayoutConfig layout, ChatTextConfig text) {
