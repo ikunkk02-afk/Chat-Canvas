@@ -2,13 +2,15 @@ package io.github.ikunkk02.chatcanvas.chat.render;
 
 import io.github.ikunkk02.chatcanvas.animation.AnimatedFloat;
 import io.github.ikunkk02.chatcanvas.animation.AnimationClock;
+import io.github.ikunkk02.chatcanvas.chat.layout.RuntimeChatBounds;
+import io.github.ikunkk02.chatcanvas.config.PixelLayout;
 import net.minecraft.text.Text;
 
 import java.util.List;
 
 public final class ChatRenderEngine {
 	private static final int HORIZONTAL_PADDING = 3;
-	private static final int INPUT_HEIGHT = 14;
+	private static final int INPUT_VERTICAL_PADDING = 3;
 	private static final int LINE_GAP = 1;
 	private static final float CLOSED_OPACITY = 0.58f;
 
@@ -41,7 +43,8 @@ public final class ChatRenderEngine {
 	public void render(ChatRenderContext baseContext) {
 		float progress = openProgress.update(animationClock.tick());
 		float opacity = lerp(CLOSED_OPACITY, 1.0f, progress);
-		int inputHeight = Math.round(INPUT_HEIGHT * progress);
+		int fullInputHeight = baseContext.textRenderer().fontHeight + INPUT_VERTICAL_PADDING;
+		int inputHeight = Math.round(fullInputHeight * progress);
 		ChatRenderContext context = new ChatRenderContext(
 				baseContext.drawContext(),
 				baseContext.textRenderer(),
@@ -54,18 +57,26 @@ public final class ChatRenderEngine {
 				baseContext.inputPlaceholder()
 		);
 
-		context.drawContext().enableScissor(context.x(), context.y(), context.right(), context.bottom());
+		PixelLayout totalLayout = new PixelLayout(context.x(), context.y(), context.width(), context.height());
+		RuntimeChatBounds bounds = RuntimeChatBounds.calculate(
+				totalLayout,
+				inputHeight > 0,
+				inputHeight,
+				Math.round(RuntimeChatBounds.DEFAULT_INPUT_GAP * progress),
+				context.textRenderer().fontHeight + LINE_GAP
+		);
 		if (inputHeight > 0) {
-			drawInput(context, inputHeight);
+			drawInput(context, bounds);
 		}
 
 		int wrapWidth = Math.max(1, context.width() - HORIZONTAL_PADDING * 2);
 		List<ChatLayoutCalculator.ChatLine> lines =
 				layoutCalculator.calculate(context.textRenderer(), messages, wrapWidth);
-		int messageBottom = context.bottom() - inputHeight - Math.round(2 * progress);
-		int lineY = messageBottom - context.textRenderer().fontHeight;
-		int minimumY = context.y();
+		int lineY = bounds.messageBottom() - context.textRenderer().fontHeight;
+		int minimumY = bounds.messageTop();
 		int depth = 0;
+		context.drawContext().enableScissor(
+				bounds.left(), bounds.messageTop(), bounds.right(), bounds.messageBottom());
 		for (int index = lines.size() - 1; index >= 0 && lineY >= minimumY; index--) {
 			ChatLayoutCalculator.ChatLine line = lines.get(index);
 			float ageFade = state == PreviewChatState.CLOSED
@@ -81,8 +92,9 @@ public final class ChatRenderEngine {
 		context.drawContext().disableScissor();
 	}
 
-	private void drawInput(ChatRenderContext context, int inputHeight) {
-		int inputY = context.bottom() - inputHeight;
+	private void drawInput(ChatRenderContext context, RuntimeChatBounds bounds) {
+		int inputHeight = bounds.inputHeight();
+		int inputY = bounds.inputTop();
 		backgroundRenderer.drawInputBackground(context, inputY, inputHeight);
 		int textY = inputY + Math.max(1, (inputHeight - context.textRenderer().fontHeight) / 2);
 		int color = (Math.round(190 * context.inputProgress()) << 24) | 0xC8CDD6;
@@ -92,7 +104,7 @@ public final class ChatRenderEngine {
 		int cursorX = Math.min(context.right() - 2,
 				textX + context.textRenderer().getWidth(context.inputPlaceholder()) + 2);
 		context.drawContext().fill(cursorX, textY, cursorX + 1,
-				Math.min(context.bottom() - 1, textY + context.textRenderer().fontHeight),
+				Math.min(bounds.inputBottom() - 1, textY + context.textRenderer().fontHeight),
 				(Math.round(220 * context.inputProgress()) << 24) | 0xFFFFFF);
 	}
 

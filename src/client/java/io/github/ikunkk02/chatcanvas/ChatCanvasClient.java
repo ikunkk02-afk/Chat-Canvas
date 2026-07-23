@@ -1,5 +1,6 @@
 package io.github.ikunkk02.chatcanvas;
 
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatLayoutRuntime;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.editor.ChatCanvasEditorScreen;
 import net.fabricmc.api.ClientModInitializer;
@@ -23,6 +24,7 @@ public final class ChatCanvasClient implements ClientModInitializer {
 		));
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			ChatLayoutRuntime.tick(client);
 			while (openEditor.wasPressed()) {
 				if (!(client.currentScreen instanceof ChatCanvasEditorScreen)) {
 					client.setScreen(new ChatCanvasEditorScreen(client.currentScreen));

@@ -5,6 +5,7 @@ import io.github.ikunkk02.chatcanvas.chat.render.ChatRenderEngine;
 import io.github.ikunkk02.chatcanvas.chat.render.PreviewChatMessage;
 import io.github.ikunkk02.chatcanvas.chat.render.PreviewChatState;
 import io.github.ikunkk02.chatcanvas.config.PixelLayout;
+import io.github.ikunkk02.chatcanvas.editor.EditorPointerTarget;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.github.ikunkk02.chatcanvas.editor.LayoutEditorMath;
 import io.wispforest.owo.ui.base.BaseComponent;
@@ -20,8 +21,8 @@ import net.minecraft.util.Formatting;
 
 import java.util.List;
 
-public final class PreviewChatWidget extends BaseComponent {
-	private static final int HANDLE_THICKNESS = 6;
+public final class PreviewChatWidget extends BaseComponent implements EditorPointerTarget {
+	private static final int HANDLE_THICKNESS = 7;
 	private static final int SNAP_DISTANCE = 7;
 	private static final int HANDLE_SIZE = 4;
 
@@ -56,11 +57,12 @@ public final class PreviewChatWidget extends BaseComponent {
 
 	public void syncFromSession() {
 		PixelLayout layout = session.layout();
-		if (this.width != layout.width() || this.height != layout.height()) {
-			this.width = layout.width();
-			this.height = layout.height();
-		}
-		this.moveTo(layout.x(), layout.y());
+		if (this.width() == layout.width() && this.height() == layout.height()
+				&& this.x() == layout.x() && this.y() == layout.y()) return;
+		this.<PreviewChatWidget>configure(component -> {
+			component.sizing(Sizing.fixed(layout.width()), Sizing.fixed(layout.height()));
+			component.positioning(Positioning.absolute(layout.x(), layout.y()));
+		});
 	}
 
 	public void resizeViewport(int width, int height) {
@@ -78,11 +80,16 @@ public final class PreviewChatWidget extends BaseComponent {
 		this.cursorStyle(cursorFor(hoveredHandle));
 	}
 
+	public boolean containsInteraction(double mouseX, double mouseY) {
+		return ResizeHandle.hitTest(session.layout(), mouseX, mouseY, HANDLE_THICKNESS) != ResizeHandle.NONE;
+	}
+
 	@Override
-	public boolean onMouseDown(double mouseX, double mouseY, int button) {
-		if (button != 0) return super.onMouseDown(mouseX, mouseY, button);
+	public boolean beginPointerInteraction(double mouseX, double mouseY, int button,
+										   boolean shiftDown, boolean controlDown) {
+		if (button != 0) return false;
 		ResizeHandle handle = ResizeHandle.hitTest(session.layout(), mouseX, mouseY, HANDLE_THICKNESS);
-		if (handle == ResizeHandle.NONE) return super.onMouseDown(mouseX, mouseY, button);
+		if (handle == ResizeHandle.NONE) return false;
 		activeHandle = handle;
 		dragStartLayout = session.layout();
 		dragStartMouseX = mouseX;
@@ -94,9 +101,9 @@ public final class PreviewChatWidget extends BaseComponent {
 	}
 
 	@Override
-	public boolean onMouseDrag(double mouseX, double mouseY, double deltaX, double deltaY, int button) {
+	public boolean dragPointer(double mouseX, double mouseY, int button) {
 		if (button != 0 || activeHandle == ResizeHandle.NONE || dragStartLayout == null) {
-			return super.onMouseDrag(mouseX, mouseY, deltaX, deltaY, button);
+			return false;
 		}
 		int totalX = (int) Math.round(mouseX - dragStartMouseX);
 		int totalY = (int) Math.round(mouseY - dragStartMouseY);
@@ -118,19 +125,35 @@ public final class PreviewChatWidget extends BaseComponent {
 	}
 
 	@Override
-	public boolean onMouseUp(double mouseX, double mouseY, int button) {
+	public boolean endPointerInteraction(double mouseX, double mouseY, int button) {
 		if (button == 0 && activeHandle != ResizeHandle.NONE) {
-			activeHandle = ResizeHandle.NONE;
-			dragStartLayout = null;
-			snappedX = false;
-			snappedY = false;
+			clearPointerState();
 			if (geometryChanged) {
 				committedCallback.run();
 			}
 			geometryChanged = false;
 			return true;
 		}
-		return super.onMouseUp(mouseX, mouseY, button);
+		return false;
+	}
+
+	@Override
+	public void cancelPointerInteraction() {
+		if (activeHandle == ResizeHandle.NONE) return;
+		if (geometryChanged && dragStartLayout != null) {
+			session.setLayout(dragStartLayout);
+			syncFromSession();
+			changedCallback.run();
+		}
+		clearPointerState();
+		geometryChanged = false;
+	}
+
+	private void clearPointerState() {
+		activeHandle = ResizeHandle.NONE;
+		dragStartLayout = null;
+		snappedX = false;
+		snappedY = false;
 	}
 
 	@Override

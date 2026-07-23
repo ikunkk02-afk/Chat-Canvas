@@ -3,11 +3,9 @@ package io.github.ikunkk02.chatcanvas.ui;
 import io.github.ikunkk02.chatcanvas.animation.MotionPreset;
 import io.github.ikunkk02.chatcanvas.animation.SpringValue;
 import io.github.ikunkk02.chatcanvas.chat.render.PreviewChatState;
-import io.github.ikunkk02.chatcanvas.config.PixelLayout;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.Components;
-import io.wispforest.owo.ui.component.TextBoxComponent;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.ScrollContainer;
@@ -18,7 +16,7 @@ import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.VerticalAlignment;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import org.lwjgl.glfw.GLFW;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -37,7 +35,8 @@ public final class AnimatedSettingsPanel {
 	private final Supplier<PreviewChatState> previewState;
 	private final Consumer<PreviewChatState> previewStateChanged;
 	private final FlowLayout component;
-	private final Map<Field, TextBoxComponent> fields = new EnumMap<>(Field.class);
+	private final Map<NumericScrubberComponent.Property, NumericScrubberComponent> scrubbers =
+			new EnumMap<>(NumericScrubberComponent.Property.class);
 
 	private ButtonComponent openPreviewButton;
 	private ButtonComponent closedPreviewButton;
@@ -47,7 +46,6 @@ public final class AnimatedSettingsPanel {
 	private int screenHeight;
 	private int panelWidth;
 	private int panelHeight;
-	private boolean syncing;
 
 	public AnimatedSettingsPanel(EditorSession session, int screenWidth, int screenHeight,
 								 Runnable geometryChanged, Runnable committed,
@@ -91,10 +89,10 @@ public final class AnimatedSettingsPanel {
 		body.child(Components.label(Text.translatable("chat_canvas.preview.state")
 				.formatted(Formatting.GRAY)));
 		body.child(previewStateRow());
-		body.child(inputRow(Field.X, "chat_canvas.option.x"));
-		body.child(inputRow(Field.Y, "chat_canvas.option.y"));
-		body.child(inputRow(Field.WIDTH, "chat_canvas.option.width"));
-		body.child(inputRow(Field.HEIGHT, "chat_canvas.option.height"));
+		body.child(scrubber(NumericScrubberComponent.Property.X, "chat_canvas.option.x"));
+		body.child(scrubber(NumericScrubberComponent.Property.Y, "chat_canvas.option.y"));
+		body.child(scrubber(NumericScrubberComponent.Property.WIDTH, "chat_canvas.option.width"));
+		body.child(scrubber(NumericScrubberComponent.Property.HEIGHT, "chat_canvas.option.height"));
 
 		ButtonComponent defaults = ModernUiTheme.button(
 				Text.translatable("chat_canvas.action.restore_defaults"),
@@ -176,108 +174,22 @@ public final class AnimatedSettingsPanel {
 				.append(Text.translatable("chat_canvas.preview.state.closed")));
 	}
 
-	private FlowLayout inputRow(Field field, String translationKey) {
-		FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
-		row.horizontalAlignment(HorizontalAlignment.RIGHT);
-		row.verticalAlignment(VerticalAlignment.CENTER);
-		row.gap(8);
-		var label = Components.label(Text.translatable(translationKey).formatted(Formatting.LIGHT_PURPLE));
-		label.horizontalSizing(Sizing.fill(60));
-		row.child(label);
-
-		TextBoxComponent input = Components.textBox(Sizing.fixed(72));
-		input.setMaxLength(8);
-		input.onChanged().subscribe(value -> onInputChanged(field, input, value));
-		input.focusLost().subscribe(() -> commitInput(input));
-		input.keyPress().subscribe((keyCode, scanCode, modifiers) -> {
-			if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
-				commitInput(input);
-			}
-			return false;
-		});
-		fields.put(field, input);
-		row.child(input);
-		return row;
-	}
-
-	private void onInputChanged(Field field, TextBoxComponent input, String value) {
-		if (syncing) return;
-		try {
-			int parsed = Integer.parseInt(value.trim());
-			PixelLayout layout = session.layout();
-			PixelLayout changed = switch (field) {
-				case X -> new PixelLayout(parsed, layout.y(), layout.width(), layout.height());
-				case Y -> new PixelLayout(layout.x(), parsed, layout.width(), layout.height());
-				case WIDTH -> new PixelLayout(layout.x(), layout.y(), parsed, layout.height());
-				case HEIGHT -> new PixelLayout(layout.x(), layout.y(), layout.width(), parsed);
-			};
-			session.setLayout(changed);
-			input.setEditableColor(0xE9EDF4);
-			geometryChanged.run();
-		} catch (NumberFormatException exception) {
-			input.setEditableColor(0xFF6B6B);
-		}
-	}
-
-	private void commitInput(TextBoxComponent input) {
-		if (!validInteger(input.getText())) {
-			syncOne(input);
-			return;
-		}
-		session.commit();
-		syncFromSession();
-		committed.run();
-	}
-
-	private boolean validInteger(String value) {
-		try {
-			Integer.parseInt(value.trim());
-			return true;
-		} catch (NumberFormatException exception) {
-			return false;
-		}
+	private NumericScrubberComponent scrubber(NumericScrubberComponent.Property property, String translationKey) {
+		NumericScrubberComponent scrubber = new NumericScrubberComponent(
+				session,
+				property,
+				Text.translatable(translationKey).formatted(Formatting.LIGHT_PURPLE),
+				screenWidth,
+				screenHeight,
+				geometryChanged,
+				committed
+		);
+		scrubbers.put(property, scrubber);
+		return scrubber;
 	}
 
 	public void syncFromSession() {
-		syncing = true;
-		try {
-			PixelLayout layout = session.layout();
-			setText(Field.X, layout.x());
-			setText(Field.Y, layout.y());
-			setText(Field.WIDTH, layout.width());
-			setText(Field.HEIGHT, layout.height());
-		} finally {
-			syncing = false;
-		}
-	}
-
-	private void setText(Field field, int value) {
-		TextBoxComponent input = fields.get(field);
-		if (input != null && !input.isFocused()) {
-			input.text(Integer.toString(value));
-			input.setEditableColor(0xE9EDF4);
-		}
-	}
-
-	private void syncOne(TextBoxComponent target) {
-		syncing = true;
-		try {
-			PixelLayout layout = session.layout();
-			for (Map.Entry<Field, TextBoxComponent> entry : fields.entrySet()) {
-				if (entry.getValue() != target) continue;
-				int value = switch (entry.getKey()) {
-					case X -> layout.x();
-					case Y -> layout.y();
-					case WIDTH -> layout.width();
-					case HEIGHT -> layout.height();
-				};
-				target.text(Integer.toString(value));
-				target.setEditableColor(0xE9EDF4);
-				break;
-			}
-		} finally {
-			syncing = false;
-		}
+		// Scrubbers read their value directly from the session while drawing.
 	}
 
 	public void update(double deltaSeconds) {
@@ -306,6 +218,16 @@ public final class AnimatedSettingsPanel {
 			spring.setValue(clamp((int) Math.round(spring.value()), 4, maxX));
 			spring.setTarget(targetX());
 		}
+		for (NumericScrubberComponent scrubber : scrubbers.values()) {
+			scrubber.resizeViewport(width, height);
+		}
+	}
+
+	public @Nullable NumericScrubberComponent scrubberAt(double mouseX, double mouseY) {
+		for (NumericScrubberComponent scrubber : scrubbers.values()) {
+			if (scrubber.valueRegionContains(mouseX, mouseY)) return scrubber;
+		}
+		return null;
 	}
 
 	private double targetX() {
@@ -333,10 +255,6 @@ public final class AnimatedSettingsPanel {
 
 	public FlowLayout component() {
 		return component;
-	}
-
-	private enum Field {
-		X, Y, WIDTH, HEIGHT
 	}
 
 	private enum Side {

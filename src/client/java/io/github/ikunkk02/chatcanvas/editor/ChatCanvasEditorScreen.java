@@ -1,10 +1,12 @@
 package io.github.ikunkk02.chatcanvas.editor;
 
 import io.github.ikunkk02.chatcanvas.animation.AnimationClock;
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatLayoutRuntime;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.ui.AlignmentGuideRenderer;
 import io.github.ikunkk02.chatcanvas.ui.AnimatedSettingsPanel;
 import io.github.ikunkk02.chatcanvas.ui.ModernUiTheme;
+import io.github.ikunkk02.chatcanvas.ui.NumericScrubberComponent;
 import io.github.ikunkk02.chatcanvas.ui.PreviewChatWidget;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.ButtonComponent;
@@ -14,6 +16,7 @@ import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.core.HorizontalAlignment;
 import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.OwoUIAdapter;
+import io.wispforest.owo.ui.core.Component;
 import io.wispforest.owo.ui.core.Positioning;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.VerticalAlignment;
@@ -29,6 +32,7 @@ import org.lwjgl.glfw.GLFW;
 public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	private final @Nullable Screen parent;
 	private final AnimationClock animationClock = new AnimationClock();
+	private final EditorPointerCapture pointerCapture = new EditorPointerCapture();
 
 	private EditorSession session;
 	private PreviewChatWidget preview;
@@ -134,7 +138,73 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	}
 
 	@Override
+	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+		NumericScrubberComponent scrubber = settingsPanel == null
+				? null
+				: settingsPanel.scrubberAt(mouseX, mouseY);
+		if (scrubber != null) {
+			if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+				return pointerCapture.begin(scrubber, mouseX, mouseY, button,
+						Screen.hasShiftDown(), Screen.hasControlDown());
+			}
+			if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+				return scrubber.restoreDefault();
+			}
+		}
+
+		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && previewCanReceive(mouseX, mouseY)) {
+			return pointerCapture.begin(preview, mouseX, mouseY, button,
+					Screen.hasShiftDown(), Screen.hasControlDown());
+		}
+		return super.mouseClicked(mouseX, mouseY, button);
+	}
+
+	@Override
+	public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+		if (pointerCapture.active()) {
+			return pointerCapture.drag(mouseX, mouseY, button);
+		}
+		return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+	}
+
+	@Override
+	public boolean mouseReleased(double mouseX, double mouseY, int button) {
+		if (pointerCapture.active()) {
+			return pointerCapture.release(mouseX, mouseY, button);
+		}
+		return super.mouseReleased(mouseX, mouseY, button);
+	}
+
+	@Override
+	public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+		NumericScrubberComponent scrubber = settingsPanel == null
+				? null
+				: settingsPanel.scrubberAt(mouseX, mouseY);
+		if (scrubber != null && scrubber.scroll(verticalAmount)) {
+			return true;
+		}
+		return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+	}
+
+	@Override
+	public void tick() {
+		super.tick();
+		if (client != null && !client.isWindowFocused()) {
+			pointerCapture.cancel();
+		}
+	}
+
+	private boolean previewCanReceive(double mouseX, double mouseY) {
+		if (preview == null || uiAdapter == null || !preview.containsInteraction(mouseX, mouseY)) {
+			return false;
+		}
+		Component top = uiAdapter.rootComponent.childAt((int) Math.floor(mouseX), (int) Math.floor(mouseY));
+		return top == preview || top == uiAdapter.rootComponent;
+	}
+
+	@Override
 	public void resize(MinecraftClient client, int width, int height) {
+		pointerCapture.cancel();
 		if (session != null) {
 			session.resizeViewport(width, height);
 		}
@@ -154,7 +224,14 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 	@Override
 	public void close() {
+		pointerCapture.cancel();
 		cancelAndClose();
+	}
+
+	@Override
+	public void removed() {
+		pointerCapture.cancel();
+		super.removed();
 	}
 
 	private void onGeometryChanged() {
@@ -188,11 +265,16 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 	private void saveAndClose() {
 		if (ChatCanvasConfig.instance().save(session.snapshot())) {
+			ChatLayoutRuntime.applySavedLayout();
 			returnToParent();
 		}
 	}
 
 	private void cancelAndClose() {
+		pointerCapture.cancel();
+		if (session != null) {
+			session.apply(session.original());
+		}
 		returnToParent();
 	}
 

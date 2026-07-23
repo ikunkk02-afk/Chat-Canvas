@@ -63,4 +63,14 @@ class LayoutEditorMathTest {
 		assertEquals(ResizeHandle.SOUTH_EAST, ResizeHandle.hitTest(START, 500, 330, 6));
 		assertEquals(ResizeHandle.MOVE, ResizeHandle.hitTest(START, 300, 220, 6));
 	}
+
+	@Test
+	void everyEdgeAndOutsideRegionAreUnambiguous() {
+		assertEquals(ResizeHandle.NORTH, ResizeHandle.hitTest(START, 350, 150, 7));
+		assertEquals(ResizeHandle.SOUTH, ResizeHandle.hitTest(START, 350, 330, 7));
+		assertEquals(ResizeHandle.WEST, ResizeHandle.hitTest(START, 200, 240, 7));
+		assertEquals(ResizeHandle.EAST, ResizeHandle.hitTest(START, 500, 240, 7));
+		assertEquals(ResizeHandle.NONE, ResizeHandle.hitTest(START, 191, 240, 7));
+		assertEquals(ResizeHandle.NONE, ResizeHandle.hitTest(START, 350, 339, 7));
+	}
 }
