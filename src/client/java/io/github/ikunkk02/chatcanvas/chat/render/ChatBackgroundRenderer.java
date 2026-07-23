@@ -1,13 +1,18 @@
 package io.github.ikunkk02.chatcanvas.chat.render;
 
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatVerticalMetrics;
+
 public final class ChatBackgroundRenderer {
 	private static final int MESSAGE_BACKGROUND_RGB = 0x000000;
 	private static final int INPUT_BACKGROUND_RGB = 0x080A0D;
 
-	public void drawMessageBackground(ChatRenderContext context, int x, int y, int textWidth, float opacity) {
+	public void drawMessageBackground(ChatRenderContext context, int x, int textY, int textWidth,
+									  ChatVerticalMetrics verticalMetrics, float opacity) {
 		int alpha = Math.round(132 * clamp01(opacity));
-		context.drawContext().fill(x - 2, y - 1, x + textWidth + 2,
-				y + context.textRenderer().fontHeight + 1, argb(alpha, MESSAGE_BACKGROUND_RGB));
+		int backgroundTop = (int) Math.floor(verticalMetrics.backgroundTop(textY));
+		int backgroundBottom = (int) Math.ceil(verticalMetrics.backgroundBottom(textY));
+		context.drawContext().fill(x - 2, backgroundTop, x + textWidth + 2,
+				backgroundBottom, argb(alpha, MESSAGE_BACKGROUND_RGB));
 	}
 
 	public void drawInputBackground(ChatRenderContext context, int y, int height) {

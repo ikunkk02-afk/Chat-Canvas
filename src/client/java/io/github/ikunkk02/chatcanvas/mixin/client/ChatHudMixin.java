@@ -8,6 +8,7 @@ import io.github.ikunkk02.chatcanvas.chat.layout.ChatLineWidthCache;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatHudTransform;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatLayoutRuntime;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatTextLayout;
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatVerticalMetrics;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import net.minecraft.client.MinecraftClient;
@@ -119,8 +120,58 @@ public abstract class ChatHudMixin {
 
 	@ModifyReturnValue(method = "getLineHeight", at = @At("RETURN"))
 	private int chat_canvas$useConfiguredLineSpacing(int vanillaLineHeight) {
-		return ChatTextLayout.internalLineHeight(
-				vanillaLineHeight, ChatCanvasConfig.instance().text().lineSpacing());
+		return (int) Math.round(ChatTextLayout.verticalMetrics(
+				client.textRenderer.fontHeight,
+				vanillaLineHeight,
+				1.0,
+				ChatCanvasConfig.instance().text().lineSpacing()
+		).lineAdvance());
+	}
+
+	@WrapOperation(
+			method = "render",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/client/gui/DrawContext;fill(IIIII)V",
+					ordinal = 0
+			)
+	)
+	private void chat_canvas$drawCompactMessageBackground(DrawContext context,
+														 int x1, int y1, int x2, int y2, int color,
+														 Operation<Void> original) {
+		ChatVerticalMetrics metrics = chat_canvas$verticalMetrics();
+		int textY = y2 + chat_canvas$vanillaTextOffset();
+		original.call(
+				context,
+				x1,
+				(int) Math.floor(metrics.backgroundTop(textY)),
+				x2,
+				(int) Math.ceil(metrics.backgroundBottom(textY)),
+				color
+		);
+	}
+
+	@WrapOperation(
+			method = "render",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/client/gui/DrawContext;fill(IIIII)V",
+					ordinal = 1
+			)
+	)
+	private void chat_canvas$drawCompactIndicatorBackground(DrawContext context,
+														   int x1, int y1, int x2, int y2, int color,
+														   Operation<Void> original) {
+		ChatVerticalMetrics metrics = chat_canvas$verticalMetrics();
+		int textY = y2 + chat_canvas$vanillaTextOffset();
+		original.call(
+				context,
+				x1,
+				(int) Math.floor(metrics.backgroundTop(textY)),
+				x2,
+				(int) Math.ceil(metrics.backgroundBottom(textY)),
+				color
+		);
 	}
 
 	@WrapOperation(
@@ -277,5 +328,21 @@ public abstract class ChatHudMixin {
 		double internalPadding = chat_canvas$SCREEN_HORIZONTAL_PADDING / scale;
 		return Math.max(chat_canvas$contentLeft(),
 				internalMessageWidth - internalPadding - chat_canvas$VANILLA_TEXT_ORIGIN_X);
+	}
+
+	@Unique
+	private ChatVerticalMetrics chat_canvas$verticalMetrics() {
+		return ChatTextLayout.verticalMetrics(
+				client.textRenderer.fontHeight,
+				client.textRenderer.fontHeight,
+				1.0,
+				ChatCanvasConfig.instance().text().lineSpacing()
+		);
+	}
+
+	@Unique
+	private int chat_canvas$vanillaTextOffset() {
+		double spacing = client.options.getChatLineSpacing().getValue();
+		return (int) Math.round(-8.0 * (spacing + 1.0) + 4.0 * spacing);
 	}
 }

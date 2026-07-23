@@ -20,6 +20,29 @@ class ChatTextLayoutTest {
 	}
 
 	@Test
+	void verticalMetricsSeparateGlyphBackgroundAndLineAdvance() {
+		ChatVerticalMetrics compact = ChatTextLayout.verticalMetrics(9, 9, 1.0, 0.5);
+		ChatVerticalMetrics normal = ChatTextLayout.verticalMetrics(9, 9, 1.0, 1.0);
+		ChatVerticalMetrics expanded = ChatTextLayout.verticalMetrics(9, 9, 1.0, 2.0);
+
+		assertEquals(9.0, compact.glyphHeight(), 0.00001);
+		assertEquals(11.0, compact.backgroundHeight(), 0.00001);
+		assertEquals(11.0, expanded.backgroundHeight(), 0.00001);
+		assertEquals(6.0, compact.lineAdvance(), 0.00001);
+		assertEquals(9.0, normal.lineAdvance(), 0.00001);
+		assertEquals(18.0, expanded.lineAdvance(), 0.00001);
+	}
+
+	@Test
+	void verticalMetricsScaleAllPixelDimensionsWithoutApplyingSpacingToBackground() {
+		ChatVerticalMetrics metrics = ChatTextLayout.verticalMetrics(9, 9, 1.5, 2.0);
+
+		assertEquals(13.5, metrics.glyphHeight(), 0.00001);
+		assertEquals(16.5, metrics.backgroundHeight(), 0.00001);
+		assertEquals(27.0, metrics.lineAdvance(), 0.00001);
+	}
+
+	@Test
 	void alignmentAccountsForRenderedWidthAndIndicatorReservation() {
 		assertEquals(0.0, ChatTextLayout.metrics(
 				0, 80, 200, 15, ChatTextAlignment.LEFT, 0, 9).drawX(), 0.00001);

@@ -4,6 +4,7 @@ import io.github.ikunkk02.chatcanvas.animation.AnimatedFloat;
 import io.github.ikunkk02.chatcanvas.animation.AnimationClock;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatLineMetrics;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatTextLayout;
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatVerticalMetrics;
 import io.github.ikunkk02.chatcanvas.chat.layout.RuntimeChatBounds;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.config.PixelLayout;
@@ -86,9 +87,14 @@ public final class ChatRenderEngine {
 				(context.width() - HORIZONTAL_PADDING * 2) / fontScale));
 		List<ChatLayoutCalculator.ChatLine> lines =
 				layoutCalculator.calculate(context.textRenderer(), messages, wrapWidth);
-		int internalLineHeight = ChatTextLayout.internalLineHeight(
-				context.textRenderer().fontHeight, textConfig.lineSpacing());
-		double screenLineHeight = internalLineHeight * fontScale;
+		ChatVerticalMetrics verticalMetrics = ChatTextLayout.verticalMetrics(
+				context.textRenderer().fontHeight,
+				context.textRenderer().fontHeight,
+				1.0,
+				textConfig.lineSpacing()
+		);
+		int internalLineHeight = (int) Math.round(verticalMetrics.lineAdvance());
+		double screenLineHeight = verticalMetrics.lineAdvance() * fontScale;
 		double lineY = bounds.messageBottom() - context.textRenderer().fontHeight * fontScale;
 		int minimumY = bounds.messageTop();
 		int depth = 0;
@@ -130,6 +136,7 @@ public final class ChatRenderEngine {
 					lineX,
 					0,
 					line.width(),
+					verticalMetrics,
 					lineOpacity
 			);
 			lineRenderer.draw(context, line.text(), lineX, 0, lineOpacity, textConfig.shadow());

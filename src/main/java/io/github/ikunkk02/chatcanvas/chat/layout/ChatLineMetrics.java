@@ -5,7 +5,7 @@ public record ChatLineMetrics(
 		int renderedWidth,
 		double drawX,
 		double drawY,
-		double height,
+		double lineAdvance,
 		int indicatorReservation
 ) {
 	public double localX(double chatLineX) {

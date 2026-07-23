@@ -36,8 +36,6 @@ public final class AnimatedSettingsPanel {
 	private static final int LABEL_HEIGHT = 9;
 	private static final int CATEGORY_HEIGHT = 24;
 	private static final int FOOTER_HEIGHT = 30;
-	private static final double CATEGORY_DURATION_SECONDS = 0.18;
-	private static final int CATEGORY_OFFSET = 10;
 
 	private final EditorSession session;
 	private final Runnable geometryChanged;
@@ -48,8 +46,9 @@ public final class AnimatedSettingsPanel {
 	private final Consumer<PreviewChatState> previewStateChanged;
 	private final FlowLayout component;
 	private final List<NumericScrubber> scrubbers = new ArrayList<>();
-	private final List<ButtonComponent> pageButtons = new ArrayList<>();
+	private final Map<Category, List<ButtonComponent>> pageButtons = new EnumMap<>(Category.class);
 	private final Map<Category, CategoryPage> pages = new EnumMap<>(Category.class);
+	private final SpringValue categorySpring;
 
 	private ButtonComponent openPreviewButton;
 	private ButtonComponent closedPreviewButton;
@@ -58,9 +57,7 @@ public final class AnimatedSettingsPanel {
 	private SpringValue spring;
 	private Side side;
 	private Category activeCategory = Category.LAYOUT;
-	private Category outgoingCategory = Category.LAYOUT;
 	private boolean categoryTransitioning;
-	private double categoryProgress = 1.0;
 	private int screenWidth;
 	private int screenHeight;
 	private int panelWidth;
@@ -83,11 +80,16 @@ public final class AnimatedSettingsPanel {
 		this.panelWidth = panelWidth(screenWidth);
 		this.panelHeight = panelHeight(screenHeight);
 		this.side = session.layout().centerX() > screenWidth * 0.5 ? Side.LEFT : Side.RIGHT;
+		for (Category category : Category.values()) {
+			pageButtons.put(category, new ArrayList<>());
+		}
 		double initialX = targetX();
 		this.spring = new SpringValue(initialX, MotionPreset.PANEL_SLIDE);
+		this.categorySpring = new SpringValue(0.0, MotionPreset.CATEGORY_SLIDE);
 		this.component = buildComponent();
 		this.component.positioning(Positioning.absolute((int) Math.round(initialX), PANEL_TOP));
 		this.component.zIndex(20);
+		setPageButtonsActive(true);
 		syncFromSession();
 	}
 
@@ -108,12 +110,12 @@ public final class AnimatedSettingsPanel {
 				Sizing.fixed(contentHeight(panelHeight))
 		);
 		pageHost.allowOverflow(false);
-		CategoryPage layoutPage = buildPage(buildLayoutBody(), false);
-		CategoryPage textPage = buildPage(buildTextBody(), true);
+		CategoryPage layoutPage = buildPage(buildLayoutBody());
+		CategoryPage textPage = buildPage(buildTextBody());
 		pages.put(Category.LAYOUT, layoutPage);
 		pages.put(Category.TEXT, textPage);
 		layoutPage.stack.positioning(Positioning.absolute(0, 0));
-		textPage.stack.positioning(Positioning.absolute(panelWidth + CATEGORY_OFFSET, 0));
+		textPage.stack.positioning(Positioning.absolute(pageWidth(), 0));
 		pageHost.child(layoutPage.stack);
 		pageHost.child(textPage.stack);
 		panel.child(pageHost);
@@ -153,7 +155,8 @@ public final class AnimatedSettingsPanel {
 
 	private StackLayout categoryTabs() {
 		StackLayout stack = Containers.stack(Sizing.fill(100), Sizing.fixed(24));
-		stack.child(new SelectionIndicatorComponent(() -> activeCategory.ordinal(), Category.values().length));
+		stack.child(SelectionIndicatorComponent.following(
+				this::categoryPageProgress, Category.values().length));
 		FlowLayout buttons = Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(100));
 		for (Category category : Category.values()) {
 			ButtonComponent button = transparentButton(
@@ -188,7 +191,7 @@ public final class AnimatedSettingsPanel {
 					committed.run();
 				});
 		defaults.sizing(Sizing.fill(100), Sizing.fixed(22));
-		pageButtons.add(defaults);
+		registerPageButton(Category.LAYOUT, defaults);
 		body.child(defaults);
 
 		body.child(sectionLabel("chat_canvas.settings.coming_soon"));
@@ -238,7 +241,7 @@ public final class AnimatedSettingsPanel {
 			syncFromSession();
 		});
 		shadowButton.sizing(Sizing.fill(100), Sizing.fixed(22));
-		pageButtons.add(shadowButton);
+		registerPageButton(Category.TEXT, shadowButton);
 		body.child(shadowButton);
 
 		ButtonComponent defaults = ModernUiTheme.button(
@@ -253,24 +256,19 @@ public final class AnimatedSettingsPanel {
 					syncFromSession();
 				});
 		defaults.sizing(Sizing.fill(100), Sizing.fixed(22));
-		pageButtons.add(defaults);
+		registerPageButton(Category.TEXT, defaults);
 		body.child(defaults);
 		return body;
 	}
 
-	private CategoryPage buildPage(FlowLayout body, boolean initiallyHidden) {
+	private CategoryPage buildPage(FlowLayout body) {
 		ScrollContainer<FlowLayout> scroll = Containers.verticalScroll(
 				Sizing.fill(100), Sizing.fill(100), body);
 		scroll.scrollbarThiccness(2);
 		StackLayout stack = Containers.stack(Sizing.fill(100), Sizing.fill(100));
 		stack.allowOverflow(false);
 		stack.child(scroll);
-		FadeOverlayComponent overlay = new FadeOverlayComponent(initiallyHidden ? 1.0f : 0.0f);
-		CategoryPage page = new CategoryPage(stack, scroll, overlay);
-		if (initiallyHidden) {
-			page.attachOverlay();
-		}
-		return page;
+		return new CategoryPage(stack, scroll);
 	}
 
 	private FlowLayout previewStateRow() {
@@ -286,8 +284,8 @@ public final class AnimatedSettingsPanel {
 		});
 		openPreviewButton.sizing(Sizing.fill(50), Sizing.fixed(22));
 		closedPreviewButton.sizing(Sizing.fill(50), Sizing.fixed(22));
-		pageButtons.add(openPreviewButton);
-		pageButtons.add(closedPreviewButton);
+		registerPageButton(Category.LAYOUT, openPreviewButton);
+		registerPageButton(Category.LAYOUT, closedPreviewButton);
 		row.child(openPreviewButton);
 		row.child(closedPreviewButton);
 		syncPreviewButtons();
@@ -308,7 +306,7 @@ public final class AnimatedSettingsPanel {
 					}),
 					clicked -> selectAlignment(alignment));
 			button.sizing(Sizing.fill(33), Sizing.fill(100));
-			pageButtons.add(button);
+			registerPageButton(Category.TEXT, button);
 			buttons.child(button);
 		}
 		stack.child(buttons);
@@ -355,16 +353,10 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private void switchCategory(Category category) {
-		if (categoryTransitioning || category == activeCategory) return;
-		outgoingCategory = activeCategory;
+		if (category == activeCategory) return;
 		activeCategory = category;
-		categoryProgress = 0.0;
 		categoryTransitioning = true;
-		CategoryPage outgoing = pages.get(outgoingCategory);
-		CategoryPage incoming = pages.get(activeCategory);
-		outgoing.attachOverlay();
-		incoming.attachOverlay();
-		incoming.overlay.opacity(1.0f);
+		categorySpring.setTarget(category.ordinal() * pageWidth());
 		setPageButtonsActive(false);
 	}
 
@@ -410,34 +402,35 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private void updateCategoryTransition(double deltaSeconds) {
-		if (!categoryTransitioning) return;
-		categoryProgress = Math.min(1.0,
-				categoryProgress + Math.max(0.0, deltaSeconds) / CATEGORY_DURATION_SECONDS);
-		double eased = 1.0 - Math.pow(1.0 - categoryProgress, 3.0);
-		CategoryPage outgoing = pages.get(outgoingCategory);
-		CategoryPage incoming = pages.get(activeCategory);
-		outgoing.stack.positioning(Positioning.absolute(
-				(int) Math.round(-CATEGORY_OFFSET * eased), 0));
-		incoming.stack.positioning(Positioning.absolute(
-				(int) Math.round(CATEGORY_OFFSET * (1.0 - eased)), 0));
-		outgoing.overlay.opacity((float) eased);
-		incoming.overlay.opacity((float) (1.0 - eased));
-		if (categoryProgress >= 1.0) {
-			outgoing.stack.positioning(Positioning.absolute(panelWidth + CATEGORY_OFFSET, 0));
-			incoming.stack.positioning(Positioning.absolute(0, 0));
-			incoming.detachOverlay();
+		double position = categorySpring.update(deltaSeconds);
+		int pageOffset = (int) Math.round(position);
+		pages.get(Category.LAYOUT).stack.positioning(Positioning.absolute(-pageOffset, 0));
+		pages.get(Category.TEXT).stack.positioning(
+				Positioning.absolute(pageWidth() - pageOffset, 0));
+		if (categoryTransitioning && categorySpring.settled()) {
 			categoryTransitioning = false;
 			setPageButtonsActive(true);
 		}
 	}
 
 	private void setPageButtonsActive(boolean active) {
-		for (ButtonComponent button : pageButtons) {
-			if (button != null) button.active(active);
+		for (Map.Entry<Category, List<ButtonComponent>> entry : pageButtons.entrySet()) {
+			boolean pageActive = active && entry.getKey() == activeCategory;
+			for (ButtonComponent button : entry.getValue()) {
+				if (button != null) button.active(pageActive);
+			}
 		}
 	}
 
+	private void registerPageButton(Category category, ButtonComponent button) {
+		pageButtons.get(category).add(button);
+	}
+
 	public void resizeViewport(int width, int height) {
+		double previousPageWidth = pageWidth();
+		double pageProgress = previousPageWidth <= 0.0
+				? activeCategory.ordinal()
+				: categorySpring.value() / previousPageWidth;
 		this.screenWidth = width;
 		this.screenHeight = height;
 		this.panelWidth = panelWidth(width);
@@ -446,6 +439,10 @@ public final class AnimatedSettingsPanel {
 		if (pageHost != null) {
 			pageHost.sizing(Sizing.fill(100), Sizing.fixed(contentHeight(panelHeight)));
 		}
+		categorySpring.setValue(pageProgress * pageWidth());
+		categorySpring.setTarget(activeCategory.ordinal() * pageWidth());
+		categoryTransitioning = !categorySpring.settled();
+		setPageButtonsActive(!categoryTransitioning);
 		spring.setTarget(targetX());
 		int maxX = Math.max(4, width - panelWidth - 4);
 		if (spring.value() < 4 || spring.value() > maxX) {
@@ -455,12 +452,7 @@ public final class AnimatedSettingsPanel {
 		for (NumericScrubber scrubber : scrubbers) {
 			scrubber.resizeViewport(width, height);
 		}
-		for (Map.Entry<Category, CategoryPage> entry : pages.entrySet()) {
-			if (entry.getKey() != activeCategory && !categoryTransitioning) {
-				entry.getValue().stack.positioning(
-						Positioning.absolute(panelWidth + CATEGORY_OFFSET, 0));
-			}
-		}
+		updateCategoryTransition(0.0);
 	}
 
 	public @Nullable NumericScrubber scrubberAt(double mouseX, double mouseY) {
@@ -491,6 +483,14 @@ public final class AnimatedSettingsPanel {
 		int fixedGaps = PANEL_GAP * 4;
 		int verticalPadding = PANEL_PADDING * 2;
 		return Math.max(1, panelHeight - fixedChildrenHeight - fixedGaps - verticalPadding);
+	}
+
+	private int pageWidth() {
+		return Math.max(1, panelWidth - PANEL_PADDING * 2);
+	}
+
+	private double categoryPageProgress() {
+		return categorySpring.value() / pageWidth();
 	}
 
 	private static int clamp(int value, int min, int max) {
@@ -530,26 +530,10 @@ public final class AnimatedSettingsPanel {
 		private final StackLayout stack;
 		@SuppressWarnings("unused")
 		private final ScrollContainer<FlowLayout> scroll;
-		private final FadeOverlayComponent overlay;
-		private boolean overlayAttached;
 
-		private CategoryPage(StackLayout stack, ScrollContainer<FlowLayout> scroll,
-							 FadeOverlayComponent overlay) {
+		private CategoryPage(StackLayout stack, ScrollContainer<FlowLayout> scroll) {
 			this.stack = stack;
 			this.scroll = scroll;
-			this.overlay = overlay;
-		}
-
-		private void attachOverlay() {
-			if (overlayAttached) return;
-			stack.child(overlay);
-			overlayAttached = true;
-		}
-
-		private void detachOverlay() {
-			if (!overlayAttached) return;
-			stack.removeChild(overlay);
-			overlayAttached = false;
 		}
 	}
 }
