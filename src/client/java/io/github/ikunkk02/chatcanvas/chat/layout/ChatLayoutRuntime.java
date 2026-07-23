@@ -10,7 +10,7 @@ import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 
 public final class ChatLayoutRuntime {
-	private static int lastInternalWrapWidth = -1;
+	private static RefreshSignature lastRefreshSignature;
 
 	private ChatLayoutRuntime() {
 	}
@@ -23,7 +23,9 @@ public final class ChatLayoutRuntime {
 		int width = Math.max(1, client.getWindow().getScaledWidth());
 		int height = Math.max(1, client.getWindow().getScaledHeight());
 		PixelLayout layout = ChatCanvasConfig.instance().layout().toPixels(width, height);
-		double scale = client.options.getChatScale().getValue();
+		double vanillaScale = client.options.getChatScale().getValue();
+		double configuredScale = ChatCanvasConfig.instance().text().fontScale();
+		double effectiveScale = ChatTextLayout.effectiveScale(vanillaScale, configuredScale);
 		boolean chatOpen = client.currentScreen instanceof ChatScreen;
 		int inputHeight = 0;
 		if (chatOpen) {
@@ -32,10 +34,12 @@ public final class ChatLayoutRuntime {
 				inputHeight = chatField.getHeight();
 			}
 		}
-		double lineSpacing = client.options.getChatLineSpacing().getValue();
-		int internalLineHeight = Math.max(1,
-				(int) (client.textRenderer.fontHeight * (lineSpacing + 1.0)));
-		int minimumMessageHeight = Math.max(1, (int) Math.ceil(internalLineHeight * scale));
+		double vanillaLineSpacing = client.options.getChatLineSpacing().getValue();
+		int vanillaLineHeight = Math.max(1,
+				(int) (client.textRenderer.fontHeight * (vanillaLineSpacing + 1.0)));
+		int internalLineHeight = ChatTextLayout.internalLineHeight(
+				vanillaLineHeight, ChatCanvasConfig.instance().text().lineSpacing());
+		int minimumMessageHeight = Math.max(1, (int) Math.ceil(internalLineHeight * effectiveScale));
 		RuntimeChatBounds bounds = RuntimeChatBounds.calculate(
 				layout,
 				chatOpen,
@@ -43,30 +47,52 @@ public final class ChatLayoutRuntime {
 				RuntimeChatBounds.DEFAULT_INPUT_GAP,
 				minimumMessageHeight
 		);
-		return new ChatHudTransform(layout, height, scale, bounds);
+		return new ChatHudTransform(layout, height, vanillaScale, configuredScale, bounds);
 	}
 
 	public static void tick(MinecraftClient client) {
 		if (client.inGameHud == null) return;
 		ChatHudTransform transform = currentTransform(client);
-		int wrapWidth = transform.internalWrapWidth();
-		if (lastInternalWrapWidth == -1) {
-			lastInternalWrapWidth = wrapWidth;
-		} else if (lastInternalWrapWidth != wrapWidth) {
+		RefreshSignature signature = RefreshSignature.from(transform);
+		if (lastRefreshSignature == null) {
+			lastRefreshSignature = signature;
+		} else if (!lastRefreshSignature.equals(signature)) {
 			refresh(client.inGameHud.getChatHud());
-			lastInternalWrapWidth = wrapWidth;
+			lastRefreshSignature = signature;
 		}
 	}
 
-	public static void applySavedLayout() {
+	public static void applySavedSettings() {
 		MinecraftClient client = MinecraftClient.getInstance();
 		if (client.inGameHud == null) return;
 		ChatHudTransform transform = currentTransform(client);
 		refresh(client.inGameHud.getChatHud());
-		lastInternalWrapWidth = transform.internalWrapWidth();
+		lastRefreshSignature = RefreshSignature.from(transform);
+	}
+
+	public static void applySavedLayout() {
+		applySavedSettings();
+	}
+
+	public static void onFontResourcesReloaded() {
+		lastRefreshSignature = null;
+		MinecraftClient client = MinecraftClient.getInstance();
+		if (client.inGameHud != null) {
+			refresh(client.inGameHud.getChatHud());
+			lastRefreshSignature = RefreshSignature.from(currentTransform(client));
+		}
 	}
 
 	private static void refresh(ChatHud chatHud) {
 		((ChatHudAccessor) chatHud).chat_canvas$refresh();
+	}
+
+	private record RefreshSignature(int internalWrapWidth, long effectiveScaleBits) {
+		private static RefreshSignature from(ChatHudTransform transform) {
+			return new RefreshSignature(
+					transform.internalWrapWidth(),
+					Double.doubleToLongBits(transform.effectiveChatScale())
+			);
+		}
 	}
 }

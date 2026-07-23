@@ -33,5 +33,16 @@
   "chat_canvas.preview.state": "Preview state",
   "chat_canvas.preview.state.open": "Chat open",
   "chat_canvas.preview.state.closed": "Chat closed",
-  "chat_canvas.preview.input_placeholder": "Type a message..."
+  "chat_canvas.preview.input_placeholder": "Type a message...",
+  "chat_canvas.option.font_scale": "Text Size",
+  "chat_canvas.option.line_spacing": "Line Spacing",
+  "chat_canvas.option.text_opacity": "Text Opacity",
+  "chat_canvas.option.text_alignment": "Text Alignment",
+  "chat_canvas.option.text_shadow": "Text Shadow",
+  "chat_canvas.alignment.left": "Left",
+  "chat_canvas.alignment.center": "Center",
+  "chat_canvas.alignment.right": "Right",
+  "chat_canvas.state.on": "On",
+  "chat_canvas.state.off": "Off",
+  "chat_canvas.action.restore_text_defaults": "Restore Text Defaults"
 }

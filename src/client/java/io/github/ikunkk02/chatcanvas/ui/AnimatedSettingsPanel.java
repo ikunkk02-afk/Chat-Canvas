@@ -3,12 +3,15 @@ package io.github.ikunkk02.chatcanvas.ui;
 import io.github.ikunkk02.chatcanvas.animation.MotionPreset;
 import io.github.ikunkk02.chatcanvas.animation.SpringValue;
 import io.github.ikunkk02.chatcanvas.chat.render.PreviewChatState;
+import io.github.ikunkk02.chatcanvas.config.ChatTextAlignment;
+import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.Components;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.ScrollContainer;
+import io.wispforest.owo.ui.container.StackLayout;
 import io.wispforest.owo.ui.core.HorizontalAlignment;
 import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.Positioning;
@@ -18,7 +21,9 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -26,6 +31,13 @@ import java.util.function.Supplier;
 public final class AnimatedSettingsPanel {
 	private static final int PANEL_MARGIN = 16;
 	private static final int PANEL_TOP = 48;
+	private static final int PANEL_PADDING = 12;
+	private static final int PANEL_GAP = 8;
+	private static final int LABEL_HEIGHT = 9;
+	private static final int CATEGORY_HEIGHT = 24;
+	private static final int FOOTER_HEIGHT = 30;
+	private static final double CATEGORY_DURATION_SECONDS = 0.18;
+	private static final int CATEGORY_OFFSET = 10;
 
 	private final EditorSession session;
 	private final Runnable geometryChanged;
@@ -35,13 +47,20 @@ public final class AnimatedSettingsPanel {
 	private final Supplier<PreviewChatState> previewState;
 	private final Consumer<PreviewChatState> previewStateChanged;
 	private final FlowLayout component;
-	private final Map<NumericScrubberComponent.Property, NumericScrubberComponent> scrubbers =
-			new EnumMap<>(NumericScrubberComponent.Property.class);
+	private final List<NumericScrubber> scrubbers = new ArrayList<>();
+	private final List<ButtonComponent> pageButtons = new ArrayList<>();
+	private final Map<Category, CategoryPage> pages = new EnumMap<>(Category.class);
 
 	private ButtonComponent openPreviewButton;
 	private ButtonComponent closedPreviewButton;
+	private ButtonComponent shadowButton;
+	private StackLayout pageHost;
 	private SpringValue spring;
 	private Side side;
+	private Category activeCategory = Category.LAYOUT;
+	private Category outgoingCategory = Category.LAYOUT;
+	private boolean categoryTransitioning;
+	private double categoryProgress = 1.0;
 	private int screenWidth;
 	private int screenHeight;
 	private int panelWidth;
@@ -74,40 +93,106 @@ public final class AnimatedSettingsPanel {
 
 	private FlowLayout buildComponent() {
 		FlowLayout panel = Containers.verticalFlow(Sizing.fixed(panelWidth), Sizing.fixed(panelHeight));
-		panel.padding(Insets.of(12));
-		panel.gap(8);
+		panel.padding(Insets.of(PANEL_PADDING));
+		panel.gap(PANEL_GAP);
 		panel.surface(ModernUiTheme.PANEL_SURFACE);
 
 		panel.child(Components.label(Text.translatable("chat_canvas.settings.title")
 				.formatted(Formatting.WHITE, Formatting.BOLD)));
 		panel.child(Components.label(Text.translatable("chat_canvas.settings.subtitle")
 				.formatted(Formatting.GRAY)));
+		panel.child(categoryTabs());
 
+		pageHost = Containers.stack(
+				Sizing.fill(100),
+				Sizing.fixed(contentHeight(panelHeight))
+		);
+		pageHost.allowOverflow(false);
+		CategoryPage layoutPage = buildPage(buildLayoutBody(), false);
+		CategoryPage textPage = buildPage(buildTextBody(), true);
+		pages.put(Category.LAYOUT, layoutPage);
+		pages.put(Category.TEXT, textPage);
+		layoutPage.stack.positioning(Positioning.absolute(0, 0));
+		textPage.stack.positioning(Positioning.absolute(panelWidth + CATEGORY_OFFSET, 0));
+		pageHost.child(layoutPage.stack);
+		pageHost.child(textPage.stack);
+		panel.child(pageHost);
+
+		FlowLayout actions = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(FOOTER_HEIGHT));
+		actions.padding(Insets.top(4));
+		actions.gap(6);
+		actions.horizontalAlignment(HorizontalAlignment.RIGHT);
+		actions.verticalAlignment(VerticalAlignment.CENTER);
+		actions.surface((context, footer) -> {
+			context.fill(
+					footer.x(),
+					footer.y(),
+					footer.x() + footer.width(),
+					footer.y() + 1,
+					0x554F6079
+			);
+			context.fill(
+					footer.x(),
+					footer.y() + 1,
+					footer.x() + footer.width(),
+					footer.y() + footer.height(),
+					0x33191C26
+			);
+		});
+		ButtonComponent cancel = ModernUiTheme.button(Text.translatable("chat_canvas.action.cancel"),
+				button -> cancelAction.run());
+		cancel.sizing(Sizing.fixed(72), Sizing.fixed(22));
+		ButtonComponent save = ModernUiTheme.button(Text.translatable("chat_canvas.action.save"),
+				button -> saveAction.run());
+		save.sizing(Sizing.fixed(72), Sizing.fixed(22));
+		actions.child(cancel);
+		actions.child(save);
+		panel.child(actions);
+		return panel;
+	}
+
+	private StackLayout categoryTabs() {
+		StackLayout stack = Containers.stack(Sizing.fill(100), Sizing.fixed(24));
+		stack.child(new SelectionIndicatorComponent(() -> activeCategory.ordinal(), Category.values().length));
+		FlowLayout buttons = Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(100));
+		for (Category category : Category.values()) {
+			ButtonComponent button = transparentButton(
+					Text.translatable(category.translationKey),
+					clicked -> switchCategory(category));
+			button.sizing(Sizing.fill(50), Sizing.fill(100));
+			buttons.child(button);
+		}
+		stack.child(buttons);
+		return stack;
+	}
+
+	private FlowLayout buildLayoutBody() {
 		FlowLayout body = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		body.padding(Insets.bottom(8));
 		body.gap(7);
 		body.child(sectionLabel("chat_canvas.category.layout"));
 		body.child(Components.label(Text.translatable("chat_canvas.preview.state")
 				.formatted(Formatting.GRAY)));
 		body.child(previewStateRow());
-		body.child(scrubber(NumericScrubberComponent.Property.X, "chat_canvas.option.x"));
-		body.child(scrubber(NumericScrubberComponent.Property.Y, "chat_canvas.option.y"));
-		body.child(scrubber(NumericScrubberComponent.Property.WIDTH, "chat_canvas.option.width"));
-		body.child(scrubber(NumericScrubberComponent.Property.HEIGHT, "chat_canvas.option.height"));
+		body.child(layoutScrubber(NumericScrubberComponent.Property.X, "chat_canvas.option.x"));
+		body.child(layoutScrubber(NumericScrubberComponent.Property.Y, "chat_canvas.option.y"));
+		body.child(layoutScrubber(NumericScrubberComponent.Property.WIDTH, "chat_canvas.option.width"));
+		body.child(layoutScrubber(NumericScrubberComponent.Property.HEIGHT, "chat_canvas.option.height"));
 
 		ButtonComponent defaults = ModernUiTheme.button(
 				Text.translatable("chat_canvas.action.restore_defaults"),
 				button -> {
-					session.restoreDefaults();
+					session.restoreLayoutDefaults();
 					syncFromSession();
 					geometryChanged.run();
 					committed.run();
 				});
 		defaults.sizing(Sizing.fill(100), Sizing.fixed(22));
+		pageButtons.add(defaults);
 		body.child(defaults);
 
 		body.child(sectionLabel("chat_canvas.settings.coming_soon"));
 		for (String key : new String[]{
-				"chat_canvas.category.text",
 				"chat_canvas.category.background",
 				"chat_canvas.category.player_colors",
 				"chat_canvas.category.mention",
@@ -124,26 +209,68 @@ public final class AnimatedSettingsPanel {
 			disabled.sizing(Sizing.fill(100), Sizing.fixed(20));
 			body.child(disabled);
 		}
+		return body;
+	}
 
+	private FlowLayout buildTextBody() {
+		FlowLayout body = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		body.padding(Insets.bottom(8));
+		body.gap(7);
+		body.child(sectionLabel("chat_canvas.category.text"));
+		body.child(textScrubber(TextNumericScrubberComponent.Property.FONT_SCALE,
+				"chat_canvas.option.font_scale"));
+		body.child(textScrubber(TextNumericScrubberComponent.Property.LINE_SPACING,
+				"chat_canvas.option.line_spacing"));
+		body.child(textScrubber(TextNumericScrubberComponent.Property.TEXT_OPACITY,
+				"chat_canvas.option.text_opacity"));
+		body.child(Components.label(Text.translatable("chat_canvas.option.text_alignment")
+				.formatted(Formatting.LIGHT_PURPLE)));
+		body.child(alignmentSelector());
+
+		shadowButton = ModernUiTheme.button(Text.empty(), button -> {
+			ChatTextConfig before = session.text();
+			session.setText(new ChatTextConfig(
+					before.fontScale(), before.lineSpacing(), before.textOpacity(),
+					before.alignment(), !before.shadow()));
+			session.commit();
+			geometryChanged.run();
+			committed.run();
+			syncFromSession();
+		});
+		shadowButton.sizing(Sizing.fill(100), Sizing.fixed(22));
+		pageButtons.add(shadowButton);
+		body.child(shadowButton);
+
+		ButtonComponent defaults = ModernUiTheme.button(
+				Text.translatable("chat_canvas.action.restore_text_defaults"),
+				button -> {
+					ChatTextConfig before = session.text();
+					session.restoreTextDefaults();
+					if (!before.equals(session.text())) {
+						geometryChanged.run();
+						committed.run();
+					}
+					syncFromSession();
+				});
+		defaults.sizing(Sizing.fill(100), Sizing.fixed(22));
+		pageButtons.add(defaults);
+		body.child(defaults);
+		return body;
+	}
+
+	private CategoryPage buildPage(FlowLayout body, boolean initiallyHidden) {
 		ScrollContainer<FlowLayout> scroll = Containers.verticalScroll(
-				Sizing.fill(100), Sizing.fill(74), body);
+				Sizing.fill(100), Sizing.fill(100), body);
 		scroll.scrollbarThiccness(2);
-		panel.child(scroll);
-
-		FlowLayout actions = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
-		actions.gap(6);
-		actions.horizontalAlignment(HorizontalAlignment.RIGHT);
-		actions.verticalAlignment(VerticalAlignment.CENTER);
-		ButtonComponent cancel = ModernUiTheme.button(Text.translatable("chat_canvas.action.cancel"),
-				button -> cancelAction.run());
-		cancel.sizing(Sizing.fixed(72), Sizing.fixed(22));
-		ButtonComponent save = ModernUiTheme.button(Text.translatable("chat_canvas.action.save"),
-				button -> saveAction.run());
-		save.sizing(Sizing.fixed(72), Sizing.fixed(22));
-		actions.child(cancel);
-		actions.child(save);
-		panel.child(actions);
-		return panel;
+		StackLayout stack = Containers.stack(Sizing.fill(100), Sizing.fill(100));
+		stack.allowOverflow(false);
+		stack.child(scroll);
+		FadeOverlayComponent overlay = new FadeOverlayComponent(initiallyHidden ? 1.0f : 0.0f);
+		CategoryPage page = new CategoryPage(stack, scroll, overlay);
+		if (initiallyHidden) {
+			page.attachOverlay();
+		}
+		return page;
 	}
 
 	private FlowLayout previewStateRow() {
@@ -159,10 +286,99 @@ public final class AnimatedSettingsPanel {
 		});
 		openPreviewButton.sizing(Sizing.fill(50), Sizing.fixed(22));
 		closedPreviewButton.sizing(Sizing.fill(50), Sizing.fixed(22));
+		pageButtons.add(openPreviewButton);
+		pageButtons.add(closedPreviewButton);
 		row.child(openPreviewButton);
 		row.child(closedPreviewButton);
 		syncPreviewButtons();
 		return row;
+	}
+
+	private StackLayout alignmentSelector() {
+		StackLayout stack = Containers.stack(Sizing.fill(100), Sizing.fixed(24));
+		stack.child(new SelectionIndicatorComponent(
+				() -> session.text().alignment().ordinal(), ChatTextAlignment.values().length));
+		FlowLayout buttons = Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(100));
+		for (ChatTextAlignment alignment : ChatTextAlignment.values()) {
+			ButtonComponent button = transparentButton(
+					Text.translatable(switch (alignment) {
+						case LEFT -> "chat_canvas.alignment.left";
+						case CENTER -> "chat_canvas.alignment.center";
+						case RIGHT -> "chat_canvas.alignment.right";
+					}),
+					clicked -> selectAlignment(alignment));
+			button.sizing(Sizing.fill(33), Sizing.fill(100));
+			pageButtons.add(button);
+			buttons.child(button);
+		}
+		stack.child(buttons);
+		return stack;
+	}
+
+	private void selectAlignment(ChatTextAlignment alignment) {
+		ChatTextConfig before = session.text();
+		if (before.alignment() == alignment) return;
+		session.setText(new ChatTextConfig(
+				before.fontScale(), before.lineSpacing(), before.textOpacity(),
+				alignment, before.shadow()));
+		session.commit();
+		geometryChanged.run();
+		committed.run();
+	}
+
+	private NumericScrubberComponent layoutScrubber(NumericScrubberComponent.Property property,
+													 String translationKey) {
+		NumericScrubberComponent scrubber = new NumericScrubberComponent(
+				session,
+				property,
+				Text.translatable(translationKey).formatted(Formatting.LIGHT_PURPLE),
+				screenWidth,
+				screenHeight,
+				geometryChanged,
+				committed
+		);
+		scrubbers.add(scrubber);
+		return scrubber;
+	}
+
+	private TextNumericScrubberComponent textScrubber(TextNumericScrubberComponent.Property property,
+													  String translationKey) {
+		TextNumericScrubberComponent scrubber = new TextNumericScrubberComponent(
+				session,
+				property,
+				Text.translatable(translationKey).formatted(Formatting.LIGHT_PURPLE),
+				geometryChanged,
+				committed
+		);
+		scrubbers.add(scrubber);
+		return scrubber;
+	}
+
+	private void switchCategory(Category category) {
+		if (categoryTransitioning || category == activeCategory) return;
+		outgoingCategory = activeCategory;
+		activeCategory = category;
+		categoryProgress = 0.0;
+		categoryTransitioning = true;
+		CategoryPage outgoing = pages.get(outgoingCategory);
+		CategoryPage incoming = pages.get(activeCategory);
+		outgoing.attachOverlay();
+		incoming.attachOverlay();
+		incoming.overlay.opacity(1.0f);
+		setPageButtonsActive(false);
+	}
+
+	public void syncFromSession() {
+		syncPreviewButtons();
+		if (shadowButton != null) {
+			boolean shadow = session.text().shadow();
+			shadowButton.setMessage(
+					Text.translatable("chat_canvas.option.text_shadow")
+							.append(Text.literal("  "))
+							.append(Text.translatable(shadow
+									? "chat_canvas.state.on"
+									: "chat_canvas.state.off")));
+		}
 	}
 
 	private void syncPreviewButtons() {
@@ -174,25 +390,12 @@ public final class AnimatedSettingsPanel {
 				.append(Text.translatable("chat_canvas.preview.state.closed")));
 	}
 
-	private NumericScrubberComponent scrubber(NumericScrubberComponent.Property property, String translationKey) {
-		NumericScrubberComponent scrubber = new NumericScrubberComponent(
-				session,
-				property,
-				Text.translatable(translationKey).formatted(Formatting.LIGHT_PURPLE),
-				screenWidth,
-				screenHeight,
-				geometryChanged,
-				committed
-		);
-		scrubbers.put(property, scrubber);
-		return scrubber;
-	}
-
-	public void syncFromSession() {
-		// Scrubbers read their value directly from the session while drawing.
-	}
-
 	public void update(double deltaSeconds) {
+		updatePanelSide(deltaSeconds);
+		updateCategoryTransition(deltaSeconds);
+	}
+
+	private void updatePanelSide(double deltaSeconds) {
 		double center = session.layout().centerX();
 		if (side == Side.RIGHT && center > screenWidth * 0.55) {
 			side = Side.LEFT;
@@ -206,25 +409,63 @@ public final class AnimatedSettingsPanel {
 		component.moveTo(x, Math.min(PANEL_TOP, Math.max(4, screenHeight - panelHeight - 4)));
 	}
 
+	private void updateCategoryTransition(double deltaSeconds) {
+		if (!categoryTransitioning) return;
+		categoryProgress = Math.min(1.0,
+				categoryProgress + Math.max(0.0, deltaSeconds) / CATEGORY_DURATION_SECONDS);
+		double eased = 1.0 - Math.pow(1.0 - categoryProgress, 3.0);
+		CategoryPage outgoing = pages.get(outgoingCategory);
+		CategoryPage incoming = pages.get(activeCategory);
+		outgoing.stack.positioning(Positioning.absolute(
+				(int) Math.round(-CATEGORY_OFFSET * eased), 0));
+		incoming.stack.positioning(Positioning.absolute(
+				(int) Math.round(CATEGORY_OFFSET * (1.0 - eased)), 0));
+		outgoing.overlay.opacity((float) eased);
+		incoming.overlay.opacity((float) (1.0 - eased));
+		if (categoryProgress >= 1.0) {
+			outgoing.stack.positioning(Positioning.absolute(panelWidth + CATEGORY_OFFSET, 0));
+			incoming.stack.positioning(Positioning.absolute(0, 0));
+			incoming.detachOverlay();
+			categoryTransitioning = false;
+			setPageButtonsActive(true);
+		}
+	}
+
+	private void setPageButtonsActive(boolean active) {
+		for (ButtonComponent button : pageButtons) {
+			if (button != null) button.active(active);
+		}
+	}
+
 	public void resizeViewport(int width, int height) {
 		this.screenWidth = width;
 		this.screenHeight = height;
 		this.panelWidth = panelWidth(width);
 		this.panelHeight = panelHeight(height);
 		component.sizing(Sizing.fixed(panelWidth), Sizing.fixed(panelHeight));
+		if (pageHost != null) {
+			pageHost.sizing(Sizing.fill(100), Sizing.fixed(contentHeight(panelHeight)));
+		}
 		spring.setTarget(targetX());
 		int maxX = Math.max(4, width - panelWidth - 4);
 		if (spring.value() < 4 || spring.value() > maxX) {
 			spring.setValue(clamp((int) Math.round(spring.value()), 4, maxX));
 			spring.setTarget(targetX());
 		}
-		for (NumericScrubberComponent scrubber : scrubbers.values()) {
+		for (NumericScrubber scrubber : scrubbers) {
 			scrubber.resizeViewport(width, height);
+		}
+		for (Map.Entry<Category, CategoryPage> entry : pages.entrySet()) {
+			if (entry.getKey() != activeCategory && !categoryTransitioning) {
+				entry.getValue().stack.positioning(
+						Positioning.absolute(panelWidth + CATEGORY_OFFSET, 0));
+			}
 		}
 	}
 
-	public @Nullable NumericScrubberComponent scrubberAt(double mouseX, double mouseY) {
-		for (NumericScrubberComponent scrubber : scrubbers.values()) {
+	public @Nullable NumericScrubber scrubberAt(double mouseX, double mouseY) {
+		if (categoryTransitioning) return null;
+		for (NumericScrubber scrubber : scrubbers) {
 			if (scrubber.valueRegionContains(mouseX, mouseY)) return scrubber;
 		}
 		return null;
@@ -245,6 +486,13 @@ public final class AnimatedSettingsPanel {
 		return Math.max(1, screenHeight - PANEL_TOP - 16);
 	}
 
+	private static int contentHeight(int panelHeight) {
+		int fixedChildrenHeight = LABEL_HEIGHT * 2 + CATEGORY_HEIGHT + FOOTER_HEIGHT;
+		int fixedGaps = PANEL_GAP * 4;
+		int verticalPadding = PANEL_PADDING * 2;
+		return Math.max(1, panelHeight - fixedChildrenHeight - fixedGaps - verticalPadding);
+	}
+
 	private static int clamp(int value, int min, int max) {
 		return Math.max(min, Math.min(max, value));
 	}
@@ -253,11 +501,55 @@ public final class AnimatedSettingsPanel {
 		return Components.label(Text.translatable(key).formatted(Formatting.WHITE, Formatting.BOLD));
 	}
 
+	private static ButtonComponent transparentButton(Text text, Consumer<ButtonComponent> action) {
+		ButtonComponent button = ModernUiTheme.button(text, action);
+		button.renderer(ButtonComponent.Renderer.flat(0x00000000, 0x332F435A, 0x00000000));
+		return button;
+	}
+
 	public FlowLayout component() {
 		return component;
 	}
 
 	private enum Side {
 		LEFT, RIGHT
+	}
+
+	private enum Category {
+		LAYOUT("chat_canvas.category.layout"),
+		TEXT("chat_canvas.category.text");
+
+		private final String translationKey;
+
+		Category(String translationKey) {
+			this.translationKey = translationKey;
+		}
+	}
+
+	private static final class CategoryPage {
+		private final StackLayout stack;
+		@SuppressWarnings("unused")
+		private final ScrollContainer<FlowLayout> scroll;
+		private final FadeOverlayComponent overlay;
+		private boolean overlayAttached;
+
+		private CategoryPage(StackLayout stack, ScrollContainer<FlowLayout> scroll,
+							 FadeOverlayComponent overlay) {
+			this.stack = stack;
+			this.scroll = scroll;
+			this.overlay = overlay;
+		}
+
+		private void attachOverlay() {
+			if (overlayAttached) return;
+			stack.child(overlay);
+			overlayAttached = true;
+		}
+
+		private void detachOverlay() {
+			if (!overlayAttached) return;
+			stack.removeChild(overlay);
+			overlayAttached = false;
+		}
 	}
 }

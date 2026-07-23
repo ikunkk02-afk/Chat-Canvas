@@ -39,6 +39,16 @@ class ChatHudTransformTest {
 	}
 
 	@Test
+	void configuredFontScaleParticipatesInAllInternalDimensions() {
+		ChatHudTransform transform = new ChatHudTransform(
+				new PixelLayout(40, 400, 360, 180), 720, 0.8, 1.25);
+
+		assertEquals(1.0, transform.effectiveChatScale(), 0.00001);
+		assertEquals(360, transform.internalWrapWidth());
+		assertEquals(180, transform.configuredInternalHeight());
+	}
+
+	@Test
 	void openChatUsesMessageBottomAndMessageHeightForRenderAndHitTesting() {
 		PixelLayout layout = new PixelLayout(40, 400, 360, 180);
 		RuntimeChatBounds bounds = RuntimeChatBounds.calculate(layout, true, 12, 3, 9);

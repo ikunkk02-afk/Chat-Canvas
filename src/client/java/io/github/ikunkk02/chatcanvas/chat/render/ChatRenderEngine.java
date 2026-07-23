@@ -2,7 +2,10 @@ package io.github.ikunkk02.chatcanvas.chat.render;
 
 import io.github.ikunkk02.chatcanvas.animation.AnimatedFloat;
 import io.github.ikunkk02.chatcanvas.animation.AnimationClock;
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatLineMetrics;
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatTextLayout;
 import io.github.ikunkk02.chatcanvas.chat.layout.RuntimeChatBounds;
+import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.config.PixelLayout;
 import net.minecraft.text.Text;
 
@@ -11,7 +14,6 @@ import java.util.List;
 public final class ChatRenderEngine {
 	private static final int HORIZONTAL_PADDING = 3;
 	private static final int INPUT_VERTICAL_PADDING = 3;
-	private static final int LINE_GAP = 1;
 	private static final float CLOSED_OPACITY = 0.58f;
 
 	private final ChatLayoutCalculator layoutCalculator = new ChatLayoutCalculator();
@@ -40,7 +42,14 @@ public final class ChatRenderEngine {
 		animationClock.reset();
 	}
 
+	public void clearCache() {
+		layoutCalculator.invalidate();
+	}
+
 	public void render(ChatRenderContext baseContext) {
+		ChatTextConfig textConfig = baseContext.textConfig() == null
+				? ChatTextConfig.DEFAULT
+				: baseContext.textConfig().sanitized();
 		float progress = openProgress.update(animationClock.tick());
 		float opacity = lerp(CLOSED_OPACITY, 1.0f, progress);
 		int fullInputHeight = baseContext.textRenderer().fontHeight + INPUT_VERTICAL_PADDING;
@@ -54,7 +63,8 @@ public final class ChatRenderEngine {
 				baseContext.height(),
 				opacity,
 				progress,
-				baseContext.inputPlaceholder()
+				baseContext.inputPlaceholder(),
+				textConfig
 		);
 
 		PixelLayout totalLayout = new PixelLayout(context.x(), context.y(), context.width(), context.height());
@@ -63,16 +73,23 @@ public final class ChatRenderEngine {
 				inputHeight > 0,
 				inputHeight,
 				Math.round(RuntimeChatBounds.DEFAULT_INPUT_GAP * progress),
-				context.textRenderer().fontHeight + LINE_GAP
+				(int) Math.ceil(ChatTextLayout.internalLineHeight(
+						context.textRenderer().fontHeight, textConfig.lineSpacing())
+						* textConfig.fontScale())
 		);
 		if (inputHeight > 0) {
 			drawInput(context, bounds);
 		}
 
-		int wrapWidth = Math.max(1, context.width() - HORIZONTAL_PADDING * 2);
+		double fontScale = textConfig.fontScale();
+		int wrapWidth = Math.max(1, (int) Math.floor(
+				(context.width() - HORIZONTAL_PADDING * 2) / fontScale));
 		List<ChatLayoutCalculator.ChatLine> lines =
 				layoutCalculator.calculate(context.textRenderer(), messages, wrapWidth);
-		int lineY = bounds.messageBottom() - context.textRenderer().fontHeight;
+		int internalLineHeight = ChatTextLayout.internalLineHeight(
+				context.textRenderer().fontHeight, textConfig.lineSpacing());
+		double screenLineHeight = internalLineHeight * fontScale;
+		double lineY = bounds.messageBottom() - context.textRenderer().fontHeight * fontScale;
 		int minimumY = bounds.messageTop();
 		int depth = 0;
 		context.drawContext().enableScissor(
@@ -82,11 +99,42 @@ public final class ChatRenderEngine {
 			float ageFade = state == PreviewChatState.CLOSED
 					? Math.max(0.72f, 1.0f - depth * 0.055f)
 					: 1.0f;
-			float lineOpacity = opacity * ageFade;
-			int lineX = context.x() + HORIZONTAL_PADDING;
-			backgroundRenderer.drawMessageBackground(context, lineX, lineY, line.width(), lineOpacity);
-			lineRenderer.draw(context, line.text(), lineX, lineY, lineOpacity);
-			lineY -= context.textRenderer().fontHeight + LINE_GAP;
+			float lineOpacity = opacity * ageFade * (float) textConfig.textOpacity();
+			ChatLineMetrics metrics = ChatTextLayout.metrics(
+					index,
+					line.width(),
+					wrapWidth,
+					0,
+					textConfig.alignment(),
+					lineY,
+					screenLineHeight
+			);
+			context.drawContext().getMatrices().push();
+			context.drawContext().getMatrices().translate(
+					context.x() + HORIZONTAL_PADDING, (float) lineY, 0.0f);
+			context.drawContext().getMatrices().scale((float) fontScale, (float) fontScale, 1.0f);
+			int lineX = (int) Math.round(metrics.drawX());
+			backgroundRenderer.drawMessageBackground(
+					new ChatRenderContext(
+							context.drawContext(),
+							context.textRenderer(),
+							0,
+							0,
+							wrapWidth,
+							internalLineHeight,
+							lineOpacity,
+							context.inputProgress(),
+							context.inputPlaceholder(),
+							textConfig
+					),
+					lineX,
+					0,
+					line.width(),
+					lineOpacity
+			);
+			lineRenderer.draw(context, line.text(), lineX, 0, lineOpacity, textConfig.shadow());
+			context.drawContext().getMatrices().pop();
+			lineY -= screenLineHeight;
 			depth++;
 		}
 		context.drawContext().disableScissor();

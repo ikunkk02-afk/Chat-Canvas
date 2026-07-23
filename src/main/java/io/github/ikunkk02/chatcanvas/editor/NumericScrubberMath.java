@@ -12,6 +12,15 @@ public final class NumericScrubberMath {
 		};
 	}
 
+	public static double percentagePointDelta(double totalMouseDelta, Sensitivity sensitivity) {
+		int units = roundedUnits(totalMouseDelta, 2.0);
+		return switch (sensitivity) {
+			case NORMAL -> units;
+			case FINE -> units * 0.2;
+			case FAST -> units * 5.0;
+		};
+	}
+
 	private static int roundedUnits(double delta, double pixelsPerUnit) {
 		return (int) Math.round(delta / pixelsPerUnit);
 	}

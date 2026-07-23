@@ -6,6 +6,7 @@ import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.ui.AlignmentGuideRenderer;
 import io.github.ikunkk02.chatcanvas.ui.AnimatedSettingsPanel;
 import io.github.ikunkk02.chatcanvas.ui.ModernUiTheme;
+import io.github.ikunkk02.chatcanvas.ui.NumericScrubber;
 import io.github.ikunkk02.chatcanvas.ui.NumericScrubberComponent;
 import io.github.ikunkk02.chatcanvas.ui.PreviewChatWidget;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
@@ -49,7 +50,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	@Override
 	protected @NotNull OwoUIAdapter<FlowLayout> createAdapter() {
 		if (session == null) {
-			session = new EditorSession(ChatCanvasConfig.instance().layout(), width, height);
+			session = new EditorSession(ChatCanvasConfig.instance().settings(), width, height);
 		}
 		return OwoUIAdapter.create(this, Containers::verticalFlow);
 	}
@@ -139,7 +140,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
-		NumericScrubberComponent scrubber = settingsPanel == null
+		NumericScrubber scrubber = settingsPanel == null
 				? null
 				: settingsPanel.scrubberAt(mouseX, mouseY);
 		if (scrubber != null) {
@@ -177,7 +178,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-		NumericScrubberComponent scrubber = settingsPanel == null
+		NumericScrubber scrubber = settingsPanel == null
 				? null
 				: settingsPanel.scrubberAt(mouseX, mouseY);
 		if (scrubber != null && scrubber.scroll(verticalAmount)) {
@@ -231,6 +232,9 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	@Override
 	public void removed() {
 		pointerCapture.cancel();
+		if (preview != null) {
+			preview.dispose();
+		}
 		super.removed();
 	}
 
@@ -264,8 +268,8 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	}
 
 	private void saveAndClose() {
-		if (ChatCanvasConfig.instance().save(session.snapshot())) {
-			ChatLayoutRuntime.applySavedLayout();
+		if (ChatCanvasConfig.instance().save(session.snapshot().settings())) {
+			ChatLayoutRuntime.applySavedSettings();
 			returnToParent();
 		}
 	}

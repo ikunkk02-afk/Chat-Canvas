@@ -1,13 +1,19 @@
 package io.github.ikunkk02.chatcanvas;
 
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatLineWidthCache;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatLayoutRuntime;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.editor.ChatCanvasEditorScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
+import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.resource.ResourceManager;
+import net.minecraft.resource.ResourceType;
+import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public final class ChatCanvasClient implements ClientModInitializer {
@@ -22,6 +28,19 @@ public final class ChatCanvasClient implements ClientModInitializer {
 				GLFW.GLFW_KEY_K,
 				"key.category.chat_canvas"
 		));
+		ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES)
+				.registerReloadListener(new SimpleSynchronousResourceReloadListener() {
+					@Override
+					public Identifier getFabricId() {
+						return Identifier.of(ChatCanvas.MOD_ID, "chat_text_metrics");
+					}
+
+					@Override
+					public void reload(ResourceManager manager) {
+						ChatLineWidthCache.clear();
+						ChatLayoutRuntime.onFontResourcesReloaded();
+					}
+				});
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			ChatLayoutRuntime.tick(client);

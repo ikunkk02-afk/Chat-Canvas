@@ -1,20 +1,29 @@
 package io.github.ikunkk02.chatcanvas.editor;
 
+import io.github.ikunkk02.chatcanvas.config.ChatCanvasSettings;
+import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.config.LayoutConfig;
 import io.github.ikunkk02.chatcanvas.config.PixelLayout;
 
 public final class EditorSession {
-	private final LayoutConfig original;
+	private final EditorSnapshot original;
 	private final EditorHistory history;
 	private PixelLayout layout;
+	private ChatTextConfig text;
 	private int screenWidth;
 	private int screenHeight;
 
 	public EditorSession(LayoutConfig original, int screenWidth, int screenHeight) {
-		this.original = original.sanitized();
+		this(new ChatCanvasSettings(original, ChatTextConfig.DEFAULT), screenWidth, screenHeight);
+	}
+
+	public EditorSession(ChatCanvasSettings original, int screenWidth, int screenHeight) {
+		ChatCanvasSettings safe = original.sanitized();
+		this.original = new EditorSnapshot(safe.layout(), safe.text());
 		this.screenWidth = Math.max(1, screenWidth);
 		this.screenHeight = Math.max(1, screenHeight);
-		this.layout = this.original.toPixels(this.screenWidth, this.screenHeight);
+		this.layout = this.original.layout().toPixels(this.screenWidth, this.screenHeight);
+		this.text = this.original.text();
 		this.history = new EditorHistory(snapshot());
 	}
 
@@ -22,12 +31,19 @@ public final class EditorSession {
 		return layout;
 	}
 
-	public LayoutConfig original() {
+	public ChatTextConfig text() {
+		return text;
+	}
+
+	public EditorSnapshot original() {
 		return original;
 	}
 
-	public LayoutConfig snapshot() {
-		return LayoutConfig.fromPixels(layout, screenWidth, screenHeight);
+	public EditorSnapshot snapshot() {
+		return new EditorSnapshot(
+				LayoutConfig.fromPixels(layout, screenWidth, screenHeight),
+				text
+		);
 	}
 
 	public void setLayout(PixelLayout value) {
@@ -38,15 +54,29 @@ public final class EditorSession {
 		layout = value.toPixels(screenWidth, screenHeight);
 	}
 
+	public void setText(ChatTextConfig value) {
+		text = value.sanitized();
+	}
+
+	public void apply(EditorSnapshot value) {
+		layout = value.layout().toPixels(screenWidth, screenHeight);
+		text = value.text();
+	}
+
 	public void resizeViewport(int width, int height) {
-		LayoutConfig ratios = snapshot();
+		LayoutConfig ratios = snapshot().layout();
 		screenWidth = Math.max(1, width);
 		screenHeight = Math.max(1, height);
 		layout = ratios.toPixels(screenWidth, screenHeight);
 	}
 
-	public void restoreDefaults() {
+	public void restoreLayoutDefaults() {
 		apply(LayoutConfig.DEFAULT);
+		commit();
+	}
+
+	public void restoreTextDefaults() {
+		setText(ChatTextConfig.DEFAULT);
 		commit();
 	}
 

@@ -1,8 +1,6 @@
 package io.github.ikunkk02.chatcanvas.ui;
 
-import io.github.ikunkk02.chatcanvas.config.LayoutConfig;
-import io.github.ikunkk02.chatcanvas.config.PixelLayout;
-import io.github.ikunkk02.chatcanvas.editor.EditorPointerTarget;
+import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.github.ikunkk02.chatcanvas.editor.NumericScrubberMath;
 import io.wispforest.owo.ui.base.BaseComponent;
@@ -13,35 +11,32 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.text.Text;
 
-public final class NumericScrubberComponent extends BaseComponent implements NumericScrubber {
+import java.util.Locale;
+
+public final class TextNumericScrubberComponent extends BaseComponent implements NumericScrubber {
 	private static final int VALUE_WIDTH = 78;
 
 	private final EditorSession session;
 	private final Property property;
 	private final Text label;
-	private final Runnable geometryChanged;
+	private final Runnable previewChanged;
 	private final Runnable historyChanged;
 
-	private PixelLayout dragStartLayout;
+	private ChatTextConfig dragStartText;
 	private double dragStartMouseX;
-	private int dragStartValue;
+	private double dragStartValue;
 	private NumericScrubberMath.Sensitivity sensitivity = NumericScrubberMath.Sensitivity.NORMAL;
 	private boolean dragging;
 	private boolean changed;
 	private boolean valueHovered;
 	private float hoverProgress;
-	private int screenWidth;
-	private int screenHeight;
 
-	public NumericScrubberComponent(EditorSession session, Property property, Text label,
-									int screenWidth, int screenHeight,
-									Runnable geometryChanged, Runnable historyChanged) {
+	public TextNumericScrubberComponent(EditorSession session, Property property, Text label,
+										Runnable previewChanged, Runnable historyChanged) {
 		this.session = session;
 		this.property = property;
 		this.label = label;
-		this.screenWidth = screenWidth;
-		this.screenHeight = screenHeight;
-		this.geometryChanged = geometryChanged;
+		this.previewChanged = previewChanged;
 		this.historyChanged = historyChanged;
 		this.sizing(Sizing.fill(100), Sizing.fixed(24));
 	}
@@ -65,8 +60,7 @@ public final class NumericScrubberComponent extends BaseComponent implements Num
 		context.fill(valueLeft, y() + 2, x() + width(), y() + height() - 2, background);
 		context.fill(valueLeft, y() + height() - 3, x() + width(), y() + height() - 2, 0x553F526A);
 
-		double progress = valueProgress();
-		int progressRight = valueLeft + (int) Math.round((width() - (valueLeft - x())) * progress);
+		int progressRight = valueLeft + (int) Math.round((width() - (valueLeft - x())) * valueProgress());
 		if (progressRight > valueLeft) {
 			context.fill(valueLeft, y() + height() - 3, progressRight, y() + height() - 2,
 					dragging ? 0xFF8EB8FF : 0xCC6E9ED8);
@@ -74,14 +68,16 @@ public final class NumericScrubberComponent extends BaseComponent implements Num
 
 		int textY = y() + (height() - renderer.fontHeight) / 2;
 		context.drawText(renderer, label, x() + 2, textY, 0xFFC7CEDA, false);
-		String value = Integer.toString(currentValue());
+		String value = displayValue();
 		int valueX = x() + width() - 8 - renderer.getWidth(value);
-		context.drawText(renderer, value, valueX, textY, dragging ? 0xFFFFFFFF : 0xFFE9EDF4, false);
+		context.drawText(renderer, value, valueX, textY,
+				dragging ? 0xFFFFFFFF : 0xFFE9EDF4, false);
 		if (valueHovered || dragging) {
 			context.drawText(renderer, "\u2194", valueLeft + 6, textY, 0xFFA9B9CF, false);
 		}
 	}
 
+	@Override
 	public boolean valueRegionContains(double mouseX, double mouseY) {
 		return mouseX >= valueLeft() && mouseX <= x() + width()
 				&& mouseY >= y() && mouseY <= y() + height();
@@ -91,9 +87,9 @@ public final class NumericScrubberComponent extends BaseComponent implements Num
 	public boolean beginPointerInteraction(double mouseX, double mouseY, int button,
 										   boolean shiftDown, boolean controlDown) {
 		if (button != 0 || !valueRegionContains(mouseX, mouseY)) return false;
-		dragStartLayout = session.layout();
+		dragStartText = session.text();
 		dragStartMouseX = mouseX;
-		dragStartValue = currentValue();
+		dragStartValue = property.read(dragStartText);
 		sensitivity = NumericScrubberMath.Sensitivity.fromModifiers(shiftDown, controlDown);
 		dragging = true;
 		changed = false;
@@ -102,9 +98,10 @@ public final class NumericScrubberComponent extends BaseComponent implements Num
 
 	@Override
 	public boolean dragPointer(double mouseX, double mouseY, int button) {
-		if (!dragging || button != 0 || dragStartLayout == null) return false;
-		int delta = NumericScrubberMath.valueDelta(mouseX - dragStartMouseX, sensitivity);
-		applyValue(dragStartValue + delta);
+		if (!dragging || button != 0 || dragStartText == null) return false;
+		double percentagePointDelta = NumericScrubberMath.percentagePointDelta(
+				mouseX - dragStartMouseX, sensitivity);
+		applyValue(dragStartValue + percentagePointDelta / 100.0);
 		return true;
 	}
 
@@ -112,7 +109,7 @@ public final class NumericScrubberComponent extends BaseComponent implements Num
 	public boolean endPointerInteraction(double mouseX, double mouseY, int button) {
 		if (!dragging || button != 0) return false;
 		dragging = false;
-		dragStartLayout = null;
+		dragStartText = null;
 		if (changed) {
 			session.commit();
 			historyChanged.run();
@@ -124,21 +121,21 @@ public final class NumericScrubberComponent extends BaseComponent implements Num
 	@Override
 	public void cancelPointerInteraction() {
 		if (!dragging) return;
-		if (changed && dragStartLayout != null) {
-			session.setLayout(dragStartLayout);
-			geometryChanged.run();
+		if (changed && dragStartText != null) {
+			session.setText(dragStartText);
+			previewChanged.run();
 		}
 		dragging = false;
-		dragStartLayout = null;
+		dragStartText = null;
 		changed = false;
 	}
 
+	@Override
 	public boolean scroll(double amount) {
 		if (!valueHovered || amount == 0.0) return false;
-		int step = amount > 0.0 ? 1 : -1;
-		PixelLayout before = session.layout();
-		applyValue(currentValue() + step);
-		if (!before.equals(session.layout())) {
+		ChatTextConfig before = session.text();
+		applyValue(property.read(before) + (amount > 0.0 ? 0.01 : -0.01));
+		if (!before.equals(session.text())) {
 			session.commit();
 			historyChanged.run();
 		}
@@ -146,11 +143,11 @@ public final class NumericScrubberComponent extends BaseComponent implements Num
 		return true;
 	}
 
+	@Override
 	public boolean restoreDefault() {
-		PixelLayout defaults = LayoutConfig.DEFAULT.toPixels(screenWidth, screenHeight);
-		PixelLayout before = session.layout();
-		applyValue(property.read(defaults));
-		if (!before.equals(session.layout())) {
+		ChatTextConfig before = session.text();
+		applyValue(property.defaultValue());
+		if (!before.equals(session.text())) {
 			session.commit();
 			historyChanged.run();
 		}
@@ -158,23 +155,22 @@ public final class NumericScrubberComponent extends BaseComponent implements Num
 		return true;
 	}
 
+	@Override
 	public void resizeViewport(int width, int height) {
-		screenWidth = Math.max(1, width);
-		screenHeight = Math.max(1, height);
+		// Percentage controls are independent of the viewport.
 	}
 
-	private void applyValue(int value) {
-		PixelLayout before = session.layout();
-		PixelLayout next = property.write(before, value);
-		session.setLayout(next);
-		if (!before.equals(session.layout())) {
+	private void applyValue(double value) {
+		ChatTextConfig before = session.text();
+		session.setText(property.write(before, value));
+		if (!before.equals(session.text())) {
 			changed = true;
-			geometryChanged.run();
+			previewChanged.run();
 		}
 	}
 
-	private int currentValue() {
-		return property.read(session.layout());
+	private double currentValue() {
+		return property.read(session.text());
 	}
 
 	private int valueLeft() {
@@ -182,31 +178,17 @@ public final class NumericScrubberComponent extends BaseComponent implements Num
 	}
 
 	private double valueProgress() {
-		PixelLayout layout = session.layout();
-		int margin = PixelLayout.DEFAULT_SAFE_MARGIN;
-		int min;
-		int max;
-		switch (property) {
-			case X -> {
-				min = margin;
-				max = Math.max(min, screenWidth - margin - layout.width());
-			}
-			case Y -> {
-				min = margin;
-				max = Math.max(min, screenHeight - margin - layout.height());
-			}
-			case WIDTH -> {
-				min = Math.min(PixelLayout.DEFAULT_MIN_WIDTH, Math.max(1, screenWidth - margin * 2));
-				max = Math.max(min, screenWidth - margin * 2);
-			}
-			case HEIGHT -> {
-				min = Math.min(PixelLayout.DEFAULT_MIN_HEIGHT, Math.max(1, screenHeight - margin * 2));
-				max = Math.max(min, screenHeight - margin * 2);
-			}
-			default -> throw new IllegalStateException("Unexpected property " + property);
+		return Math.max(0.0, Math.min(1.0,
+				(currentValue() - property.min()) / (property.max() - property.min())));
+	}
+
+	private String displayValue() {
+		double percent = currentValue() * 100.0;
+		double rounded = Math.rint(percent);
+		if (Math.abs(percent - rounded) < 0.001) {
+			return (int) rounded + "%";
 		}
-		if (max == min) return 1.0;
-		return Math.max(0.0, Math.min(1.0, (currentValue() - min) / (double) (max - min)));
+		return String.format(Locale.ROOT, "%.1f%%", percent);
 	}
 
 	private static int interpolateColor(int from, int to, float progress) {
@@ -222,53 +204,70 @@ public final class NumericScrubberComponent extends BaseComponent implements Num
 	}
 
 	public enum Property {
-		X {
+		FONT_SCALE(ChatTextConfig.MIN_FONT_SCALE, ChatTextConfig.MAX_FONT_SCALE,
+				ChatTextConfig.DEFAULT.fontScale()) {
 			@Override
-			int read(PixelLayout layout) {
-				return layout.x();
+			double read(ChatTextConfig config) {
+				return config.fontScale();
 			}
 
 			@Override
-			PixelLayout write(PixelLayout layout, int value) {
-				return new PixelLayout(value, layout.y(), layout.width(), layout.height());
+			ChatTextConfig write(ChatTextConfig config, double value) {
+				return new ChatTextConfig(value, config.lineSpacing(), config.textOpacity(),
+						config.alignment(), config.shadow());
 			}
 		},
-		Y {
+		LINE_SPACING(ChatTextConfig.MIN_LINE_SPACING, ChatTextConfig.MAX_LINE_SPACING,
+				ChatTextConfig.DEFAULT.lineSpacing()) {
 			@Override
-			int read(PixelLayout layout) {
-				return layout.y();
+			double read(ChatTextConfig config) {
+				return config.lineSpacing();
 			}
 
 			@Override
-			PixelLayout write(PixelLayout layout, int value) {
-				return new PixelLayout(layout.x(), value, layout.width(), layout.height());
+			ChatTextConfig write(ChatTextConfig config, double value) {
+				return new ChatTextConfig(config.fontScale(), value, config.textOpacity(),
+						config.alignment(), config.shadow());
 			}
 		},
-		WIDTH {
+		TEXT_OPACITY(ChatTextConfig.MIN_TEXT_OPACITY, ChatTextConfig.MAX_TEXT_OPACITY,
+				ChatTextConfig.DEFAULT.textOpacity()) {
 			@Override
-			int read(PixelLayout layout) {
-				return layout.width();
+			double read(ChatTextConfig config) {
+				return config.textOpacity();
 			}
 
 			@Override
-			PixelLayout write(PixelLayout layout, int value) {
-				return new PixelLayout(layout.x(), layout.y(), value, layout.height());
-			}
-		},
-		HEIGHT {
-			@Override
-			int read(PixelLayout layout) {
-				return layout.height();
-			}
-
-			@Override
-			PixelLayout write(PixelLayout layout, int value) {
-				return new PixelLayout(layout.x(), layout.y(), layout.width(), value);
+			ChatTextConfig write(ChatTextConfig config, double value) {
+				return new ChatTextConfig(config.fontScale(), config.lineSpacing(), value,
+						config.alignment(), config.shadow());
 			}
 		};
 
-		abstract int read(PixelLayout layout);
+		private final double min;
+		private final double max;
+		private final double defaultValue;
 
-		abstract PixelLayout write(PixelLayout layout, int value);
+		Property(double min, double max, double defaultValue) {
+			this.min = min;
+			this.max = max;
+			this.defaultValue = defaultValue;
+		}
+
+		abstract double read(ChatTextConfig config);
+
+		abstract ChatTextConfig write(ChatTextConfig config, double value);
+
+		double min() {
+			return min;
+		}
+
+		double max() {
+			return max;
+		}
+
+		double defaultValue() {
+			return defaultValue;
+		}
 	}
 }

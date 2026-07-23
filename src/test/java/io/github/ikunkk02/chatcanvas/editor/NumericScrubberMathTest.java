@@ -22,4 +22,14 @@ class NumericScrubberMathTest {
 		assertEquals(NumericScrubberMath.Sensitivity.FAST,
 				NumericScrubberMath.Sensitivity.fromModifiers(true, true));
 	}
+
+	@Test
+	void textPercentageStepsRespectModifiers() {
+		assertEquals(5.0, NumericScrubberMath.percentagePointDelta(
+				10.0, NumericScrubberMath.Sensitivity.NORMAL), 0.00001);
+		assertEquals(1.0, NumericScrubberMath.percentagePointDelta(
+				10.0, NumericScrubberMath.Sensitivity.FINE), 0.00001);
+		assertEquals(25.0, NumericScrubberMath.percentagePointDelta(
+				10.0, NumericScrubberMath.Sensitivity.FAST), 0.00001);
+	}
 }

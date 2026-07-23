@@ -1,7 +1,5 @@
 package io.github.ikunkk02.chatcanvas.editor;
 
-import io.github.ikunkk02.chatcanvas.config.LayoutConfig;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -10,28 +8,27 @@ public final class EditorHistory {
 	private static final int DEFAULT_CAPACITY = 100;
 
 	private final int capacity;
-	private final List<LayoutConfig> entries = new ArrayList<>();
+	private final List<EditorSnapshot> entries = new ArrayList<>();
 	private int cursor;
 
-	public EditorHistory(LayoutConfig initial) {
+	public EditorHistory(EditorSnapshot initial) {
 		this(initial, DEFAULT_CAPACITY);
 	}
 
-	public EditorHistory(LayoutConfig initial, int capacity) {
+	public EditorHistory(EditorSnapshot initial, int capacity) {
 		this.capacity = Math.max(2, capacity);
-		entries.add(initial.sanitized());
+		entries.add(initial);
 		cursor = 0;
 	}
 
-	public void record(LayoutConfig state) {
-		LayoutConfig sanitized = state.sanitized();
-		if (entries.get(cursor).equals(sanitized)) {
+	public void record(EditorSnapshot state) {
+		if (entries.get(cursor).equals(state)) {
 			return;
 		}
 		while (entries.size() > cursor + 1) {
 			entries.remove(entries.size() - 1);
 		}
-		entries.add(sanitized);
+		entries.add(state);
 		cursor++;
 		if (entries.size() > capacity) {
 			entries.remove(0);
@@ -39,7 +36,7 @@ public final class EditorHistory {
 		}
 	}
 
-	public Optional<LayoutConfig> undo() {
+	public Optional<EditorSnapshot> undo() {
 		if (!canUndo()) {
 			return Optional.empty();
 		}
@@ -47,7 +44,7 @@ public final class EditorHistory {
 		return Optional.of(entries.get(cursor));
 	}
 
-	public Optional<LayoutConfig> redo() {
+	public Optional<EditorSnapshot> redo() {
 		if (!canRedo()) {
 			return Optional.empty();
 		}
@@ -63,7 +60,7 @@ public final class EditorHistory {
 		return cursor + 1 < entries.size();
 	}
 
-	public LayoutConfig current() {
+	public EditorSnapshot current() {
 		return entries.get(cursor);
 	}
 

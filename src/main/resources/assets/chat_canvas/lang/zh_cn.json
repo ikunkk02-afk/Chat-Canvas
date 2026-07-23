@@ -33,5 +33,16 @@
   "chat_canvas.preview.state": "预览状态",
   "chat_canvas.preview.state.open": "聊天已打开",
   "chat_canvas.preview.state.closed": "聊天已关闭",
-  "chat_canvas.preview.input_placeholder": "输入消息……"
+  "chat_canvas.preview.input_placeholder": "输入消息……",
+  "chat_canvas.option.font_scale": "文字大小",
+  "chat_canvas.option.line_spacing": "行间距",
+  "chat_canvas.option.text_opacity": "文字透明度",
+  "chat_canvas.option.text_alignment": "文字对齐",
+  "chat_canvas.option.text_shadow": "文字阴影",
+  "chat_canvas.alignment.left": "左对齐",
+  "chat_canvas.alignment.center": "居中",
+  "chat_canvas.alignment.right": "右对齐",
+  "chat_canvas.state.on": "开启",
+  "chat_canvas.state.off": "关闭",
+  "chat_canvas.action.restore_text_defaults": "恢复文字默认值"
 }

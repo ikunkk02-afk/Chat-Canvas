@@ -169,7 +169,8 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 				layout.height(),
 				1.0f,
 				renderEngine.state() == PreviewChatState.OPEN ? 1.0f : 0.0f,
-				Text.translatable("chat_canvas.preview.input_placeholder")
+				Text.translatable("chat_canvas.preview.input_placeholder"),
+				session.text()
 		));
 		drawEditorAssist(context, layout);
 	}
@@ -249,5 +250,9 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 
 	public void setPreviewState(PreviewChatState state) {
 		renderEngine.state(state);
+	}
+
+	public void dispose() {
+		renderEngine.clearCache();
 	}
 }
