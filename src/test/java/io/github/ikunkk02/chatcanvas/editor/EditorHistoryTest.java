@@ -1,8 +1,10 @@
 package io.github.ikunkk02.chatcanvas.editor;
 
 import io.github.ikunkk02.chatcanvas.config.ChatTextAlignment;
+import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.config.LayoutConfig;
+import io.github.ikunkk02.chatcanvas.config.MessageBackgroundMode;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -46,6 +48,19 @@ class EditorHistoryTest {
 
 		assertEquals(ChatTextConfig.DEFAULT, history.undo().orElseThrow().text());
 		assertEquals(centered, history.redo().orElseThrow().text());
+	}
+
+	@Test
+	void backgroundSharesTheSameUndoTimeline() {
+		EditorSnapshot initial = new EditorSnapshot(
+				LayoutConfig.DEFAULT, ChatTextConfig.DEFAULT, ChatBackgroundConfig.DEFAULT);
+		EditorHistory history = new EditorHistory(initial);
+		ChatBackgroundConfig hidden = ChatBackgroundConfig.DEFAULT
+				.withMessageMode(MessageBackgroundMode.HIDDEN);
+		history.record(new EditorSnapshot(LayoutConfig.DEFAULT, ChatTextConfig.DEFAULT, hidden));
+
+		assertEquals(ChatBackgroundConfig.DEFAULT, history.undo().orElseThrow().background());
+		assertEquals(hidden, history.redo().orElseThrow().background());
 	}
 
 	private static EditorSnapshot snapshot(LayoutConfig layout, ChatTextConfig text) {

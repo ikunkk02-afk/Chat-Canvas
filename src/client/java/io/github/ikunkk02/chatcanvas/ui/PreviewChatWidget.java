@@ -170,7 +170,9 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 				1.0f,
 				renderEngine.state() == PreviewChatState.OPEN ? 1.0f : 0.0f,
 				Text.translatable("chat_canvas.preview.input_placeholder"),
-				session.text()
+				session.text(),
+				session.background(),
+				MinecraftClient.getInstance().options.getTextBackgroundOpacity().getValue()
 		));
 		drawEditorAssist(context, layout);
 	}

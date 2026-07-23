@@ -2,6 +2,7 @@ package io.github.ikunkk02.chatcanvas.chat.render;
 
 import io.wispforest.owo.ui.core.OwoUIDrawContext;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
+import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.text.Text;
 
@@ -15,7 +16,9 @@ public record ChatRenderContext(
 		float messageOpacity,
 		float inputProgress,
 		Text inputPlaceholder,
-		ChatTextConfig textConfig
+		ChatTextConfig textConfig,
+		ChatBackgroundConfig backgroundConfig,
+		double vanillaBackgroundOpacity
 ) {
 	public int right() {
 		return x + width;

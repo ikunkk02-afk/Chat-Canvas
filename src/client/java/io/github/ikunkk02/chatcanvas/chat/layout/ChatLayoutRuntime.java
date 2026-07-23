@@ -66,8 +66,11 @@ public final class ChatLayoutRuntime {
 		MinecraftClient client = MinecraftClient.getInstance();
 		if (client.inGameHud == null) return;
 		ChatHudTransform transform = currentTransform(client);
-		refresh(client.inGameHud.getChatHud());
-		lastRefreshSignature = RefreshSignature.from(transform);
+		RefreshSignature signature = RefreshSignature.from(transform);
+		if (lastRefreshSignature == null || !lastRefreshSignature.equals(signature)) {
+			refresh(client.inGameHud.getChatHud());
+		}
+		lastRefreshSignature = signature;
 	}
 
 	public static void applySavedLayout() {
@@ -87,10 +90,17 @@ public final class ChatLayoutRuntime {
 		((ChatHudAccessor) chatHud).chat_canvas$refresh();
 	}
 
-	private record RefreshSignature(int internalWrapWidth, long effectiveScaleBits) {
+	private record RefreshSignature(int internalWrapWidth, int horizontalPadding,
+									long effectiveScaleBits) {
 		private static RefreshSignature from(ChatHudTransform transform) {
+			int horizontalPadding = ChatCanvasConfig.instance().background().horizontalPadding();
 			return new RefreshSignature(
-					transform.internalWrapWidth(),
+					ChatBackgroundMetrics.wrapWidth(
+							transform.internalWrapWidth(),
+							horizontalPadding,
+							transform.effectiveChatScale()
+					),
+					horizontalPadding,
 					Double.doubleToLongBits(transform.effectiveChatScale())
 			);
 		}

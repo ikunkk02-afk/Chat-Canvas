@@ -3,10 +3,13 @@ package io.github.ikunkk02.chatcanvas.chat.render;
 import io.github.ikunkk02.chatcanvas.animation.AnimatedFloat;
 import io.github.ikunkk02.chatcanvas.animation.AnimationClock;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatLineMetrics;
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatBackgroundBounds;
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatBackgroundMetrics;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatTextLayout;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatVerticalMetrics;
 import io.github.ikunkk02.chatcanvas.chat.layout.RuntimeChatBounds;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
+import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.PixelLayout;
 import net.minecraft.text.Text;
 
@@ -51,6 +54,9 @@ public final class ChatRenderEngine {
 		ChatTextConfig textConfig = baseContext.textConfig() == null
 				? ChatTextConfig.DEFAULT
 				: baseContext.textConfig().sanitized();
+		ChatBackgroundConfig backgroundConfig = baseContext.backgroundConfig() == null
+				? ChatBackgroundConfig.DEFAULT
+				: baseContext.backgroundConfig().sanitized();
 		float progress = openProgress.update(animationClock.tick());
 		float opacity = lerp(CLOSED_OPACITY, 1.0f, progress);
 		int fullInputHeight = baseContext.textRenderer().fontHeight + INPUT_VERTICAL_PADDING;
@@ -65,7 +71,9 @@ public final class ChatRenderEngine {
 				opacity,
 				progress,
 				baseContext.inputPlaceholder(),
-				textConfig
+				textConfig,
+				backgroundConfig,
+				baseContext.vanillaBackgroundOpacity()
 		);
 
 		PixelLayout totalLayout = new PixelLayout(context.x(), context.y(), context.width(), context.height());
@@ -83,8 +91,13 @@ public final class ChatRenderEngine {
 		}
 
 		double fontScale = textConfig.fontScale();
-		int wrapWidth = Math.max(1, (int) Math.floor(
-				(context.width() - HORIZONTAL_PADDING * 2) / fontScale));
+		int fullInternalWidth = Math.max(1,
+				(int) Math.floor(context.width() / fontScale));
+		int wrapWidth = ChatBackgroundMetrics.wrapWidth(
+				fullInternalWidth,
+				backgroundConfig.horizontalPadding(),
+				fontScale
+		);
 		List<ChatLayoutCalculator.ChatLine> lines =
 				layoutCalculator.calculate(context.textRenderer(), messages, wrapWidth);
 		ChatVerticalMetrics verticalMetrics = ChatTextLayout.verticalMetrics(
@@ -105,7 +118,8 @@ public final class ChatRenderEngine {
 			float ageFade = state == PreviewChatState.CLOSED
 					? Math.max(0.72f, 1.0f - depth * 0.055f)
 					: 1.0f;
-			float lineOpacity = opacity * ageFade * (float) textConfig.textOpacity();
+			float vanillaLineOpacity = opacity * ageFade;
+			float lineOpacity = vanillaLineOpacity * (float) textConfig.textOpacity();
 			ChatLineMetrics metrics = ChatTextLayout.metrics(
 					index,
 					line.width(),
@@ -117,7 +131,7 @@ public final class ChatRenderEngine {
 			);
 			context.drawContext().getMatrices().push();
 			context.drawContext().getMatrices().translate(
-					context.x() + HORIZONTAL_PADDING, (float) lineY, 0.0f);
+					context.x() + backgroundConfig.horizontalPadding(), (float) lineY, 0.0f);
 			context.drawContext().getMatrices().scale((float) fontScale, (float) fontScale, 1.0f);
 			int lineX = (int) Math.round(metrics.drawX());
 			backgroundRenderer.drawMessageBackground(
@@ -131,13 +145,24 @@ public final class ChatRenderEngine {
 							lineOpacity,
 							context.inputProgress(),
 							context.inputPlaceholder(),
-							textConfig
+							textConfig,
+							backgroundConfig,
+							context.vanillaBackgroundOpacity()
 					),
-					lineX,
-					0,
-					line.width(),
-					verticalMetrics,
-					lineOpacity
+					ChatBackgroundMetrics.messageBounds(
+							backgroundConfig.messageMode(),
+							-backgroundConfig.horizontalPadding() / fontScale,
+							wrapWidth + backgroundConfig.horizontalPadding() / fontScale,
+							lineX,
+							line.width(),
+							0,
+							context.textRenderer().fontHeight,
+							verticalMetrics.lineAdvance(),
+							backgroundConfig.horizontalPadding(),
+							backgroundConfig.verticalPadding(),
+							fontScale
+					),
+					vanillaLineOpacity * context.vanillaBackgroundOpacity()
 			);
 			lineRenderer.draw(context, line.text(), lineX, 0, lineOpacity, textConfig.shadow());
 			context.drawContext().getMatrices().pop();

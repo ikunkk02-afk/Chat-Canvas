@@ -4,7 +4,9 @@ import io.github.ikunkk02.chatcanvas.animation.MotionPreset;
 import io.github.ikunkk02.chatcanvas.animation.SpringValue;
 import io.github.ikunkk02.chatcanvas.chat.render.PreviewChatState;
 import io.github.ikunkk02.chatcanvas.config.ChatTextAlignment;
+import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
+import io.github.ikunkk02.chatcanvas.config.MessageBackgroundMode;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.Components;
@@ -44,6 +46,7 @@ public final class AnimatedSettingsPanel {
 	private final Runnable cancelAction;
 	private final Supplier<PreviewChatState> previewState;
 	private final Consumer<PreviewChatState> previewStateChanged;
+	private final ColorPickerLauncher colorPickerLauncher;
 	private final FlowLayout component;
 	private final List<NumericScrubber> scrubbers = new ArrayList<>();
 	private final Map<Category, List<ButtonComponent>> pageButtons = new EnumMap<>(Category.class);
@@ -53,6 +56,10 @@ public final class AnimatedSettingsPanel {
 	private ButtonComponent openPreviewButton;
 	private ButtonComponent closedPreviewButton;
 	private ButtonComponent shadowButton;
+	private ButtonComponent messageColorButton;
+	private ButtonComponent inputColorButton;
+	private ButtonComponent borderColorButton;
+	private ButtonComponent inputBorderButton;
 	private StackLayout pageHost;
 	private SpringValue spring;
 	private Side side;
@@ -67,7 +74,8 @@ public final class AnimatedSettingsPanel {
 								 Runnable geometryChanged, Runnable committed,
 								 Runnable saveAction, Runnable cancelAction,
 								 Supplier<PreviewChatState> previewState,
-								 Consumer<PreviewChatState> previewStateChanged) {
+								 Consumer<PreviewChatState> previewStateChanged,
+								 ColorPickerLauncher colorPickerLauncher) {
 		this.session = session;
 		this.geometryChanged = geometryChanged;
 		this.committed = committed;
@@ -75,6 +83,7 @@ public final class AnimatedSettingsPanel {
 		this.cancelAction = cancelAction;
 		this.previewState = previewState;
 		this.previewStateChanged = previewStateChanged;
+		this.colorPickerLauncher = colorPickerLauncher;
 		this.screenWidth = screenWidth;
 		this.screenHeight = screenHeight;
 		this.panelWidth = panelWidth(screenWidth);
@@ -112,12 +121,16 @@ public final class AnimatedSettingsPanel {
 		pageHost.allowOverflow(false);
 		CategoryPage layoutPage = buildPage(buildLayoutBody());
 		CategoryPage textPage = buildPage(buildTextBody());
+		CategoryPage backgroundPage = buildPage(buildBackgroundBody());
 		pages.put(Category.LAYOUT, layoutPage);
 		pages.put(Category.TEXT, textPage);
+		pages.put(Category.BACKGROUND, backgroundPage);
 		layoutPage.stack.positioning(Positioning.absolute(0, 0));
 		textPage.stack.positioning(Positioning.absolute(pageWidth(), 0));
+		backgroundPage.stack.positioning(Positioning.absolute(pageWidth() * 2, 0));
 		pageHost.child(layoutPage.stack);
 		pageHost.child(textPage.stack);
+		pageHost.child(backgroundPage.stack);
 		panel.child(pageHost);
 
 		FlowLayout actions = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(FOOTER_HEIGHT));
@@ -162,7 +175,7 @@ public final class AnimatedSettingsPanel {
 			ButtonComponent button = transparentButton(
 					Text.translatable(category.translationKey),
 					clicked -> switchCategory(category));
-			button.sizing(Sizing.fill(50), Sizing.fill(100));
+			button.sizing(Sizing.fill(100 / Category.values().length), Sizing.fill(100));
 			buttons.child(button);
 		}
 		stack.child(buttons);
@@ -196,7 +209,6 @@ public final class AnimatedSettingsPanel {
 
 		body.child(sectionLabel("chat_canvas.settings.coming_soon"));
 		for (String key : new String[]{
-				"chat_canvas.category.background",
 				"chat_canvas.category.player_colors",
 				"chat_canvas.category.mention",
 				"chat_canvas.category.fade",
@@ -212,6 +224,79 @@ public final class AnimatedSettingsPanel {
 			disabled.sizing(Sizing.fill(100), Sizing.fixed(20));
 			body.child(disabled);
 		}
+		return body;
+	}
+
+	private FlowLayout buildBackgroundBody() {
+		FlowLayout body = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		body.padding(Insets.bottom(8));
+		body.gap(7);
+
+		body.child(sectionLabel("chat_canvas.background.message"));
+		body.child(Components.label(Text.translatable("chat_canvas.background.mode")
+				.formatted(Formatting.LIGHT_PURPLE)));
+		body.child(messageModeSelector());
+
+		messageColorButton = colorButton(
+				ColorTarget.MESSAGE,
+				"chat_canvas.background.color",
+				ChatBackgroundConfig.DEFAULT.messageColor());
+		body.child(messageColorButton);
+		body.child(backgroundScrubber(
+				BackgroundNumericScrubberComponent.Property.MESSAGE_OPACITY,
+				"chat_canvas.background.opacity"));
+		body.child(backgroundScrubber(
+				BackgroundNumericScrubberComponent.Property.HORIZONTAL_PADDING,
+				"chat_canvas.background.horizontal_padding"));
+		body.child(backgroundScrubber(
+				BackgroundNumericScrubberComponent.Property.VERTICAL_PADDING,
+				"chat_canvas.background.vertical_padding"));
+
+		body.child(sectionLabel("chat_canvas.background.input"));
+		inputColorButton = colorButton(
+				ColorTarget.INPUT,
+				"chat_canvas.background.input_color",
+				ChatBackgroundConfig.DEFAULT.inputColor());
+		body.child(inputColorButton);
+		body.child(backgroundScrubber(
+				BackgroundNumericScrubberComponent.Property.INPUT_OPACITY,
+				"chat_canvas.background.input_opacity"));
+
+		inputBorderButton = ModernUiTheme.button(Text.empty(), button -> {
+			ChatBackgroundConfig before = session.background();
+			session.setBackground(before.withInputBorderEnabled(!before.inputBorderEnabled()));
+			session.commit();
+			geometryChanged.run();
+			committed.run();
+			syncFromSession();
+		});
+		inputBorderButton.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.BACKGROUND, inputBorderButton);
+		body.child(inputBorderButton);
+
+		borderColorButton = colorButton(
+				ColorTarget.BORDER,
+				"chat_canvas.background.border_color",
+				ChatBackgroundConfig.DEFAULT.inputBorderColor());
+		body.child(borderColorButton);
+		body.child(backgroundScrubber(
+				BackgroundNumericScrubberComponent.Property.BORDER_OPACITY,
+				"chat_canvas.background.border_opacity"));
+
+		ButtonComponent defaults = ModernUiTheme.button(
+				Text.translatable("chat_canvas.action.restore_background_defaults"),
+				button -> {
+					ChatBackgroundConfig before = session.background();
+					session.restoreBackgroundDefaults();
+					if (!before.equals(session.background())) {
+						geometryChanged.run();
+						committed.run();
+					}
+					syncFromSession();
+				});
+		defaults.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.BACKGROUND, defaults);
+		body.child(defaults);
 		return body;
 	}
 
@@ -313,12 +398,43 @@ public final class AnimatedSettingsPanel {
 		return stack;
 	}
 
+	private StackLayout messageModeSelector() {
+		StackLayout stack = Containers.stack(Sizing.fill(100), Sizing.fixed(24));
+		stack.child(new SelectionIndicatorComponent(
+				() -> session.background().messageMode().ordinal(),
+				MessageBackgroundMode.values().length));
+		FlowLayout buttons = Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(100));
+		for (MessageBackgroundMode mode : MessageBackgroundMode.values()) {
+			ButtonComponent button = transparentButton(
+					Text.translatable(switch (mode) {
+						case FOLLOW_TEXT -> "chat_canvas.background.mode.follow_text";
+						case FULL_WIDTH -> "chat_canvas.background.mode.full_width";
+						case HIDDEN -> "chat_canvas.background.mode.hidden";
+					}),
+					clicked -> selectMessageMode(mode));
+			button.sizing(Sizing.fill(33), Sizing.fill(100));
+			registerPageButton(Category.BACKGROUND, button);
+			buttons.child(button);
+		}
+		stack.child(buttons);
+		return stack;
+	}
+
 	private void selectAlignment(ChatTextAlignment alignment) {
 		ChatTextConfig before = session.text();
 		if (before.alignment() == alignment) return;
 		session.setText(new ChatTextConfig(
 				before.fontScale(), before.lineSpacing(), before.textOpacity(),
 				alignment, before.shadow()));
+		session.commit();
+		geometryChanged.run();
+		committed.run();
+	}
+
+	private void selectMessageMode(MessageBackgroundMode mode) {
+		ChatBackgroundConfig before = session.background();
+		if (before.messageMode() == mode) return;
+		session.setBackground(before.withMessageMode(mode));
 		session.commit();
 		geometryChanged.run();
 		committed.run();
@@ -352,6 +468,61 @@ public final class AnimatedSettingsPanel {
 		return scrubber;
 	}
 
+	private BackgroundNumericScrubberComponent backgroundScrubber(
+			BackgroundNumericScrubberComponent.Property property,
+			String translationKey) {
+		BackgroundNumericScrubberComponent scrubber = new BackgroundNumericScrubberComponent(
+				session,
+				property,
+				Text.translatable(translationKey).formatted(Formatting.LIGHT_PURPLE),
+				geometryChanged,
+				committed
+		);
+		scrubbers.add(scrubber);
+		return scrubber;
+	}
+
+	private ButtonComponent colorButton(ColorTarget target, String translationKey, int defaultColor) {
+		ButtonComponent button = ModernUiTheme.button(Text.empty(), clicked -> {
+			int initialColor = target.read(session.background());
+			colorPickerLauncher.open(clicked, new ModernColorPickerPopup.Request(
+					initialColor,
+					defaultColor,
+					session.recentColors().colors(),
+					color -> {
+						session.setBackground(target.write(session.background(), color));
+						geometryChanged.run();
+						syncFromSession();
+					},
+					color -> {
+						session.recentColors().add(color);
+						session.commit();
+						committed.run();
+						syncFromSession();
+					},
+					this::syncFromSession
+			));
+		});
+		button.sizing(Sizing.fill(100), Sizing.fixed(22));
+		button.renderer((context, component, delta) -> {
+			int background = component.active()
+					? component.isHovered() ? 0xE04B5970 : 0xC8374256
+					: 0x55343A48;
+			ModernUiTheme.roundedRect(context, component.getX(), component.getY(),
+					component.getWidth(), component.getHeight(), 5, background);
+			ModernUiTheme.border(context, component.getX(), component.getY(),
+					component.getWidth(), component.getHeight(), 0x554F6079);
+			int color = target.read(session.background());
+			ModernUiTheme.roundedRect(context, component.getX() + 5, component.getY() + 4,
+					14, component.getHeight() - 8, 3, 0xFF000000 | color);
+			context.drawRectOutline(component.getX() + 5, component.getY() + 4,
+					14, component.getHeight() - 8, 0x997B899D);
+		});
+		button.id(translationKey);
+		registerPageButton(Category.BACKGROUND, button);
+		return button;
+	}
+
 	private void switchCategory(Category category) {
 		if (category == activeCategory) return;
 		activeCategory = category;
@@ -371,6 +542,35 @@ public final class AnimatedSettingsPanel {
 									? "chat_canvas.state.on"
 									: "chat_canvas.state.off")));
 		}
+		syncBackgroundButtons();
+	}
+
+	private void syncBackgroundButtons() {
+		if (messageColorButton != null) {
+			messageColorButton.setMessage(colorButtonText(
+					"chat_canvas.background.color", session.background().messageColor()));
+		}
+		if (inputColorButton != null) {
+			inputColorButton.setMessage(colorButtonText(
+					"chat_canvas.background.input_color", session.background().inputColor()));
+		}
+		if (borderColorButton != null) {
+			borderColorButton.setMessage(colorButtonText(
+					"chat_canvas.background.border_color", session.background().inputBorderColor()));
+		}
+		if (inputBorderButton != null) {
+			inputBorderButton.setMessage(
+					Text.translatable("chat_canvas.background.input_border")
+							.append(Text.literal("  "))
+							.append(Text.translatable(session.background().inputBorderEnabled()
+									? "chat_canvas.state.on"
+									: "chat_canvas.state.off")));
+		}
+	}
+
+	private static Text colorButtonText(String key, int color) {
+		return Text.translatable(key)
+				.append(Text.literal("  " + String.format(java.util.Locale.ROOT, "#%06X", color)));
 	}
 
 	private void syncPreviewButtons() {
@@ -404,9 +604,10 @@ public final class AnimatedSettingsPanel {
 	private void updateCategoryTransition(double deltaSeconds) {
 		double position = categorySpring.update(deltaSeconds);
 		int pageOffset = (int) Math.round(position);
-		pages.get(Category.LAYOUT).stack.positioning(Positioning.absolute(-pageOffset, 0));
-		pages.get(Category.TEXT).stack.positioning(
-				Positioning.absolute(pageWidth() - pageOffset, 0));
+		for (Category category : Category.values()) {
+			pages.get(category).stack.positioning(
+					Positioning.absolute(category.ordinal() * pageWidth() - pageOffset, 0));
+		}
 		if (categoryTransitioning && categorySpring.settled()) {
 			categoryTransitioning = false;
 			setPageButtonsActive(true);
@@ -517,13 +718,59 @@ public final class AnimatedSettingsPanel {
 
 	private enum Category {
 		LAYOUT("chat_canvas.category.layout"),
-		TEXT("chat_canvas.category.text");
+		TEXT("chat_canvas.category.text"),
+		BACKGROUND("chat_canvas.category.background");
 
 		private final String translationKey;
 
 		Category(String translationKey) {
 			this.translationKey = translationKey;
 		}
+	}
+
+	@FunctionalInterface
+	public interface ColorPickerLauncher {
+		void open(ButtonComponent anchor, ModernColorPickerPopup.Request request);
+	}
+
+	private enum ColorTarget {
+		MESSAGE {
+			@Override
+			int read(ChatBackgroundConfig config) {
+				return config.messageColor();
+			}
+
+			@Override
+			ChatBackgroundConfig write(ChatBackgroundConfig config, int color) {
+				return config.withMessageColor(color);
+			}
+		},
+		INPUT {
+			@Override
+			int read(ChatBackgroundConfig config) {
+				return config.inputColor();
+			}
+
+			@Override
+			ChatBackgroundConfig write(ChatBackgroundConfig config, int color) {
+				return config.withInputColor(color);
+			}
+		},
+		BORDER {
+			@Override
+			int read(ChatBackgroundConfig config) {
+				return config.inputBorderColor();
+			}
+
+			@Override
+			ChatBackgroundConfig write(ChatBackgroundConfig config, int color) {
+				return config.withInputBorderColor(color);
+			}
+		};
+
+		abstract int read(ChatBackgroundConfig config);
+
+		abstract ChatBackgroundConfig write(ChatBackgroundConfig config, int color);
 	}
 
 	private static final class CategoryPage {

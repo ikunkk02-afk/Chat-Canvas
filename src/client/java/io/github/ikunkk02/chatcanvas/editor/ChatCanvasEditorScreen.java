@@ -6,6 +6,7 @@ import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.ui.AlignmentGuideRenderer;
 import io.github.ikunkk02.chatcanvas.ui.AnimatedSettingsPanel;
 import io.github.ikunkk02.chatcanvas.ui.ModernUiTheme;
+import io.github.ikunkk02.chatcanvas.ui.ModernColorPickerPopup;
 import io.github.ikunkk02.chatcanvas.ui.NumericScrubber;
 import io.github.ikunkk02.chatcanvas.ui.NumericScrubberComponent;
 import io.github.ikunkk02.chatcanvas.ui.PreviewChatWidget;
@@ -41,6 +42,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	private FlowLayout toolbar;
 	private ButtonComponent undoButton;
 	private ButtonComponent redoButton;
+	private ModernColorPickerPopup colorPickerPopup;
 
 	public ChatCanvasEditorScreen(@Nullable Screen parent) {
 		super(Text.translatable("chat_canvas.editor.title"));
@@ -68,7 +70,8 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		settingsPanel = new AnimatedSettingsPanel(session, width, height,
 				this::onGeometryChanged, this::refreshHistoryButtons,
 				this::saveAndClose, this::cancelAndClose,
-				preview::previewState, preview::setPreviewState);
+				preview::previewState, preview::setPreviewState,
+				this::openColorPicker);
 		root.child(settingsPanel.component());
 
 		toolbar = buildToolbar();
@@ -127,6 +130,14 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 	@Override
 	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+		if (colorPickerPopup != null) {
+			if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+				colorPickerPopup.cancel();
+				return true;
+			}
+			super.keyPressed(keyCode, scanCode, modifiers);
+			return true;
+		}
 		if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_Z) {
 			undo();
 			return true;
@@ -140,6 +151,14 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+		if (colorPickerPopup != null) {
+			if (!colorPickerPopup.containsScreen(mouseX, mouseY)) {
+				colorPickerPopup.cancel();
+				return true;
+			}
+			super.mouseClicked(mouseX, mouseY, button);
+			return true;
+		}
 		NumericScrubber scrubber = settingsPanel == null
 				? null
 				: settingsPanel.scrubberAt(mouseX, mouseY);
@@ -162,6 +181,10 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 	@Override
 	public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+		if (colorPickerPopup != null) {
+			super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+			return true;
+		}
 		if (pointerCapture.active()) {
 			return pointerCapture.drag(mouseX, mouseY, button);
 		}
@@ -170,6 +193,10 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 	@Override
 	public boolean mouseReleased(double mouseX, double mouseY, int button) {
+		if (colorPickerPopup != null) {
+			super.mouseReleased(mouseX, mouseY, button);
+			return true;
+		}
 		if (pointerCapture.active()) {
 			return pointerCapture.release(mouseX, mouseY, button);
 		}
@@ -178,6 +205,9 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+		if (colorPickerPopup != null) {
+			return true;
+		}
 		NumericScrubber scrubber = settingsPanel == null
 				? null
 				: settingsPanel.scrubberAt(mouseX, mouseY);
@@ -206,6 +236,9 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	@Override
 	public void resize(MinecraftClient client, int width, int height) {
 		pointerCapture.cancel();
+		if (colorPickerPopup != null) {
+			colorPickerPopup.cancel();
+		}
 		if (session != null) {
 			session.resizeViewport(width, height);
 		}
@@ -226,12 +259,18 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	@Override
 	public void close() {
 		pointerCapture.cancel();
+		if (colorPickerPopup != null) {
+			colorPickerPopup.cancel();
+		}
 		cancelAndClose();
 	}
 
 	@Override
 	public void removed() {
 		pointerCapture.cancel();
+		if (colorPickerPopup != null) {
+			colorPickerPopup.cancel();
+		}
 		if (preview != null) {
 			preview.dispose();
 		}
@@ -268,7 +307,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	}
 
 	private void saveAndClose() {
-		if (ChatCanvasConfig.instance().save(session.snapshot().settings())) {
+		if (ChatCanvasConfig.instance().save(session.settings())) {
 			ChatLayoutRuntime.applySavedSettings();
 			returnToParent();
 		}
@@ -286,5 +325,61 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		if (client != null) {
 			client.setScreen(parent);
 		}
+	}
+
+	private void openColorPicker(ButtonComponent anchor, ModernColorPickerPopup.Request request) {
+		pointerCapture.cancel();
+		if (colorPickerPopup != null) {
+			colorPickerPopup.cancel();
+		}
+		int[] position = colorPickerPosition(anchor);
+		colorPickerPopup = new ModernColorPickerPopup(
+				position[0],
+				position[1],
+				request,
+				this::closeColorPicker
+		);
+		if (uiAdapter != null) {
+			uiAdapter.rootComponent.child(colorPickerPopup);
+		}
+	}
+
+	private void closeColorPicker() {
+		ModernColorPickerPopup popup = colorPickerPopup;
+		colorPickerPopup = null;
+		if (popup != null && uiAdapter != null) {
+			uiAdapter.rootComponent.removeChild(popup);
+		}
+	}
+
+	private int[] colorPickerPosition(ButtonComponent anchor) {
+		int margin = 6;
+		int maxX = Math.max(4, width - ModernColorPickerPopup.POPUP_WIDTH - 4);
+		int maxY = Math.max(4, height - ModernColorPickerPopup.POPUP_HEIGHT - 4);
+		int anchorY = clamp(anchor.getY(), 4, maxY);
+		int[][] candidates = new int[][]{
+				{anchor.getX() + anchor.getWidth() + margin, anchorY},
+				{anchor.getX() - ModernColorPickerPopup.POPUP_WIDTH - margin, anchorY},
+				{anchor.getX(), anchor.getY() - ModernColorPickerPopup.POPUP_HEIGHT - margin}
+		};
+		for (int[] candidate : candidates) {
+			int candidateX = clamp(candidate[0], 4, maxX);
+			int candidateY = clamp(candidate[1], 4, maxY);
+			if (!intersectsPreview(candidateX, candidateY,
+					ModernColorPickerPopup.POPUP_WIDTH, ModernColorPickerPopup.POPUP_HEIGHT)) {
+				return new int[]{candidateX, candidateY};
+			}
+		}
+		return new int[]{clamp(candidates[1][0], 4, maxX), anchorY};
+	}
+
+	private boolean intersectsPreview(int x, int y, int popupWidth, int popupHeight) {
+		var layout = session.layout();
+		return x < layout.right() && x + popupWidth > layout.x()
+				&& y < layout.bottom() && y + popupHeight > layout.y();
+	}
+
+	private static int clamp(int value, int min, int max) {
+		return Math.max(min, Math.min(max, value));
 	}
 }

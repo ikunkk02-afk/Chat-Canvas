@@ -3,6 +3,7 @@ package io.github.ikunkk02.chatcanvas.config;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
@@ -15,6 +16,9 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 public final class ChatCanvasConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -50,6 +54,14 @@ public final class ChatCanvasConfig {
 		return settings.text();
 	}
 
+	public synchronized ChatBackgroundConfig background() {
+		return settings.background();
+	}
+
+	public synchronized List<Integer> recentColors() {
+		return settings.recentColors();
+	}
+
 	public synchronized ChatCanvasSettings settings() {
 		return settings;
 	}
@@ -76,7 +88,8 @@ public final class ChatCanvasConfig {
 	}
 
 	public synchronized boolean save(LayoutConfig value) {
-		return save(new ChatCanvasSettings(value, settings.text()));
+		return save(new ChatCanvasSettings(
+				value, settings.text(), settings.background(), settings.recentColors()));
 	}
 
 	public synchronized boolean save(ChatCanvasSettings value) {
@@ -124,17 +137,38 @@ public final class ChatCanvasConfig {
 
 		ChatTextConfig textDefaults = ChatTextConfig.DEFAULT;
 		JsonObject text = objectOr(root, "text", null);
-		if (text == null) {
-			return new ChatCanvasSettings(parsedLayout, textDefaults);
-		}
-		ChatTextConfig parsedText = new ChatTextConfig(
-				doubleOr(text, "fontScale", textDefaults.fontScale()),
-				doubleOr(text, "lineSpacing", textDefaults.lineSpacing()),
-				doubleOr(text, "textOpacity", textDefaults.textOpacity()),
-				alignmentOr(text, "alignment", textDefaults.alignment()),
-				booleanOr(text, "shadow", textDefaults.shadow())
-		).sanitized();
-		return new ChatCanvasSettings(parsedLayout, parsedText);
+		ChatTextConfig parsedText = text == null
+				? textDefaults
+				: new ChatTextConfig(
+						doubleOr(text, "fontScale", textDefaults.fontScale()),
+						doubleOr(text, "lineSpacing", textDefaults.lineSpacing()),
+						doubleOr(text, "textOpacity", textDefaults.textOpacity()),
+						alignmentOr(text, "alignment", textDefaults.alignment()),
+						booleanOr(text, "shadow", textDefaults.shadow())
+				).sanitized();
+
+		ChatBackgroundConfig backgroundDefaults = ChatBackgroundConfig.DEFAULT;
+		JsonObject background = objectOr(root, "background", null);
+		ChatBackgroundConfig parsedBackground = background == null
+				? backgroundDefaults
+				: new ChatBackgroundConfig(
+						backgroundModeOr(background, "messageMode", backgroundDefaults.messageMode()),
+						intOr(background, "messageColor", backgroundDefaults.messageColor()),
+						doubleOr(background, "messageOpacity", backgroundDefaults.messageOpacity()),
+						intOr(background, "horizontalPadding", backgroundDefaults.horizontalPadding()),
+						intOr(background, "verticalPadding", backgroundDefaults.verticalPadding()),
+						intOr(background, "inputColor", backgroundDefaults.inputColor()),
+						doubleOr(background, "inputOpacity", backgroundDefaults.inputOpacity()),
+						booleanOr(background, "inputBorderEnabled", backgroundDefaults.inputBorderEnabled()),
+						intOr(background, "inputBorderColor", backgroundDefaults.inputBorderColor()),
+						doubleOr(background, "inputBorderOpacity", backgroundDefaults.inputBorderOpacity())
+				).sanitized();
+		return new ChatCanvasSettings(
+				parsedLayout,
+				parsedText,
+				parsedBackground,
+				recentColorsOr(root, "recentColors")
+		);
 	}
 
 	private static JsonObject toJson(ChatCanvasSettings value) {
@@ -153,6 +187,26 @@ public final class ChatCanvasConfig {
 		textObject.addProperty("alignment", text.alignment().name());
 		textObject.addProperty("shadow", text.shadow());
 		root.add("text", textObject);
+
+		ChatBackgroundConfig background = value.background();
+		JsonObject backgroundObject = new JsonObject();
+		backgroundObject.addProperty("messageMode", background.messageMode().name());
+		backgroundObject.addProperty("messageColor", background.messageColor());
+		backgroundObject.addProperty("messageOpacity", background.messageOpacity());
+		backgroundObject.addProperty("horizontalPadding", background.horizontalPadding());
+		backgroundObject.addProperty("verticalPadding", background.verticalPadding());
+		backgroundObject.addProperty("inputColor", background.inputColor());
+		backgroundObject.addProperty("inputOpacity", background.inputOpacity());
+		backgroundObject.addProperty("inputBorderEnabled", background.inputBorderEnabled());
+		backgroundObject.addProperty("inputBorderColor", background.inputBorderColor());
+		backgroundObject.addProperty("inputBorderOpacity", background.inputBorderOpacity());
+		root.add("background", backgroundObject);
+
+		JsonArray recentColors = new JsonArray();
+		for (int color : value.recentColors()) {
+			recentColors.add(color);
+		}
+		root.add("recentColors", recentColors);
 		return root;
 	}
 
@@ -185,6 +239,18 @@ public final class ChatCanvasConfig {
 		}
 	}
 
+	private static int intOr(JsonObject object, String key, int fallback) {
+		JsonElement element = object.get(key);
+		if (element == null || element.isJsonNull() || !element.isJsonPrimitive()) {
+			return fallback;
+		}
+		try {
+			return element.getAsInt();
+		} catch (RuntimeException ignored) {
+			return fallback;
+		}
+	}
+
 	private static ChatTextAlignment alignmentOr(JsonObject object, String key,
 												 ChatTextAlignment fallback) {
 		JsonElement element = object.get(key);
@@ -196,5 +262,40 @@ public final class ChatCanvasConfig {
 		} catch (RuntimeException ignored) {
 			return fallback;
 		}
+	}
+
+	private static MessageBackgroundMode backgroundModeOr(JsonObject object, String key,
+														  MessageBackgroundMode fallback) {
+		JsonElement element = object.get(key);
+		if (element == null || element.isJsonNull() || !element.isJsonPrimitive()) {
+			return fallback;
+		}
+		try {
+			return MessageBackgroundMode.valueOf(element.getAsString().toUpperCase(Locale.ROOT));
+		} catch (RuntimeException ignored) {
+			return fallback;
+		}
+	}
+
+	private static List<Integer> recentColorsOr(JsonObject root, String key) {
+		JsonElement element = root.get(key);
+		if (element == null || !element.isJsonArray()) {
+			return List.of();
+		}
+		List<Integer> colors = new ArrayList<>();
+		for (JsonElement candidate : element.getAsJsonArray()) {
+			if (candidate == null || !candidate.isJsonPrimitive()) {
+				continue;
+			}
+			try {
+				int color = candidate.getAsInt();
+				if (color >= 0 && color <= 0xFFFFFF) {
+					colors.add(color);
+				}
+			} catch (RuntimeException ignored) {
+				// Ignore malformed palette entries without rejecting the config.
+			}
+		}
+		return RecentColorStore.sanitizedCopy(colors);
 	}
 }
