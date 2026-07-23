@@ -15,6 +15,8 @@ import net.minecraft.text.Text;
 import net.minecraft.text.OrderedText;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameColorProvider;
 import io.github.ikunkk02.chatcanvas.chat.style.StyledRangePipeline;
+import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextMetrics;
+import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextRenderer;
 
 import java.util.List;
 
@@ -112,7 +114,8 @@ public final class ChatRenderEngine {
 						context.textRenderer(), messages, wrapWidth,
 						context.localPlayerName(),
 						context.mentionConfig() == null
-								|| context.mentionConfig().requireAtSymbol());
+								|| context.mentionConfig().requireAtSymbol(),
+						textConfig.characterSpacing());
 		ChatVerticalMetrics verticalMetrics = ChatTextLayout.verticalMetrics(
 				context.textRenderer().fontHeight,
 				context.textRenderer().fontHeight,
@@ -205,10 +208,16 @@ public final class ChatRenderEngine {
 		int textY = inputY + Math.max(1, (inputHeight - context.textRenderer().fontHeight) / 2);
 		int color = (Math.round(190 * context.inputProgress()) << 24) | 0xC8CDD6;
 		int textX = context.x() + HORIZONTAL_PADDING;
-		context.drawContext().drawText(context.textRenderer(), context.inputPlaceholder(),
-				textX, textY, color, true);
+		SpacedTextRenderer.draw(
+				context.drawContext(), context.textRenderer(),
+				context.inputPlaceholder().asOrderedText(),
+				textX, textY, color, true,
+				context.textConfig().characterSpacing());
 		int cursorX = Math.min(context.right() - 2,
-				textX + context.textRenderer().getWidth(context.inputPlaceholder()) + 2);
+				textX + SpacedTextMetrics.width(
+						context.textRenderer(),
+						context.inputPlaceholder().asOrderedText(),
+						context.textConfig().characterSpacing()) + 2);
 		context.drawContext().fill(cursorX, textY, cursorX + 1,
 				Math.min(bounds.inputBottom() - 1, textY + context.textRenderer().fontHeight),
 				(Math.round(220 * context.inputProgress()) << 24) | 0xFFFFFF);

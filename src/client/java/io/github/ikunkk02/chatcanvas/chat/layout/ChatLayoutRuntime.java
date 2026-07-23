@@ -91,7 +91,8 @@ public final class ChatLayoutRuntime {
 	}
 
 	private record RefreshSignature(int internalWrapWidth, int horizontalPadding,
-									long effectiveScaleBits, String localPlayerName,
+									long effectiveScaleBits, long characterSpacingBits,
+									String localPlayerName,
 									boolean requireAtSymbol) {
 		private static RefreshSignature from(ChatHudTransform transform) {
 			int horizontalPadding = ChatCanvasConfig.instance().background().horizontalPadding();
@@ -107,6 +108,8 @@ public final class ChatLayoutRuntime {
 					),
 					horizontalPadding,
 					Double.doubleToLongBits(transform.effectiveChatScale()),
+					Double.doubleToLongBits(
+							ChatCanvasConfig.instance().text().characterSpacing()),
 					localPlayerName,
 					ChatCanvasConfig.instance().mention().requireAtSymbol()
 			);

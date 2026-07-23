@@ -798,6 +798,8 @@ public final class AnimatedSettingsPanel {
 				"chat_canvas.option.line_spacing"));
 		body.child(textScrubber(TextNumericScrubberComponent.Property.TEXT_OPACITY,
 				"chat_canvas.option.text_opacity"));
+		body.child(textScrubber(TextNumericScrubberComponent.Property.CHARACTER_SPACING,
+				"chat_canvas.option.character_spacing"));
 		body.child(Components.label(Text.translatable("chat_canvas.option.text_alignment")
 				.formatted(Formatting.LIGHT_PURPLE)));
 		body.child(alignmentSelector());
@@ -806,7 +808,7 @@ public final class AnimatedSettingsPanel {
 			ChatTextConfig before = session.text();
 			session.setText(new ChatTextConfig(
 					before.fontScale(), before.lineSpacing(), before.textOpacity(),
-					before.alignment(), !before.shadow()));
+					before.alignment(), !before.shadow(), before.characterSpacing()));
 			session.commit();
 			geometryChanged.run();
 			committed.run();
@@ -912,7 +914,7 @@ public final class AnimatedSettingsPanel {
 		if (before.alignment() == alignment) return;
 		session.setText(new ChatTextConfig(
 				before.fontScale(), before.lineSpacing(), before.textOpacity(),
-				alignment, before.shadow()));
+				alignment, before.shadow(), before.characterSpacing()));
 		session.commit();
 		geometryChanged.run();
 		committed.run();

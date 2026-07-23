@@ -101,7 +101,7 @@ public final class TextNumericScrubberComponent extends BaseComponent implements
 		if (!dragging || button != 0 || dragStartText == null) return false;
 		double percentagePointDelta = NumericScrubberMath.percentagePointDelta(
 				mouseX - dragStartMouseX, sensitivity);
-		applyValue(dragStartValue + percentagePointDelta / 100.0);
+		applyValue(dragStartValue + property.dragDelta(percentagePointDelta));
 		return true;
 	}
 
@@ -134,7 +134,7 @@ public final class TextNumericScrubberComponent extends BaseComponent implements
 	public boolean scroll(double amount) {
 		if (!valueHovered || amount == 0.0) return false;
 		ChatTextConfig before = session.text();
-		applyValue(property.read(before) + (amount > 0.0 ? 0.01 : -0.01));
+		applyValue(property.read(before) + Math.signum(amount) * property.scrollStep());
 		if (!before.equals(session.text())) {
 			session.commit();
 			historyChanged.run();
@@ -183,6 +183,9 @@ public final class TextNumericScrubberComponent extends BaseComponent implements
 	}
 
 	private String displayValue() {
+		if (!property.percentage()) {
+			return String.format(Locale.ROOT, "%.1f", currentValue());
+		}
 		double percent = currentValue() * 100.0;
 		double rounded = Math.rint(percent);
 		if (Math.abs(percent - rounded) < 0.001) {
@@ -205,7 +208,7 @@ public final class TextNumericScrubberComponent extends BaseComponent implements
 
 	public enum Property {
 		FONT_SCALE(ChatTextConfig.MIN_FONT_SCALE, ChatTextConfig.MAX_FONT_SCALE,
-				ChatTextConfig.DEFAULT.fontScale()) {
+				ChatTextConfig.DEFAULT.fontScale(), true, 0.01, 0.01) {
 			@Override
 			double read(ChatTextConfig config) {
 				return config.fontScale();
@@ -218,7 +221,7 @@ public final class TextNumericScrubberComponent extends BaseComponent implements
 			}
 		},
 		LINE_SPACING(ChatTextConfig.MIN_LINE_SPACING, ChatTextConfig.MAX_LINE_SPACING,
-				ChatTextConfig.DEFAULT.lineSpacing()) {
+				ChatTextConfig.DEFAULT.lineSpacing(), true, 0.01, 0.01) {
 			@Override
 			double read(ChatTextConfig config) {
 				return config.lineSpacing();
@@ -231,7 +234,7 @@ public final class TextNumericScrubberComponent extends BaseComponent implements
 			}
 		},
 		TEXT_OPACITY(ChatTextConfig.MIN_TEXT_OPACITY, ChatTextConfig.MAX_TEXT_OPACITY,
-				ChatTextConfig.DEFAULT.textOpacity()) {
+				ChatTextConfig.DEFAULT.textOpacity(), true, 0.01, 0.01) {
 			@Override
 			double read(ChatTextConfig config) {
 				return config.textOpacity();
@@ -242,16 +245,36 @@ public final class TextNumericScrubberComponent extends BaseComponent implements
 				return new ChatTextConfig(config.fontScale(), config.lineSpacing(), value,
 						config.alignment(), config.shadow());
 			}
+		},
+		CHARACTER_SPACING(ChatTextConfig.MIN_CHARACTER_SPACING,
+				ChatTextConfig.MAX_CHARACTER_SPACING,
+				ChatTextConfig.DEFAULT.characterSpacing(), false, 0.1, 0.1) {
+			@Override
+			double read(ChatTextConfig config) {
+				return config.characterSpacing();
+			}
+
+			@Override
+			ChatTextConfig write(ChatTextConfig config, double value) {
+				return config.withCharacterSpacing(value);
+			}
 		};
 
 		private final double min;
 		private final double max;
 		private final double defaultValue;
+		private final boolean percentage;
+		private final double dragStep;
+		private final double scrollStep;
 
-		Property(double min, double max, double defaultValue) {
+		Property(double min, double max, double defaultValue, boolean percentage,
+				 double dragStep, double scrollStep) {
 			this.min = min;
 			this.max = max;
 			this.defaultValue = defaultValue;
+			this.percentage = percentage;
+			this.dragStep = dragStep;
+			this.scrollStep = scrollStep;
 		}
 
 		abstract double read(ChatTextConfig config);
@@ -268,6 +291,18 @@ public final class TextNumericScrubberComponent extends BaseComponent implements
 
 		double defaultValue() {
 			return defaultValue;
+		}
+
+		boolean percentage() {
+			return percentage;
+		}
+
+		double dragDelta(double sensitivityUnits) {
+			return sensitivityUnits * dragStep;
+		}
+
+		double scrollStep() {
+			return scrollStep;
 		}
 	}
 }

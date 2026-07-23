@@ -16,6 +16,11 @@ import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
 import io.github.ikunkk02.chatcanvas.chat.style.OrderedTextStyleOverlay;
 import io.github.ikunkk02.chatcanvas.chat.style.StyledRangePipeline;
 import io.github.ikunkk02.chatcanvas.chat.style.TextRange;
+import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextHitTester;
+import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextMetrics;
+import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextRenderer;
+import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextWrapper;
+import io.github.ikunkk02.chatcanvas.chat.text.ChatHeadsCompat;
 import io.github.ikunkk02.chatcanvas.chat.identity.ChatMessageMetadataRegistry;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerColorRuntime;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameHitbox;
@@ -243,7 +248,14 @@ public abstract class ChatHudMixin {
 			StringVisitable text, int width, TextRenderer renderer,
 			Operation<List<OrderedText>> original,
 			@Local(argsOnly = true) ChatHudLine message) {
-		List<OrderedText> lines = original.call(text, width, renderer);
+		double spacing = ChatCanvasConfig.instance().text().characterSpacing();
+		List<OrderedText> lines;
+		if (Math.abs(spacing) < 0.00001) {
+			lines = original.call(text, width, renderer);
+		} else {
+			List<OrderedText> logicalLines = original.call(text, Integer.MAX_VALUE / 4, renderer);
+			lines = SpacedTextWrapper.wrap(renderer, logicalLines, width, spacing);
+		}
 		ChatMessageMetadataRegistry.instance().registerVisibleLines(message, lines);
 		return lines;
 	}
@@ -277,7 +289,11 @@ public abstract class ChatHudMixin {
 					ChatCanvasConfig.instance().mention());
 		}
 		int result;
-		if (config.shadow()) {
+		if (Math.abs(config.characterSpacing()) >= 0.00001) {
+			result = SpacedTextRenderer.draw(
+					context, renderer, renderedText, drawX, y, configuredColor,
+					config.shadow(), config.characterSpacing());
+		} else if (config.shadow()) {
 			result = original.call(context, renderer, renderedText, drawX, y, configuredColor);
 		} else {
 			result = context.drawText(renderer, renderedText, drawX, y, configuredColor, false);
@@ -300,6 +316,11 @@ public abstract class ChatHudMixin {
 													Operation<Integer> original) {
 		ChatTextConfig config = ChatCanvasConfig.instance().text();
 		int configuredColor = ChatTextLayout.multiplyAlpha(color, config.textOpacity());
+		if (Math.abs(config.characterSpacing()) >= 0.00001) {
+			return SpacedTextRenderer.draw(
+					context, renderer, text.asOrderedText(), x, y, configuredColor,
+					config.shadow(), config.characterSpacing());
+		}
 		if (config.shadow()) {
 			return original.call(context, renderer, text, x, y, configuredColor);
 		}
@@ -319,12 +340,26 @@ public abstract class ChatHudMixin {
 
 		ChatHudLine.Visible line = visibleMessages.get(lineIndex);
 		ChatLineMetrics metrics = chat_canvas$metrics(line);
-		int localX = MathHelper.floor(metrics.localX(chatLineX));
+		double visualLocalX = metrics.localX(chatLineX);
+		double spacing = ChatCanvasConfig.instance().text().characterSpacing();
+		double adjustedX = ChatHeadsCompat.textXAt(
+				client.textRenderer, line.content(), spacing, line, visualLocalX);
+		if (Double.isNaN(adjustedX)) {
+			cir.setReturnValue(null);
+			return;
+		}
+		int localX = MathHelper.floor(adjustedX);
 		if (localX < 0 || localX > metrics.renderedWidth()) {
 			cir.setReturnValue(null);
 			return;
 		}
-		cir.setReturnValue(client.textRenderer.getTextHandler().getStyleAt(line.content(), localX));
+		if (Math.abs(spacing) < 0.00001) {
+			cir.setReturnValue(client.textRenderer.getTextHandler()
+					.getStyleAt(line.content(), localX));
+		} else {
+			cir.setReturnValue(SpacedTextHitTester.styleAt(
+					client.textRenderer, line.content(), spacing, localX));
+		}
 	}
 
 	@Inject(method = "getIndicatorX", at = @At("HEAD"), cancellable = true)
@@ -394,7 +429,8 @@ public abstract class ChatHudMixin {
 		if (line == null) {
 			return ChatTextLayout.metricsWithin(
 					-1,
-					ChatLineWidthCache.width(client.textRenderer, text),
+					ChatLineWidthCache.width(client.textRenderer, text,
+							ChatCanvasConfig.instance().text().characterSpacing()),
 					chat_canvas$contentLeft(),
 					chat_canvas$contentRight(),
 					0,
@@ -415,7 +451,9 @@ public abstract class ChatHudMixin {
 		}
 		return ChatTextLayout.metricsWithin(
 				-1,
-				ChatLineWidthCache.width(client.textRenderer, line.content()),
+				ChatLineWidthCache.width(client.textRenderer, line.content(),
+						ChatCanvasConfig.instance().text().characterSpacing())
+						+ ChatHeadsCompat.extraWidth(line),
 				chat_canvas$contentLeft(),
 				chat_canvas$contentRight(),
 				indicatorReservation,
@@ -469,10 +507,27 @@ public abstract class ChatHudMixin {
 			DrawContext context, TextRenderer renderer, OrderedText text,
 			ChatMessageMetadataRegistry.VisibleMetadata player, int drawX, int y) {
 		TextRange nameRange = player.playerNameRange();
-		int prefixWidth = renderer.getWidth(OrderedTextStyleOverlay.selectRange(
-				text, new TextRange(0, nameRange.startCodePoint())));
-		int nameWidth = renderer.getWidth(OrderedTextStyleOverlay.selectRange(text, nameRange));
+		double spacing = ChatCanvasConfig.instance().text().characterSpacing();
+		int prefixWidth;
+		int nameWidth;
+		if (Math.abs(spacing) < 0.00001) {
+			prefixWidth = renderer.getWidth(OrderedTextStyleOverlay.selectRange(
+					text, new TextRange(0, nameRange.startCodePoint())));
+			nameWidth = renderer.getWidth(OrderedTextStyleOverlay.selectRange(text, nameRange));
+		} else {
+			double startX = SpacedTextMetrics.xAtCodePoint(
+					renderer, text, spacing, nameRange.startCodePoint());
+			double endX = SpacedTextMetrics.xAtCodePoint(
+					renderer, text, spacing, nameRange.endCodePoint());
+			prefixWidth = (int) Math.round(startX);
+			nameWidth = Math.max(0, (int) Math.round(endX - startX));
+		}
 		if (nameWidth <= 0) return;
+		ChatHudLine.Visible line = chat_canvas$lineLookup.get(text);
+		if (line != null) {
+			prefixWidth += ChatHeadsCompat.widthBeforeCodePoint(
+					line, nameRange.startCodePoint());
+		}
 
 		Matrix4f matrix = context.getMatrices().peek().getPositionMatrix();
 		Vector4f topLeft = new Vector4f(drawX + prefixWidth, y, 0.0f, 1.0f).mul(matrix);
@@ -482,7 +537,6 @@ public abstract class ChatHudMixin {
 				0.0f,
 				1.0f
 		).mul(matrix);
-		ChatHudLine.Visible line = chat_canvas$lineLookup.get(text);
 		int messageIndex = line == null ? -1 : visibleMessages.indexOf(line);
 		PlayerNameHitboxRegistry.add(new PlayerNameHitbox(
 				player.sender().uuid(),

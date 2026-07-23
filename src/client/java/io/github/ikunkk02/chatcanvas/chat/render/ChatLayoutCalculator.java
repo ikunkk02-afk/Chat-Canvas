@@ -7,6 +7,8 @@ import io.github.ikunkk02.chatcanvas.chat.identity.PlayerIdentityResolver;
 import io.github.ikunkk02.chatcanvas.chat.mention.MentionMatcher;
 import io.github.ikunkk02.chatcanvas.chat.style.TextIndexing;
 import io.github.ikunkk02.chatcanvas.chat.style.TextRange;
+import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextMetrics;
+import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextWrapper;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -18,13 +20,16 @@ public final class ChatLayoutCalculator {
 	private int cachedWidth = -1;
 	private String cachedMentionName = "";
 	private boolean cachedRequireAt;
+	private long cachedSpacingBits;
 
 	public List<ChatLine> calculate(TextRenderer renderer, List<PreviewChatMessage> messages, int width,
-									String localPlayerName, boolean requireAtSymbol) {
+									String localPlayerName, boolean requireAtSymbol,
+									double characterSpacing) {
 		int safeWidth = Math.max(1, width);
 		String mentionName = localPlayerName == null ? "" : localPlayerName;
 		if (messages == cachedMessages && safeWidth == cachedWidth
-				&& mentionName.equals(cachedMentionName) && requireAtSymbol == cachedRequireAt) {
+				&& mentionName.equals(cachedMentionName) && requireAtSymbol == cachedRequireAt
+				&& cachedSpacingBits == Double.doubleToLongBits(characterSpacing)) {
 			return cachedLines;
 		}
 
@@ -32,6 +37,7 @@ public final class ChatLayoutCalculator {
 		cachedWidth = safeWidth;
 		cachedMentionName = mentionName;
 		cachedRequireAt = requireAtSymbol;
+		cachedSpacingBits = Double.doubleToLongBits(characterSpacing);
 		cachedLines.clear();
 		for (PreviewChatMessage message : messages) {
 			String plain = message.text().getString();
@@ -46,7 +52,13 @@ public final class ChatLayoutCalculator {
 			}
 			List<TextRange> globalMentions = MentionMatcher.findMentions(
 					plain, mentionName, requireAtSymbol);
-			List<OrderedText> wrapped = renderer.wrapLines(message.text(), safeWidth);
+			List<OrderedText> wrapped = Math.abs(characterSpacing) < 0.00001
+					? renderer.wrapLines(message.text(), safeWidth)
+					: SpacedTextWrapper.wrap(
+							renderer,
+							renderer.wrapLines(message.text(), Integer.MAX_VALUE / 4),
+							safeWidth,
+							characterSpacing);
 			int[] source = plain.codePoints().toArray();
 			int sourceCursor = 0;
 			for (OrderedText line : wrapped) {
@@ -57,7 +69,7 @@ public final class ChatLayoutCalculator {
 						: mapping.localRange(globalNameRange);
 				cachedLines.add(new ChatLine(
 						line,
-						renderer.getWidth(line),
+						SpacedTextMetrics.width(renderer, line, characterSpacing),
 						nameRange == null ? null : message.sender(),
 						nameRange,
 						mapping.localRanges(globalMentions)

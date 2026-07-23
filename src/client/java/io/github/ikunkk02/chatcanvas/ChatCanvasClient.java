@@ -6,6 +6,7 @@ import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatCapture;
 import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerNameDoubleClickHandler;
 import io.github.ikunkk02.chatcanvas.chat.notification.MentionNotificationController;
 import io.github.ikunkk02.chatcanvas.chat.command.CommandClipboardManager;
+import io.github.ikunkk02.chatcanvas.chat.text.GlyphAdvanceCache;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.editor.ChatCanvasEditorScreen;
 import net.fabricmc.api.ClientModInitializer;
@@ -47,6 +48,7 @@ public final class ChatCanvasClient implements ClientModInitializer {
 					@Override
 					public void reload(ResourceManager manager) {
 						ChatLineWidthCache.clear();
+						GlyphAdvanceCache.onFontResourcesReloaded();
 						ChatLayoutRuntime.onFontResourcesReloaded();
 					}
 				});

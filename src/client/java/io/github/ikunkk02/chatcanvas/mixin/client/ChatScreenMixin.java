@@ -7,6 +7,7 @@ import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
 import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerNameDoubleClickHandler;
 import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerQuickActionMenu;
 import io.github.ikunkk02.chatcanvas.chat.command.ui.CommandClipboardPanel;
+import io.github.ikunkk02.chatcanvas.chat.text.ChatCanvasTextFieldRegistry;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -45,6 +46,7 @@ public abstract class ChatScreenMixin {
 		chatField.setY(transform.bounds().inputTop());
 		chatField.setWidth(Math.max(1, transform.bounds().messageWidth()));
 		chatInputSuggestor.refresh();
+		ChatCanvasTextFieldRegistry.register(chatField);
 		chat_canvas$commandClipboard.init((ChatScreen) (Object) this, chatField);
 	}
 
@@ -84,6 +86,7 @@ public abstract class ChatScreenMixin {
 	@Inject(method = "removed", at = @At("HEAD"))
 	private void chat_canvas$resetDoubleClickOnRemoved(CallbackInfo ci) {
 		PlayerNameDoubleClickHandler.instance().reset();
+		ChatCanvasTextFieldRegistry.unregister(chatField);
 		chat_canvas$quickActionMenu.reset((ChatScreen) (Object) this);
 		chat_canvas$commandClipboard.removed();
 	}

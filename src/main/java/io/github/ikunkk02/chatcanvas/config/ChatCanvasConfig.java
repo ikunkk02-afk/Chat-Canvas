@@ -163,7 +163,8 @@ public final class ChatCanvasConfig {
 						doubleOr(text, "lineSpacing", textDefaults.lineSpacing()),
 						doubleOr(text, "textOpacity", textDefaults.textOpacity()),
 						alignmentOr(text, "alignment", textDefaults.alignment()),
-						booleanOr(text, "shadow", textDefaults.shadow())
+						booleanOr(text, "shadow", textDefaults.shadow()),
+						doubleOr(text, "characterSpacing", textDefaults.characterSpacing())
 				).sanitized();
 
 		ChatBackgroundConfig backgroundDefaults = ChatBackgroundConfig.DEFAULT;
@@ -266,6 +267,7 @@ public final class ChatCanvasConfig {
 		textObject.addProperty("textOpacity", text.textOpacity());
 		textObject.addProperty("alignment", text.alignment().name());
 		textObject.addProperty("shadow", text.shadow());
+		textObject.addProperty("characterSpacing", text.characterSpacing());
 		root.add("text", textObject);
 
 		ChatBackgroundConfig background = value.background();

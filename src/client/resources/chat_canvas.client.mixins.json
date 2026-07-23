@@ -13,7 +13,9 @@
     "ChatScreenMixin",
     "ClientPlayNetworkHandlerMixin",
     "SuggestionWindowAccessor",
-    "TextFieldWidgetAccessor"
+    "TextFieldWidgetAccessor",
+    "TextFieldWidgetMixin",
+    "TextRendererDrawerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

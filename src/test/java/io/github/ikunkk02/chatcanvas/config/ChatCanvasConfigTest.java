@@ -28,7 +28,7 @@ class ChatCanvasConfigTest {
 
 		LayoutConfig custom = new LayoutConfig(0.12, 0.31, 0.42, 0.22);
 		ChatTextConfig text = new ChatTextConfig(
-				1.25, 0.8, 0.55, ChatTextAlignment.RIGHT, false);
+				1.25, 0.8, 0.55, ChatTextAlignment.RIGHT, false, 1.4);
 		ChatBackgroundConfig background = new ChatBackgroundConfig(
 				MessageBackgroundMode.FULL_WIDTH,
 				0x123456, 0.25, 7, 3,
@@ -108,6 +108,7 @@ class ChatCanvasConfigTest {
 		assertEquals(1.0, config.text().textOpacity(), 0.00001);
 		assertEquals(ChatTextAlignment.LEFT, config.text().alignment());
 		assertFalse(config.text().shadow());
+		assertEquals(0.0, config.text().characterSpacing(), 0.00001);
 	}
 
 	@Test
@@ -132,6 +133,7 @@ class ChatCanvasConfigTest {
 		assertEquals(ChatTextConfig.DEFAULT.textOpacity(), config.text().textOpacity(), 0.00001);
 		assertEquals(ChatTextAlignment.LEFT, config.text().alignment());
 		assertTrue(config.text().shadow());
+		assertEquals(0.0, config.text().characterSpacing(), 0.00001);
 		assertEquals(ChatBackgroundConfig.DEFAULT, config.background());
 	}
 
