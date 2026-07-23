@@ -5,6 +5,11 @@ import io.github.ikunkk02.chatcanvas.animation.SpringValue;
 import io.github.ikunkk02.chatcanvas.chat.render.PreviewChatState;
 import io.github.ikunkk02.chatcanvas.chat.notification.MentionNotificationController;
 import io.github.ikunkk02.chatcanvas.config.ChatTextAlignment;
+import io.github.ikunkk02.chatcanvas.config.CommandClipboardConfig;
+import io.github.ikunkk02.chatcanvas.config.CommandInsertMode;
+import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
+import io.github.ikunkk02.chatcanvas.chat.command.ui.CommandClipboardPanel;
+import io.github.ikunkk02.chatcanvas.chat.command.CommandPresetRegistry;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.config.MessageBackgroundMode;
@@ -29,6 +34,8 @@ import io.wispforest.owo.ui.core.Positioning;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.VerticalAlignment;
 import net.minecraft.text.Text;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.util.Formatting;
 import org.jetbrains.annotations.Nullable;
 
@@ -89,6 +96,12 @@ public final class AnimatedSettingsPanel {
 	private ButtonComponent mentionIgnoreOwnButton;
 	private ButtonComponent mentionQuickActionsButton;
 	private TextBoxComponent mentionPrivateTemplateBox;
+	private ButtonComponent commandEnabledButton;
+	private ButtonComponent commandPanelButton;
+	private ButtonComponent commandInsertModeButton;
+	private ButtonComponent commandDuplicatesButton;
+	private ButtonComponent commandSensitiveButton;
+	private final Map<String, ButtonComponent> commandPresetButtons = new java.util.LinkedHashMap<>();
 	private FlowLayout playerListBody;
 	private String playerSearch = "";
 	private long rosterRevision = Long.MIN_VALUE;
@@ -157,21 +170,25 @@ public final class AnimatedSettingsPanel {
 		CategoryPage backgroundPage = buildPage(buildBackgroundBody());
 		CategoryPage playerColorsPage = buildPage(buildPlayerColorsBody());
 		CategoryPage mentionPage = buildPage(buildMentionBody());
+		CategoryPage commandPage = buildPage(buildCommandBody());
 		pages.put(Category.LAYOUT, layoutPage);
 		pages.put(Category.TEXT, textPage);
 		pages.put(Category.BACKGROUND, backgroundPage);
 		pages.put(Category.PLAYER_COLORS, playerColorsPage);
 		pages.put(Category.MENTION, mentionPage);
+		pages.put(Category.COMMAND, commandPage);
 		layoutPage.stack.positioning(Positioning.absolute(0, 0));
 		textPage.stack.positioning(Positioning.absolute(pageWidth(), 0));
 		backgroundPage.stack.positioning(Positioning.absolute(pageWidth() * 2, 0));
 		playerColorsPage.stack.positioning(Positioning.absolute(pageWidth() * 3, 0));
 		mentionPage.stack.positioning(Positioning.absolute(pageWidth() * 4, 0));
+		commandPage.stack.positioning(Positioning.absolute(pageWidth() * 5, 0));
 		pageHost.child(layoutPage.stack);
 		pageHost.child(textPage.stack);
 		pageHost.child(backgroundPage.stack);
 		pageHost.child(playerColorsPage.stack);
 		pageHost.child(mentionPage.stack);
+		pageHost.child(commandPage.stack);
 		panel.child(pageHost);
 
 		FlowLayout actions = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(FOOTER_HEIGHT));
@@ -256,7 +273,6 @@ public final class AnimatedSettingsPanel {
 		body.child(sectionLabel("chat_canvas.settings.coming_soon"));
 		for (String key : new String[]{
 				"chat_canvas.category.fade",
-				"chat_canvas.category.command",
 				"chat_canvas.category.compatibility"
 		}) {
 			ButtonComponent disabled = ModernUiTheme.button(
@@ -464,7 +480,94 @@ public final class AnimatedSettingsPanel {
 		defaults.sizing(Sizing.fill(100), Sizing.fixed(22));
 		registerPageButton(Category.MENTION, defaults);
 		body.child(defaults);
+		body.child(sectionLabel("chat_canvas.command.preset_visibility"));
+		for (CommandPresetRegistry.Preset preset : CommandPresetRegistry.all()) {
+			ButtonComponent button = ModernUiTheme.button(Text.empty(), clicked -> {
+				CommandClipboardConfig config = session.commandClipboard();
+				boolean hidden = config.hiddenPresetIds().contains(preset.id());
+				session.setCommandClipboard(config.withPresetHidden(preset.id(), !hidden));
+				session.commit();
+				committed.run();
+				syncFromSession();
+			});
+			button.sizing(Sizing.fill(100), Sizing.fixed(20));
+			commandPresetButtons.put(preset.id(), button);
+			registerPageButton(Category.COMMAND, button);
+			body.child(button);
+		}
 		return body;
+	}
+
+	private FlowLayout buildCommandBody() {
+		FlowLayout body = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		body.padding(Insets.bottom(8));
+		body.gap(7);
+		body.child(sectionLabel("chat_canvas.category.command"));
+		body.child(Components.label(Text.translatable("chat_canvas.command.settings_hint")
+				.formatted(Formatting.GRAY)));
+		commandEnabledButton = commandToggle("chat_canvas.command.enabled",
+				config -> config.withEnabled(!config.enabled()));
+		commandPanelButton = commandToggle("chat_canvas.command.show_button",
+				config -> config.withShowPanelButton(!config.showPanelButton()));
+		commandInsertModeButton = ModernUiTheme.button(Text.empty(), clicked -> {
+			CommandClipboardConfig config = session.commandClipboard();
+			session.setCommandClipboard(config.withInsertMode(config.insertMode().opposite()));
+			session.commit();
+			committed.run();
+			syncFromSession();
+		});
+		commandInsertModeButton.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.COMMAND, commandInsertModeButton);
+		commandDuplicatesButton = commandToggle("chat_canvas.command.allow_duplicates",
+				config -> config.withAllowDuplicates(!config.allowDuplicates()));
+		commandSensitiveButton = commandToggle("chat_canvas.command.sensitive_warning",
+				config -> config.withSensitiveWarning(!config.sensitiveWarning()));
+		body.child(commandEnabledButton);
+		body.child(commandPanelButton);
+		body.child(commandInsertModeButton);
+		body.child(commandDuplicatesButton);
+		body.child(commandSensitiveButton);
+		CommandMaxScrubberComponent maxCommands =
+				new CommandMaxScrubberComponent(session, geometryChanged, committed);
+		scrubbers.add(maxCommands);
+		body.child(maxCommands);
+		ButtonComponent manage = ModernUiTheme.button(
+				Text.translatable("chat_canvas.command.manage"), clicked -> {
+					MinecraftClient client = MinecraftClient.getInstance();
+					if (client.player == null) return;
+					ChatCanvasConfig.instance().save(session.settings());
+					CommandClipboardPanel.requestOpenNextChatScreen();
+					client.setScreen(new ChatScreen(""));
+				});
+		manage.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.COMMAND, manage);
+		body.child(manage);
+		ButtonComponent defaults = ModernUiTheme.button(
+				Text.translatable("chat_canvas.command.restore_defaults"), clicked -> {
+					session.restoreCommandClipboardDefaults();
+					committed.run();
+					syncFromSession();
+				});
+		defaults.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.COMMAND, defaults);
+		body.child(defaults);
+		return body;
+	}
+
+	private ButtonComponent commandToggle(
+			String key, java.util.function.UnaryOperator<CommandClipboardConfig> toggle) {
+		ButtonComponent button = ModernUiTheme.button(Text.empty(), clicked -> {
+			CommandClipboardConfig before = session.commandClipboard();
+			session.setCommandClipboard(toggle.apply(before));
+			if (!before.equals(session.commandClipboard())) {
+				session.commit();
+				committed.run();
+			}
+			syncFromSession();
+		});
+		button.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.COMMAND, button);
+		return button;
 	}
 
 	private MentionNumericScrubberComponent mentionScrubber(
@@ -1077,9 +1180,39 @@ public final class AnimatedSettingsPanel {
 		syncBackgroundButtons();
 		syncPlayerColorButtons();
 		syncMentionButtons();
+		syncCommandButtons();
 		if (lastPlayerColors == null || !lastPlayerColors.equals(session.playerColors())
 				|| rosterRevision != PlayerRosterTracker.revision()) {
 			rebuildPlayerRows();
+		}
+	}
+
+	private void syncCommandButtons() {
+		CommandClipboardConfig config = session.commandClipboard();
+		setToggleMessage(commandEnabledButton, "chat_canvas.command.enabled", config.enabled());
+		setToggleMessage(commandPanelButton, "chat_canvas.command.show_button",
+				config.showPanelButton());
+		setToggleMessage(commandDuplicatesButton, "chat_canvas.command.allow_duplicates",
+				config.allowDuplicates());
+		setToggleMessage(commandSensitiveButton, "chat_canvas.command.sensitive_warning",
+				config.sensitiveWarning());
+		if (commandInsertModeButton != null) {
+			commandInsertModeButton.setMessage(
+					Text.translatable("chat_canvas.command.insert_mode")
+							.append(Text.literal("  "))
+							.append(Text.translatable(config.insertMode()
+									== CommandInsertMode.REPLACE_INPUT
+									? "chat_canvas.command.insert_replace"
+									: "chat_canvas.command.insert_cursor")));
+		}
+		for (CommandPresetRegistry.Preset preset : CommandPresetRegistry.all()) {
+			ButtonComponent button = commandPresetButtons.get(preset.id());
+			if (button == null) continue;
+			boolean visible = !config.hiddenPresetIds().contains(preset.id());
+			button.setMessage(Text.translatable(preset.titleKey())
+					.append(Text.literal("  "))
+					.append(Text.translatable(visible
+							? "chat_canvas.state.on" : "chat_canvas.state.off")));
 		}
 	}
 
@@ -1340,7 +1473,8 @@ public final class AnimatedSettingsPanel {
 		TEXT("chat_canvas.category.text"),
 		BACKGROUND("chat_canvas.category.background"),
 		PLAYER_COLORS("chat_canvas.category.player_colors"),
-		MENTION("chat_canvas.category.mention");
+		MENTION("chat_canvas.category.mention"),
+		COMMAND("chat_canvas.category.command");
 
 		private final String translationKey;
 

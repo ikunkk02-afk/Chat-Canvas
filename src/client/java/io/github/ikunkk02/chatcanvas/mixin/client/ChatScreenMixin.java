@@ -6,6 +6,7 @@ import io.github.ikunkk02.chatcanvas.chat.layout.ChatBackgroundMetrics;
 import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
 import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerNameDoubleClickHandler;
 import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerQuickActionMenu;
+import io.github.ikunkk02.chatcanvas.chat.command.ui.CommandClipboardPanel;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -27,6 +28,9 @@ public abstract class ChatScreenMixin {
 	@Unique
 	private final PlayerQuickActionMenu chat_canvas$quickActionMenu =
 			new PlayerQuickActionMenu();
+	@Unique
+	private final CommandClipboardPanel chat_canvas$commandClipboard =
+			new CommandClipboardPanel();
 
 	@Shadow
 	protected TextFieldWidget chatField;
@@ -41,12 +45,19 @@ public abstract class ChatScreenMixin {
 		chatField.setY(transform.bounds().inputTop());
 		chatField.setWidth(Math.max(1, transform.bounds().messageWidth()));
 		chatInputSuggestor.refresh();
+		chat_canvas$commandClipboard.init((ChatScreen) (Object) this, chatField);
 	}
 
 	@Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$handlePlayerNameDoubleClick(
 			double mouseX, double mouseY, int button,
 			CallbackInfoReturnable<Boolean> cir) {
+		if (chat_canvas$commandClipboard.mouseClicked(
+				(ChatScreen) (Object) this, chatField, chatInputSuggestor,
+				mouseX, mouseY, button)) {
+			cir.setReturnValue(true);
+			return;
+		}
 		if (chat_canvas$quickActionMenu.mouseClicked(
 				(ChatScreen) (Object) this, chatField, chatInputSuggestor,
 				mouseX, mouseY, button)) {
@@ -60,23 +71,32 @@ public abstract class ChatScreenMixin {
 		}
 	}
 
-	@Inject(method = "mouseScrolled", at = @At("HEAD"))
+	@Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$resetDoubleClickOnScroll(
 			double mouseX, double mouseY, double horizontalAmount, double verticalAmount,
 			CallbackInfoReturnable<Boolean> cir) {
 		PlayerNameDoubleClickHandler.instance().reset();
+		if (chat_canvas$commandClipboard.mouseScrolled(verticalAmount)) {
+			cir.setReturnValue(true);
+		}
 	}
 
 	@Inject(method = "removed", at = @At("HEAD"))
 	private void chat_canvas$resetDoubleClickOnRemoved(CallbackInfo ci) {
 		PlayerNameDoubleClickHandler.instance().reset();
 		chat_canvas$quickActionMenu.reset((ChatScreen) (Object) this);
+		chat_canvas$commandClipboard.removed();
 	}
 
 	@Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$handleQuickActionKeys(
 			int keyCode, int scanCode, int modifiers,
 			CallbackInfoReturnable<Boolean> cir) {
+		if (chat_canvas$commandClipboard.keyPressed(
+				keyCode, scanCode, modifiers, chatField, chatInputSuggestor)) {
+			cir.setReturnValue(true);
+			return;
+		}
 		if (chat_canvas$quickActionMenu.keyPressed(
 				(ChatScreen) (Object) this, chatField, chatInputSuggestor, keyCode)) {
 			cir.setReturnValue(true);
@@ -96,6 +116,8 @@ public abstract class ChatScreenMixin {
 		});
 		chat_canvas$quickActionMenu.render(
 				(ChatScreen) (Object) this, context, mouseX, mouseY);
+		chat_canvas$commandClipboard.render(
+				(ChatScreen) (Object) this, chatField, context, mouseX, mouseY, delta);
 	}
 
 	@WrapOperation(

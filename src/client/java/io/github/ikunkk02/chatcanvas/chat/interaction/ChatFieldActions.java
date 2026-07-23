@@ -1,6 +1,7 @@
 package io.github.ikunkk02.chatcanvas.chat.interaction;
 
 import io.github.ikunkk02.chatcanvas.mixin.client.TextFieldWidgetAccessor;
+import io.github.ikunkk02.chatcanvas.config.CommandInsertMode;
 import net.minecraft.client.gui.screen.ChatInputSuggestor;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 
@@ -41,6 +42,18 @@ public final class ChatFieldActions {
 		field.setFocused(true);
 		suggestor.refresh();
 		return previous;
+	}
+
+	public static void applyCommand(TextFieldWidget field, ChatInputSuggestor suggestor,
+									String command, CommandInsertMode mode) {
+		if (mode == CommandInsertMode.REPLACE_INPUT) {
+			field.setText(command);
+			field.setCursorToEnd(false);
+		} else {
+			field.write(command);
+		}
+		field.setFocused(true);
+		suggestor.refresh();
 	}
 
 	public static void restore(

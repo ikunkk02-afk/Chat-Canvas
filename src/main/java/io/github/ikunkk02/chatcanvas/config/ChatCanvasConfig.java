@@ -72,6 +72,10 @@ public final class ChatCanvasConfig {
 		return settings.mention();
 	}
 
+	public synchronized CommandClipboardConfig commandClipboard() {
+		return settings.commandClipboard();
+	}
+
 	public synchronized List<Integer> recentColors() {
 		return settings.recentColors();
 	}
@@ -104,7 +108,7 @@ public final class ChatCanvasConfig {
 	public synchronized boolean save(LayoutConfig value) {
 		return save(new ChatCanvasSettings(
 				value, settings.text(), settings.background(), settings.playerColors(),
-				settings.mention(), settings.recentColors()));
+				settings.mention(), settings.commandClipboard(), settings.recentColors()));
 	}
 
 	public synchronized boolean save(ChatCanvasSettings value) {
@@ -219,12 +223,30 @@ public final class ChatCanvasConfig {
 						stringOr(mention, "privateMessageTemplate",
 								mentionDefaults.privateMessageTemplate())
 				).sanitized();
+		CommandClipboardConfig commandDefaults = CommandClipboardConfig.DEFAULT;
+		JsonObject commandClipboard = objectOr(root, "commandClipboard", null);
+		CommandClipboardConfig parsedCommandClipboard = commandClipboard == null
+				? commandDefaults
+				: new CommandClipboardConfig(
+						booleanOr(commandClipboard, "enabled", commandDefaults.enabled()),
+						booleanOr(commandClipboard, "showPanelButton",
+								commandDefaults.showPanelButton()),
+						commandInsertModeOr(commandClipboard, "insertMode",
+								commandDefaults.insertMode()),
+						booleanOr(commandClipboard, "allowDuplicates",
+								commandDefaults.allowDuplicates()),
+						booleanOr(commandClipboard, "sensitiveWarning",
+								commandDefaults.sensitiveWarning()),
+						intOr(commandClipboard, "maxCommands", commandDefaults.maxCommands()),
+						stringSetOr(commandClipboard, "hiddenPresetIds")
+				).sanitized();
 		return new ChatCanvasSettings(
 				parsedLayout,
 				parsedText,
 				parsedBackground,
 				parsedPlayerColors,
 				parsedMention,
+				parsedCommandClipboard,
 				recentColorsOr(root, "recentColors")
 		);
 	}
@@ -298,6 +320,19 @@ public final class ChatCanvasConfig {
 		mentionObject.addProperty("privateMessageTemplate", mention.privateMessageTemplate());
 		root.add("mention", mentionObject);
 
+		CommandClipboardConfig command = value.commandClipboard();
+		JsonObject commandObject = new JsonObject();
+		commandObject.addProperty("enabled", command.enabled());
+		commandObject.addProperty("showPanelButton", command.showPanelButton());
+		commandObject.addProperty("insertMode", command.insertMode().name());
+		commandObject.addProperty("allowDuplicates", command.allowDuplicates());
+		commandObject.addProperty("sensitiveWarning", command.sensitiveWarning());
+		commandObject.addProperty("maxCommands", command.maxCommands());
+		JsonArray hiddenPresets = new JsonArray();
+		command.hiddenPresetIds().forEach(hiddenPresets::add);
+		commandObject.add("hiddenPresetIds", hiddenPresets);
+		root.add("commandClipboard", commandObject);
+
 		JsonArray recentColors = new JsonArray();
 		for (int color : value.recentColors()) {
 			recentColors.add(color);
@@ -367,6 +402,30 @@ public final class ChatCanvasConfig {
 		} catch (RuntimeException ignored) {
 			return fallback;
 		}
+	}
+
+	private static CommandInsertMode commandInsertModeOr(
+			JsonObject object, String key, CommandInsertMode fallback) {
+		String value = stringOr(object, key, fallback.name());
+		try {
+			return CommandInsertMode.valueOf(value.toUpperCase(Locale.ROOT));
+		} catch (RuntimeException ignored) {
+			return fallback;
+		}
+	}
+
+	private static java.util.Set<String> stringSetOr(JsonObject object, String key) {
+		JsonElement element = object.get(key);
+		if (element == null || !element.isJsonArray()) return java.util.Set.of();
+		java.util.LinkedHashSet<String> values = new java.util.LinkedHashSet<>();
+		for (JsonElement entry : element.getAsJsonArray()) {
+			try {
+				String value = entry.getAsString();
+				if (!value.isBlank()) values.add(value);
+			} catch (RuntimeException ignored) {
+			}
+		}
+		return values;
 	}
 
 	private static ChatTextAlignment alignmentOr(JsonObject object, String key,

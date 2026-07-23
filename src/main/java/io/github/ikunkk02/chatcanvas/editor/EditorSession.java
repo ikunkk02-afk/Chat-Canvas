@@ -3,6 +3,7 @@ package io.github.ikunkk02.chatcanvas.editor;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasSettings;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
+import io.github.ikunkk02.chatcanvas.config.CommandClipboardConfig;
 import io.github.ikunkk02.chatcanvas.config.LayoutConfig;
 import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import io.github.ikunkk02.chatcanvas.config.PixelLayout;
@@ -18,6 +19,7 @@ public final class EditorSession {
 	private ChatBackgroundConfig background;
 	private PlayerColorConfig playerColors;
 	private MentionConfig mention;
+	private CommandClipboardConfig commandClipboard;
 	private int screenWidth;
 	private int screenHeight;
 
@@ -28,7 +30,8 @@ public final class EditorSession {
 	public EditorSession(ChatCanvasSettings original, int screenWidth, int screenHeight) {
 		ChatCanvasSettings safe = original.sanitized();
 		this.original = new EditorSnapshot(
-				safe.layout(), safe.text(), safe.background(), safe.playerColors(), safe.mention());
+				safe.layout(), safe.text(), safe.background(), safe.playerColors(), safe.mention(),
+				safe.commandClipboard());
 		this.screenWidth = Math.max(1, screenWidth);
 		this.screenHeight = Math.max(1, screenHeight);
 		this.layout = this.original.layout().toPixels(this.screenWidth, this.screenHeight);
@@ -36,6 +39,7 @@ public final class EditorSession {
 		this.background = this.original.background();
 		this.playerColors = this.original.playerColors();
 		this.mention = this.original.mention();
+		this.commandClipboard = this.original.commandClipboard();
 		this.recentColors = new RecentColorStore(safe.recentColors());
 		this.history = new EditorHistory(snapshot());
 	}
@@ -60,6 +64,10 @@ public final class EditorSession {
 		return mention;
 	}
 
+	public CommandClipboardConfig commandClipboard() {
+		return commandClipboard;
+	}
+
 	public RecentColorStore recentColors() {
 		return recentColors;
 	}
@@ -74,7 +82,8 @@ public final class EditorSession {
 				text,
 				background,
 				playerColors,
-				mention
+				mention,
+				commandClipboard
 		);
 	}
 
@@ -86,6 +95,7 @@ public final class EditorSession {
 				snapshot.background(),
 				snapshot.playerColors(),
 				snapshot.mention(),
+				snapshot.commandClipboard(),
 				recentColors.colors()
 		);
 	}
@@ -114,12 +124,17 @@ public final class EditorSession {
 		mention = value.sanitized();
 	}
 
+	public void setCommandClipboard(CommandClipboardConfig value) {
+		commandClipboard = value.sanitized();
+	}
+
 	public void apply(EditorSnapshot value) {
 		layout = value.layout().toPixels(screenWidth, screenHeight);
 		text = value.text();
 		background = value.background();
 		playerColors = value.playerColors();
 		mention = value.mention();
+		commandClipboard = value.commandClipboard();
 	}
 
 	public void resizeViewport(int width, int height) {
@@ -151,6 +166,11 @@ public final class EditorSession {
 
 	public void restoreMentionDefaults() {
 		setMention(MentionConfig.DEFAULT);
+		commit();
+	}
+
+	public void restoreCommandClipboardDefaults() {
+		setCommandClipboard(CommandClipboardConfig.DEFAULT);
 		commit();
 	}
 
