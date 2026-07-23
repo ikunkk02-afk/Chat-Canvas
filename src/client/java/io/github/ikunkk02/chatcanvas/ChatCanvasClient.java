@@ -4,6 +4,7 @@ import io.github.ikunkk02.chatcanvas.chat.layout.ChatLineWidthCache;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatLayoutRuntime;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatCapture;
 import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerNameDoubleClickHandler;
+import io.github.ikunkk02.chatcanvas.chat.notification.MentionNotificationController;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.editor.ChatCanvasEditorScreen;
 import net.fabricmc.api.ClientModInitializer;
@@ -24,6 +25,7 @@ public final class ChatCanvasClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		ChatCanvasConfig.initialize();
+		MentionNotificationController.instance().register();
 		PlayerChatCapture.register();
 		openEditor = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 				"key.chat_canvas.open_editor",

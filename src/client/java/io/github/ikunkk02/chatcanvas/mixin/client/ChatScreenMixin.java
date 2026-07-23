@@ -5,6 +5,7 @@ import io.github.ikunkk02.chatcanvas.chat.layout.ChatLayoutRuntime;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatBackgroundMetrics;
 import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
 import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerNameDoubleClickHandler;
+import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerQuickActionMenu;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -15,6 +16,7 @@ import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -22,6 +24,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ChatScreen.class)
 public abstract class ChatScreenMixin {
+	@Unique
+	private final PlayerQuickActionMenu chat_canvas$quickActionMenu =
+			new PlayerQuickActionMenu();
+
 	@Shadow
 	protected TextFieldWidget chatField;
 
@@ -41,6 +47,12 @@ public abstract class ChatScreenMixin {
 	private void chat_canvas$handlePlayerNameDoubleClick(
 			double mouseX, double mouseY, int button,
 			CallbackInfoReturnable<Boolean> cir) {
+		if (chat_canvas$quickActionMenu.mouseClicked(
+				(ChatScreen) (Object) this, chatField, chatInputSuggestor,
+				mouseX, mouseY, button)) {
+			cir.setReturnValue(true);
+			return;
+		}
 		if (PlayerNameDoubleClickHandler.instance().mouseClicked(
 				(ChatScreen) (Object) this, chatField, chatInputSuggestor,
 				mouseX, mouseY, button)) {
@@ -58,6 +70,17 @@ public abstract class ChatScreenMixin {
 	@Inject(method = "removed", at = @At("HEAD"))
 	private void chat_canvas$resetDoubleClickOnRemoved(CallbackInfo ci) {
 		PlayerNameDoubleClickHandler.instance().reset();
+		chat_canvas$quickActionMenu.reset((ChatScreen) (Object) this);
+	}
+
+	@Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
+	private void chat_canvas$handleQuickActionKeys(
+			int keyCode, int scanCode, int modifiers,
+			CallbackInfoReturnable<Boolean> cir) {
+		if (chat_canvas$quickActionMenu.keyPressed(
+				(ChatScreen) (Object) this, chatField, chatInputSuggestor, keyCode)) {
+			cir.setReturnValue(true);
+		}
 	}
 
 	@Inject(method = "render", at = @At("RETURN"))
@@ -71,6 +94,8 @@ public abstract class ChatScreenMixin {
 					net.minecraft.client.MinecraftClient.getInstance().textRenderer,
 					message, x, y, 0xFFFF858D, true);
 		});
+		chat_canvas$quickActionMenu.render(
+				(ChatScreen) (Object) this, context, mouseX, mouseY);
 	}
 
 	@WrapOperation(

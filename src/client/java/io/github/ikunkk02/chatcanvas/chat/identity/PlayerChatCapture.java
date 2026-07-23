@@ -2,6 +2,7 @@ package io.github.ikunkk02.chatcanvas.chat.identity;
 
 import com.mojang.authlib.GameProfile;
 import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerNameDoubleClickHandler;
+import io.github.ikunkk02.chatcanvas.chat.notification.MentionNotificationController;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.network.message.MessageSignatureData;
@@ -20,12 +21,21 @@ public final class PlayerChatCapture {
 					message, signedMessage, sender, params.name());
 			metadata.ifPresent(value -> ChatMessageMetadataRegistry.instance()
 					.registerIncoming(message, signatureOf(signedMessage), value));
+			MentionNotificationController.instance().receive(
+					message,
+					signatureOf(signedMessage),
+					metadata.map(ChatMessageMetadata::sender),
+					timestamp == null ? System.currentTimeMillis() : timestamp.toEpochMilli());
 		});
 		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
 			if (overlay) return;
-			PluginChatFallbackResolver.resolve(message, PlayerRosterTracker.onlinePlayers())
-					.ifPresent(value -> ChatMessageMetadataRegistry.instance()
-							.registerIncoming(message, null, value));
+			Optional<ChatMessageMetadata> metadata =
+					PluginChatFallbackResolver.resolve(message, PlayerRosterTracker.onlinePlayers());
+			metadata.ifPresent(value -> ChatMessageMetadataRegistry.instance()
+					.registerIncoming(message, null, value));
+			MentionNotificationController.instance().receive(
+					message, null, metadata.map(ChatMessageMetadata::sender),
+					System.currentTimeMillis());
 		});
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
 				PlayerRosterTracker.refresh(handler));
@@ -34,6 +44,7 @@ public final class PlayerChatCapture {
 			ChatMessageMetadataRegistry.instance().clearAll();
 			PlayerNameHitboxRegistry.clear();
 			PlayerNameDoubleClickHandler.instance().reset();
+			MentionNotificationController.instance().clearSession();
 		});
 	}
 

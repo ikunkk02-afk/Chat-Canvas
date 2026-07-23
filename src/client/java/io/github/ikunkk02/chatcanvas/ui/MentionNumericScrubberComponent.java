@@ -2,35 +2,36 @@ package io.github.ikunkk02.chatcanvas.ui;
 
 import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
-import io.github.ikunkk02.chatcanvas.editor.NumericScrubberMath;
 import io.wispforest.owo.ui.base.BaseComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
 import io.wispforest.owo.ui.core.OwoUIDrawContext;
 import io.wispforest.owo.ui.core.Sizing;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 
-public final class MentionNumericScrubberComponent extends BaseComponent implements NumericScrubber {
-	private static final int VALUE_WIDTH = 82;
+import java.util.Locale;
 
+public final class MentionNumericScrubberComponent extends BaseComponent implements NumericScrubber {
+	private static final int VALUE_WIDTH = 92;
 	private final EditorSession session;
+	private final Property property;
 	private final Text label;
 	private final Runnable previewChanged;
 	private final Runnable historyChanged;
 	private MentionConfig dragStart;
 	private double dragStartMouseX;
-	private int dragStartValue;
-	private NumericScrubberMath.Sensitivity sensitivity = NumericScrubberMath.Sensitivity.NORMAL;
+	private double dragStartValue;
 	private boolean dragging;
 	private boolean changed;
 	private boolean valueHovered;
-	private float hoverProgress;
 
 	public MentionNumericScrubberComponent(
-			EditorSession session, Text label,
+			EditorSession session, Property property, Text label,
 			Runnable previewChanged, Runnable historyChanged) {
 		this.session = session;
+		this.property = property;
 		this.label = label;
 		this.previewChanged = previewChanged;
 		this.historyChanged = historyChanged;
@@ -41,9 +42,6 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 	public void update(float delta, int mouseX, int mouseY) {
 		super.update(delta, mouseX, mouseY);
 		valueHovered = valueRegionContains(mouseX, mouseY);
-		float target = valueHovered || dragging ? 1.0f : 0.0f;
-		hoverProgress += (target - hoverProgress)
-				* Math.min(1.0f, Math.max(0.08f, delta * 0.35f));
 		cursorStyle(valueHovered || dragging ? CursorStyle.HORIZONTAL_RESIZE : CursorStyle.NONE);
 	}
 
@@ -51,25 +49,19 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
 		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
 		int valueLeft = valueLeft();
-		int background = dragging ? 0xCC29384D : 0xB02A3543;
-		context.fill(valueLeft, y() + 2, x() + width(), y() + height() - 2, background);
-		int range = MentionConfig.MAX_DOUBLE_CLICK_INTERVAL_MS
-				- MentionConfig.MIN_DOUBLE_CLICK_INTERVAL_MS;
-		double progress = (session.mention().doubleClickIntervalMs()
-				- MentionConfig.MIN_DOUBLE_CLICK_INTERVAL_MS) / (double) range;
+		context.fill(valueLeft, y() + 2, x() + width(), y() + height() - 2,
+				dragging ? 0xCC29384D : 0xB02A3543);
+		double progress = (property.read(session.mention()) - property.min)
+				/ Math.max(0.0001, property.max - property.min);
 		int progressRight = valueLeft
 				+ (int) Math.round((width() - (valueLeft - x())) * progress);
 		context.fill(valueLeft, y() + height() - 3, progressRight, y() + height() - 2,
 				dragging ? 0xFF8EB8FF : 0xCC6E9ED8);
 		int textY = y() + (height() - renderer.fontHeight) / 2;
 		context.drawText(renderer, label, x() + 2, textY, 0xFFC7CEDA, false);
-		String value = session.mention().doubleClickIntervalMs() + " "
-				+ Text.translatable("chat_canvas.unit.milliseconds").getString();
+		String value = property.format(property.read(session.mention()));
 		context.drawText(renderer, value, x() + width() - 8 - renderer.getWidth(value),
 				textY, 0xFFE9EDF4, false);
-		if (valueHovered || dragging) {
-			context.drawText(renderer, "\u2194", valueLeft + 6, textY, 0xFFA9B9CF, false);
-		}
 	}
 
 	@Override
@@ -84,8 +76,7 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 		if (button != 0 || !valueRegionContains(mouseX, mouseY)) return false;
 		dragStart = session.mention();
 		dragStartMouseX = mouseX;
-		dragStartValue = dragStart.doubleClickIntervalMs();
-		sensitivity = NumericScrubberMath.Sensitivity.fromModifiers(shiftDown, controlDown);
+		dragStartValue = property.read(dragStart);
 		dragging = true;
 		changed = false;
 		return true;
@@ -94,8 +85,8 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 	@Override
 	public boolean dragPointer(double mouseX, double mouseY, int button) {
 		if (!dragging || button != 0 || dragStart == null) return false;
-		applyValue(dragStartValue
-				+ NumericScrubberMath.valueDelta(mouseX - dragStartMouseX, sensitivity));
+		double modifier = Screen.hasShiftDown() ? 0.2 : Screen.hasControlDown() ? 5.0 : 1.0;
+		applyValue(dragStartValue + (mouseX - dragStartMouseX) * property.dragStep * modifier);
 		return true;
 	}
 
@@ -127,11 +118,9 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 	@Override
 	public boolean scroll(double amount) {
 		if (!valueHovered || amount == 0.0) return false;
+		double modifier = Screen.hasShiftDown() ? 0.2 : Screen.hasControlDown() ? 5.0 : 1.0;
 		MentionConfig before = session.mention();
-		int step = MinecraftClient.getInstance().currentScreen != null
-				&& net.minecraft.client.gui.screen.Screen.hasControlDown() ? 25
-				: net.minecraft.client.gui.screen.Screen.hasShiftDown() ? 1 : 5;
-		applyValue(before.doubleClickIntervalMs() + (amount > 0.0 ? step : -step));
+		applyValue(property.read(before) + Math.signum(amount) * property.scrollStep * modifier);
 		if (!before.equals(session.mention())) {
 			session.commit();
 			historyChanged.run();
@@ -143,7 +132,7 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 	@Override
 	public boolean restoreDefault() {
 		MentionConfig before = session.mention();
-		applyValue(MentionConfig.DEFAULT.doubleClickIntervalMs());
+		applyValue(property.read(MentionConfig.DEFAULT));
 		if (!before.equals(session.mention())) {
 			session.commit();
 			historyChanged.run();
@@ -156,9 +145,9 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 	public void resizeViewport(int width, int height) {
 	}
 
-	private void applyValue(int value) {
+	private void applyValue(double value) {
 		MentionConfig before = session.mention();
-		session.setMention(before.withDoubleClickIntervalMs(value));
+		session.setMention(property.write(before, value));
 		if (!before.equals(session.mention())) {
 			changed = true;
 			previewChanged.run();
@@ -167,5 +156,56 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 
 	private int valueLeft() {
 		return Math.max(x(), x() + width() - VALUE_WIDTH);
+	}
+
+	public enum Property {
+		DOUBLE_CLICK(MentionConfig.MIN_DOUBLE_CLICK_INTERVAL_MS,
+				MentionConfig.MAX_DOUBLE_CLICK_INTERVAL_MS, 1.0, 5.0) {
+			double read(MentionConfig c) { return c.doubleClickIntervalMs(); }
+			MentionConfig write(MentionConfig c, double v) { return c.withDoubleClickIntervalMs((int) Math.round(v)); }
+			String format(double v) { return Math.round(v) + " ms"; }
+		},
+		SOUND_VOLUME(0.0, 1.0, 0.005, 0.01) {
+			double read(MentionConfig c) { return c.soundVolume(); }
+			MentionConfig write(MentionConfig c, double v) { return c.withSoundVolume(v); }
+			String format(double v) { return Math.round(v * 100.0) + "%"; }
+		},
+		SOUND_PITCH(0.5, 2.0, 0.005, 0.05) {
+			double read(MentionConfig c) { return c.soundPitch(); }
+			MentionConfig write(MentionConfig c, double v) { return c.withSoundPitch(v); }
+		},
+		TOAST_LENGTH(20, 160, 0.25, 1.0) {
+			double read(MentionConfig c) { return c.toastMessageLength(); }
+			MentionConfig write(MentionConfig c, double v) { return c.withToastMessageLength((int) Math.round(v)); }
+			String format(double v) { return Long.toString(Math.round(v)); }
+		},
+		FLASH_OPACITY(0.0, 0.6, 0.003, 0.01) {
+			double read(MentionConfig c) { return c.flashOpacity(); }
+			MentionConfig write(MentionConfig c, double v) { return c.withFlashOpacity(v); }
+			String format(double v) { return Math.round(v * 100.0) + "%"; }
+		},
+		FLASH_DURATION(100, 1_500, 2.0, 25.0) {
+			double read(MentionConfig c) { return c.flashDurationMs(); }
+			MentionConfig write(MentionConfig c, double v) { return c.withFlashDurationMs((int) Math.round(v)); }
+			String format(double v) { return Math.round(v) + " ms"; }
+		};
+
+		final double min;
+		final double max;
+		final double dragStep;
+		final double scrollStep;
+
+		Property(double min, double max, double dragStep, double scrollStep) {
+			this.min = min;
+			this.max = max;
+			this.dragStep = dragStep;
+			this.scrollStep = scrollStep;
+		}
+
+		abstract double read(MentionConfig config);
+		abstract MentionConfig write(MentionConfig config, double value);
+		String format(double value) {
+			return String.format(Locale.ROOT, "%.2f", value);
+		}
 	}
 }

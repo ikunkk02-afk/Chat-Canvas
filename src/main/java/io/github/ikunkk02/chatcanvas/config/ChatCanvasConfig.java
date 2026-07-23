@@ -37,6 +37,10 @@ public final class ChatCanvasConfig {
 		if (instance == null) {
 			instance = new ChatCanvasConfig(FabricLoader.getInstance().getConfigDir().resolve("chat_canvas.json"));
 			instance.load();
+			// Rewrite successfully loaded legacy configurations through the current
+			// serializer so newly introduced fields become visible on disk as well as
+			// receiving their in-memory defaults.
+			instance.save(instance.settings);
 		}
 		return instance;
 	}
@@ -197,7 +201,23 @@ public final class ChatCanvasConfig {
 						booleanOr(mention, "highlightEnabled", mentionDefaults.highlightEnabled()),
 						intOr(mention, "highlightColor", mentionDefaults.highlightColor()),
 						booleanOr(mention, "highlightBold", mentionDefaults.highlightBold()),
-						booleanOr(mention, "requireAtSymbol", mentionDefaults.requireAtSymbol())
+						booleanOr(mention, "requireAtSymbol", mentionDefaults.requireAtSymbol()),
+						booleanOr(mention, "soundEnabled", mentionDefaults.soundEnabled()),
+						mentionSoundOr(mention, "sound", mentionDefaults.sound()),
+						doubleOr(mention, "soundVolume", mentionDefaults.soundVolume()),
+						doubleOr(mention, "soundPitch", mentionDefaults.soundPitch()),
+						booleanOr(mention, "toastEnabled", mentionDefaults.toastEnabled()),
+						booleanOr(mention, "toastWhenChatOpen", mentionDefaults.toastWhenChatOpen()),
+						intOr(mention, "toastMessageLength", mentionDefaults.toastMessageLength()),
+						booleanOr(mention, "flashEnabled", mentionDefaults.flashEnabled()),
+						intOr(mention, "flashColor", mentionDefaults.flashColor()),
+						doubleOr(mention, "flashOpacity", mentionDefaults.flashOpacity()),
+						intOr(mention, "flashDurationMs", mentionDefaults.flashDurationMs()),
+						booleanOr(mention, "ignoreOwnMessages", mentionDefaults.ignoreOwnMessages()),
+						booleanOr(mention, "playerQuickActionsEnabled",
+								mentionDefaults.playerQuickActionsEnabled()),
+						stringOr(mention, "privateMessageTemplate",
+								mentionDefaults.privateMessageTemplate())
 				).sanitized();
 		return new ChatCanvasSettings(
 				parsedLayout,
@@ -262,6 +282,20 @@ public final class ChatCanvasConfig {
 		mentionObject.addProperty("highlightColor", mention.highlightColor());
 		mentionObject.addProperty("highlightBold", mention.highlightBold());
 		mentionObject.addProperty("requireAtSymbol", mention.requireAtSymbol());
+		mentionObject.addProperty("soundEnabled", mention.soundEnabled());
+		mentionObject.addProperty("sound", mention.sound().name());
+		mentionObject.addProperty("soundVolume", mention.soundVolume());
+		mentionObject.addProperty("soundPitch", mention.soundPitch());
+		mentionObject.addProperty("toastEnabled", mention.toastEnabled());
+		mentionObject.addProperty("toastWhenChatOpen", mention.toastWhenChatOpen());
+		mentionObject.addProperty("toastMessageLength", mention.toastMessageLength());
+		mentionObject.addProperty("flashEnabled", mention.flashEnabled());
+		mentionObject.addProperty("flashColor", mention.flashColor());
+		mentionObject.addProperty("flashOpacity", mention.flashOpacity());
+		mentionObject.addProperty("flashDurationMs", mention.flashDurationMs());
+		mentionObject.addProperty("ignoreOwnMessages", mention.ignoreOwnMessages());
+		mentionObject.addProperty("playerQuickActionsEnabled", mention.playerQuickActionsEnabled());
+		mentionObject.addProperty("privateMessageTemplate", mention.privateMessageTemplate());
 		root.add("mention", mentionObject);
 
 		JsonArray recentColors = new JsonArray();
@@ -308,6 +342,28 @@ public final class ChatCanvasConfig {
 		}
 		try {
 			return element.getAsInt();
+		} catch (RuntimeException ignored) {
+			return fallback;
+		}
+	}
+
+	private static String stringOr(JsonObject object, String key, String fallback) {
+		JsonElement element = object.get(key);
+		if (element == null || element.isJsonNull() || !element.isJsonPrimitive()) {
+			return fallback;
+		}
+		try {
+			return element.getAsString();
+		} catch (RuntimeException ignored) {
+			return fallback;
+		}
+	}
+
+	private static MentionSound mentionSoundOr(JsonObject object, String key,
+											 MentionSound fallback) {
+		String value = stringOr(object, key, fallback.name());
+		try {
+			return MentionSound.valueOf(value.toUpperCase(Locale.ROOT));
 		} catch (RuntimeException ignored) {
 			return fallback;
 		}

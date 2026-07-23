@@ -3,11 +3,13 @@ package io.github.ikunkk02.chatcanvas.ui;
 import io.github.ikunkk02.chatcanvas.animation.MotionPreset;
 import io.github.ikunkk02.chatcanvas.animation.SpringValue;
 import io.github.ikunkk02.chatcanvas.chat.render.PreviewChatState;
+import io.github.ikunkk02.chatcanvas.chat.notification.MentionNotificationController;
 import io.github.ikunkk02.chatcanvas.config.ChatTextAlignment;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.config.MessageBackgroundMode;
 import io.github.ikunkk02.chatcanvas.config.MentionConfig;
+import io.github.ikunkk02.chatcanvas.config.MentionSound;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorMode;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatIdentity;
@@ -78,6 +80,15 @@ public final class AnimatedSettingsPanel {
 	private ButtonComponent mentionBoldButton;
 	private ButtonComponent mentionRequireAtButton;
 	private ButtonComponent mentionColorButton;
+	private ButtonComponent mentionSoundEnabledButton;
+	private ButtonComponent mentionSoundTypeButton;
+	private ButtonComponent mentionToastEnabledButton;
+	private ButtonComponent mentionToastWhenOpenButton;
+	private ButtonComponent mentionFlashEnabledButton;
+	private ButtonComponent mentionFlashColorButton;
+	private ButtonComponent mentionIgnoreOwnButton;
+	private ButtonComponent mentionQuickActionsButton;
+	private TextBoxComponent mentionPrivateTemplateBox;
 	private FlowLayout playerListBody;
 	private String playerSearch = "";
 	private long rosterRevision = Long.MIN_VALUE;
@@ -205,6 +216,11 @@ public final class AnimatedSettingsPanel {
 			ButtonComponent button = transparentButton(
 					Text.translatable(category.translationKey),
 					clicked -> switchCategory(category));
+			button.mouseDown().subscribe((mouseX, mouseY, mouseButton) -> {
+				if (mouseButton != 0) return false;
+				switchCategory(category);
+				return true;
+			});
 			button.sizing(Sizing.fill(100 / Category.values().length), Sizing.fill(100));
 			buttons.child(button);
 		}
@@ -270,6 +286,7 @@ public final class AnimatedSettingsPanel {
 
 		MentionNumericScrubberComponent interval = new MentionNumericScrubberComponent(
 				session,
+				MentionNumericScrubberComponent.Property.DOUBLE_CLICK,
 				Text.translatable("chat_canvas.mention.double_click_interval")
 						.formatted(Formatting.LIGHT_PURPLE),
 				geometryChanged,
@@ -334,6 +351,106 @@ public final class AnimatedSettingsPanel {
 				config -> config.withRequireAtSymbol(!config.requireAtSymbol()));
 		body.child(mentionRequireAtButton);
 
+		body.child(sectionLabel("chat_canvas.mention.section.notification"));
+		mentionSoundEnabledButton = mentionToggleButton(
+				"chat_canvas.mention.sound_enabled",
+				config -> config.withSoundEnabled(!config.soundEnabled()));
+		body.child(mentionSoundEnabledButton);
+		mentionSoundTypeButton = ModernUiTheme.button(Text.empty(), clicked -> {
+			MentionConfig before = session.mention();
+			MentionSound[] values = MentionSound.values();
+			session.setMention(before.withSound(
+					values[(before.sound().ordinal() + 1) % values.length]));
+			session.commit();
+			committed.run();
+			syncFromSession();
+		});
+		mentionSoundTypeButton.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.MENTION, mentionSoundTypeButton);
+		body.child(mentionSoundTypeButton);
+		body.child(mentionScrubber(MentionNumericScrubberComponent.Property.SOUND_VOLUME,
+				"chat_canvas.mention.sound_volume"));
+		body.child(mentionScrubber(MentionNumericScrubberComponent.Property.SOUND_PITCH,
+				"chat_canvas.mention.sound_pitch"));
+		ButtonComponent testSound = ModernUiTheme.button(
+				Text.translatable("chat_canvas.mention.test_sound"),
+				clicked -> MentionNotificationController.instance().testSound(session.mention()));
+		testSound.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.MENTION, testSound);
+		body.child(testSound);
+
+		body.child(sectionLabel("chat_canvas.mention.section.toast"));
+		mentionToastEnabledButton = mentionToggleButton(
+				"chat_canvas.mention.toast_enabled",
+				config -> config.withToastEnabled(!config.toastEnabled()));
+		body.child(mentionToastEnabledButton);
+		mentionToastWhenOpenButton = mentionToggleButton(
+				"chat_canvas.mention.toast_when_open",
+				config -> config.withToastWhenChatOpen(!config.toastWhenChatOpen()));
+		body.child(mentionToastWhenOpenButton);
+		body.child(mentionScrubber(MentionNumericScrubberComponent.Property.TOAST_LENGTH,
+				"chat_canvas.mention.toast_length"));
+
+		body.child(sectionLabel("chat_canvas.mention.section.flash"));
+		mentionFlashEnabledButton = mentionToggleButton(
+				"chat_canvas.mention.flash_enabled",
+				config -> config.withFlashEnabled(!config.flashEnabled()));
+		body.child(mentionFlashEnabledButton);
+		mentionFlashColorButton = ModernUiTheme.button(Text.empty(), clicked -> {
+			MentionConfig before = session.mention();
+			colorPickerLauncher.open(clicked, new ModernColorPickerPopup.Request(
+					before.flashColor(),
+					MentionConfig.DEFAULT.flashColor(),
+					session.recentColors().colors(),
+					color -> {
+						session.setMention(session.mention().withFlashColor(color));
+						geometryChanged.run();
+						syncFromSession();
+					},
+					color -> {
+						session.recentColors().add(color);
+						session.commit();
+						committed.run();
+						syncFromSession();
+					},
+					() -> {
+						session.setMention(before);
+						geometryChanged.run();
+						syncFromSession();
+					}
+			));
+		});
+		mentionFlashColorButton.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.MENTION, mentionFlashColorButton);
+		body.child(mentionFlashColorButton);
+		body.child(mentionScrubber(MentionNumericScrubberComponent.Property.FLASH_OPACITY,
+				"chat_canvas.mention.flash_opacity"));
+		body.child(mentionScrubber(MentionNumericScrubberComponent.Property.FLASH_DURATION,
+				"chat_canvas.mention.flash_duration"));
+
+		body.child(sectionLabel("chat_canvas.mention.section.other"));
+		mentionIgnoreOwnButton = mentionToggleButton(
+				"chat_canvas.mention.ignore_own",
+				config -> config.withIgnoreOwnMessages(!config.ignoreOwnMessages()));
+		body.child(mentionIgnoreOwnButton);
+		mentionQuickActionsButton = mentionToggleButton(
+				"chat_canvas.mention.quick_actions",
+				config -> config.withPlayerQuickActionsEnabled(!config.playerQuickActionsEnabled()));
+		body.child(mentionQuickActionsButton);
+		body.child(Components.label(Text.translatable(
+				"chat_canvas.mention.private_template").formatted(Formatting.LIGHT_PURPLE)));
+		mentionPrivateTemplateBox = Components.textBox(Sizing.fill(100));
+		mentionPrivateTemplateBox.text(session.mention().privateMessageTemplate());
+		mentionPrivateTemplateBox.onChanged().subscribe(value -> {
+			MentionConfig before = session.mention();
+			session.setMention(before.withPrivateMessageTemplate(value));
+			if (!before.equals(session.mention())) {
+				session.commit();
+				committed.run();
+			}
+		});
+		body.child(mentionPrivateTemplateBox);
+
 		ButtonComponent defaults = ModernUiTheme.button(
 				Text.translatable("chat_canvas.mention.restore_defaults"), button -> {
 					MentionConfig before = session.mention();
@@ -348,6 +465,15 @@ public final class AnimatedSettingsPanel {
 		registerPageButton(Category.MENTION, defaults);
 		body.child(defaults);
 		return body;
+	}
+
+	private MentionNumericScrubberComponent mentionScrubber(
+			MentionNumericScrubberComponent.Property property, String key) {
+		MentionNumericScrubberComponent component = new MentionNumericScrubberComponent(
+				session, property, Text.translatable(key).formatted(Formatting.LIGHT_PURPLE),
+				geometryChanged, committed);
+		scrubbers.add(component);
+		return component;
 	}
 
 	private ButtonComponent mentionToggleButton(
@@ -929,9 +1055,12 @@ public final class AnimatedSettingsPanel {
 	private void switchCategory(Category category) {
 		if (category == activeCategory) return;
 		activeCategory = category;
-		categoryTransitioning = true;
-		categorySpring.setTarget(category.ordinal() * pageWidth());
-		setPageButtonsActive(false);
+		double target = category.ordinal() * pageWidth();
+		categorySpring.setValue(target);
+		categorySpring.setTarget(target);
+		categoryTransitioning = false;
+		updateCategoryTransition(0.0);
+		setPageButtonsActive(true);
 	}
 
 	public void syncFromSession() {
@@ -964,9 +1093,31 @@ public final class AnimatedSettingsPanel {
 				config.highlightBold());
 		setToggleMessage(mentionRequireAtButton, "chat_canvas.mention.require_at",
 				config.requireAtSymbol());
+		setToggleMessage(mentionSoundEnabledButton, "chat_canvas.mention.sound_enabled",
+				config.soundEnabled());
+		setToggleMessage(mentionToastEnabledButton, "chat_canvas.mention.toast_enabled",
+				config.toastEnabled());
+		setToggleMessage(mentionToastWhenOpenButton, "chat_canvas.mention.toast_when_open",
+				config.toastWhenChatOpen());
+		setToggleMessage(mentionFlashEnabledButton, "chat_canvas.mention.flash_enabled",
+				config.flashEnabled());
+		setToggleMessage(mentionIgnoreOwnButton, "chat_canvas.mention.ignore_own",
+				config.ignoreOwnMessages());
+		setToggleMessage(mentionQuickActionsButton, "chat_canvas.mention.quick_actions",
+				config.playerQuickActionsEnabled());
+		if (mentionSoundTypeButton != null) {
+			mentionSoundTypeButton.setMessage(Text.translatable("chat_canvas.mention.sound_type")
+					.append(Text.literal("  "))
+					.append(Text.translatable("chat_canvas.mention.sound."
+							+ config.sound().name().toLowerCase(Locale.ROOT))));
+		}
 		if (mentionColorButton != null) {
 			mentionColorButton.setMessage(colorButtonText(
 					"chat_canvas.mention.highlight_color", config.highlightColor()));
+		}
+		if (mentionFlashColorButton != null) {
+			mentionFlashColorButton.setMessage(colorButtonText(
+					"chat_canvas.mention.flash_color", config.flashColor()));
 		}
 	}
 
