@@ -1,5 +1,6 @@
 package io.github.ikunkk02.chatcanvas.ui;
 
+import io.github.ikunkk02.chatcanvas.ChatCanvas;
 import io.github.ikunkk02.chatcanvas.editor.EditorUiStyle;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.Components;
@@ -14,15 +15,13 @@ import java.util.function.Consumer;
 
 /**
  * Provides themed rendering for the Chat Canvas editor UI.
- * <p>
- * Call {@link #setStyle(EditorUiStyle)} to switch between the modern
- * Chat Canvas theme and the vanilla Minecraft-style theme. All
- * subsequent calls to {@link #button}, {@link #PANEL_SURFACE}, etc.
- * will use the new theme.
  */
 public final class ModernUiTheme {
 
     private static EditorUiStyle currentStyle = EditorUiStyle.CHAT_CANVAS;
+
+    /** Enable to log suspiciously large vanilla-styled components. */
+    public static final boolean VANILLA_THEME_RENDER_DEBUG = false;
 
     /* ── colour constants (modern theme) ─────────────────────── */
     public static final int PANEL_BACKGROUND = 0xE6191C26;
@@ -30,6 +29,10 @@ public final class ModernUiTheme {
     public static final int ACCENT = 0xFF70A7FF;
     public static final int TEXT_PRIMARY = 0xFFF2F4F8;
     public static final int TEXT_SECONDARY = 0xFF9EA8BA;
+
+    /* ── reasonable bounds for themed controls ──────────────── */
+    private static final int MAX_REASONABLE_BUTTON_WIDTH = 400;
+    private static final int MAX_REASONABLE_BUTTON_HEIGHT = 50;
 
     /* ── theme switching ─────────────────────────────────────── */
 
@@ -40,16 +43,15 @@ public final class ModernUiTheme {
     /* ── panel surface ───────────────────────────────────────── */
 
     public static final Surface PANEL_SURFACE = (context, component) -> {
+        int w = component.width();
+        int h = component.height();
+        if (w <= 0 || h <= 0) return;
         if (currentStyle == EditorUiStyle.VANILLA) {
-            drawVanillaPanel(context, component.x(), component.y(),
-                    component.width(), component.height());
+            drawVanillaPanel(context, component.x(), component.y(), w, h);
         } else {
-            shadow(context, component.x(), component.y(),
-                    component.width(), component.height());
-            roundedRect(context, component.x(), component.y(),
-                    component.width(), component.height(), 7, PANEL_BACKGROUND);
-            border(context, component.x(), component.y(),
-                    component.width(), component.height(), PANEL_BORDER);
+            shadow(context, component.x(), component.y(), w, h);
+            roundedRect(context, component.x(), component.y(), w, h, 7, PANEL_BACKGROUND);
+            border(context, component.x(), component.y(), w, h, PANEL_BORDER);
         }
     };
 
@@ -67,6 +69,11 @@ public final class ModernUiTheme {
 
     private ModernUiTheme() {}
 
+    /**
+     * Create a themed button. For transparent hit targets and colour swatches
+     * that should never draw a solid background, prefer
+     * {@link #transparentButton(Text, Consumer)}.
+     */
     public static ButtonComponent button(Text text, Consumer<ButtonComponent> action) {
         ButtonComponent button = Components.button(text, clicked -> {
             PRESSED_AT.put(clicked, System.nanoTime());
@@ -77,12 +84,30 @@ public final class ModernUiTheme {
         return button;
     }
 
+    /** Create a button that never draws a solid background in either theme. */
+    public static ButtonComponent transparentButton(Text text, Consumer<ButtonComponent> action) {
+        ButtonComponent button = Components.button(text, action);
+        button.renderer(ModernUiTheme::drawTransparentButton);
+        button.textShadow(false);
+        return button;
+    }
+
     private static void drawButton(OwoUIDrawContext context, ButtonComponent button, float delta) {
         if (currentStyle == EditorUiStyle.VANILLA) {
             drawVanillaButton(context, button);
         } else {
             drawModernButton(context, button);
         }
+    }
+
+    private static void drawTransparentButton(OwoUIDrawContext context, ButtonComponent button, float delta) {
+        // In vanilla theme, draw no background (prevents gray rectangle from oversized hit targets).
+        // In modern theme, draw the normal modern background.
+        if (currentStyle == EditorUiStyle.VANILLA) {
+            // Fully transparent — just rely on text rendering or parent surface.
+            return;
+        }
+        drawModernButton(context, button);
     }
 
     private static void drawModernButton(OwoUIDrawContext context, ButtonComponent button) {
@@ -105,6 +130,31 @@ public final class ModernUiTheme {
     }
 
     private static void drawVanillaButton(OwoUIDrawContext context, ButtonComponent button) {
+        int w = button.getWidth();
+        int h = button.getHeight();
+        int x = button.getX();
+        int y = button.getY();
+
+        if (w <= 0 || h <= 0) return;
+
+        // Defensive: if the button is abnormally large, log and skip background fill.
+        if (w > MAX_REASONABLE_BUTTON_WIDTH || h > MAX_REASONABLE_BUTTON_HEIGHT) {
+            if (VANILLA_THEME_RENDER_DEBUG) {
+                net.minecraft.client.MinecraftClient client =
+                        net.minecraft.client.MinecraftClient.getInstance();
+                String text = "";
+                try { text = button.getMessage().getString(); } catch (Exception ignored) {}
+                ChatCanvas.LOGGER.warn(
+                        "[ChatCanvas Vanilla UI] Oversized component: text='{}' class={} bounds={},{},{},{} " +
+                        "screen={}x{} guiScale={}",
+                        text, button.getClass().getSimpleName(), x, y, w, h,
+                        client != null ? client.getWindow().getFramebufferWidth() : "?",
+                        client != null ? client.getWindow().getFramebufferHeight() : "?",
+                        client != null ? client.getWindow().getScaleFactor() : "?");
+            }
+            return; // Skip drawing — oversized button background would cover the preview.
+        }
+
         int bg, borderCol;
         if (!button.active()) {
             bg = 0xFF555555; borderCol = 0xFF333333;
@@ -113,17 +163,12 @@ public final class ModernUiTheme {
         } else {
             bg = 0xFF666666; borderCol = 0xFF888888;
         }
-        context.fill(button.getX(), button.getY(),
-                button.getX() + button.getWidth(), button.getY() + button.getHeight(), bg);
+        context.fill(x, y, x + w, y + h, bg);
         // 1px border
-        context.fill(button.getX(), button.getY(),
-                button.getX() + button.getWidth(), button.getY() + 1, borderCol);
-        context.fill(button.getX(), button.getY() + button.getHeight() - 1,
-                button.getX() + button.getWidth(), button.getY() + button.getHeight(), borderCol);
-        context.fill(button.getX(), button.getY(),
-                button.getX() + 1, button.getY() + button.getHeight(), borderCol);
-        context.fill(button.getX() + button.getWidth() - 1, button.getY(),
-                button.getX() + button.getWidth(), button.getY() + button.getHeight(), borderCol);
+        context.fill(x, y, x + w, y + 1, borderCol);
+        context.fill(x, y + h - 1, x + w, y + h, borderCol);
+        context.fill(x, y, x + 1, y + h, borderCol);
+        context.fill(x + w - 1, y, x + w, y + h, borderCol);
     }
 
     /* ── shared draw utilities ───────────────────────────────── */

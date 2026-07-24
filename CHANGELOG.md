@@ -2,6 +2,12 @@
 
 All notable changes to Chat Canvas will be documented in this file.
 
+## [1.1.1] - 2026-07-24
+
+### Fixed
+
+- Fixed an oversized opaque gray rectangle covering the editor preview area when using the Minecraft-style theme in large modpack environments. The vanilla button renderer now validates component bounds and transparent hit targets never draw a solid vanilla background.
+
 ## [1.1.0] - 2026-07-24
 
 ### Added

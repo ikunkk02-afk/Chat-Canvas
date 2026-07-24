@@ -43,6 +43,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	private FlowLayout toolbar;
 	private ButtonComponent undoButton;
 	private ButtonComponent redoButton;
+	private ButtonComponent themeButton;
 	private ModernColorPickerPopup colorPickerPopup;
 
 	public ChatCanvasEditorScreen(@Nullable Screen parent) {
@@ -98,9 +99,12 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 		ButtonComponent styleButton = ModernUiTheme.button(
 				Text.translatable("chat_canvas.ui_theme").append(Text.literal(": "))
-						.append(Text.translatable("chat_canvas.ui_theme.chat_canvas")),
+						.append(Text.translatable(ModernUiTheme.currentStyle() == EditorUiStyle.CHAT_CANVAS
+								? "chat_canvas.ui_theme.chat_canvas"
+								: "chat_canvas.ui_theme.vanilla")),
 				button -> onSwitchTheme());
 		styleButton.sizing(Sizing.fixed(140), Sizing.fixed(22));
+		this.themeButton = styleButton;
 		bar.child(styleButton);
 
 		undoButton = ModernUiTheme.button(Text.translatable("chat_canvas.action.undo"), button -> undo());
@@ -121,6 +125,14 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 				cur.layout(), cur.text(), cur.background(),
 				cur.playerColors(), cur.mention(), cur.commandClipboard(),
 				cur.recentColors(), next));
+		// Update the theme button text to reflect the new theme.
+		if (themeButton != null) {
+			themeButton.setMessage(
+					Text.translatable("chat_canvas.ui_theme").append(Text.literal(": "))
+							.append(Text.translatable(next == EditorUiStyle.CHAT_CANVAS
+									? "chat_canvas.ui_theme.chat_canvas"
+									: "chat_canvas.ui_theme.vanilla")));
+		}
 	}
 
 	@Override
