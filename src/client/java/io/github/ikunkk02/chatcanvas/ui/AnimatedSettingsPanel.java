@@ -48,6 +48,7 @@ import java.util.function.Supplier;
 import java.util.Locale;
 
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
+import io.github.ikunkk02.chatcanvas.editor.EditorUiStyle;
 
 public final class AnimatedSettingsPanel {
 	private static final boolean DEBUG_CLIP = false;
@@ -1161,6 +1162,13 @@ public final class AnimatedSettingsPanel {
 
 	public int activeCategoryOrdinal() {
 		return activeCategory.ordinal();
+	}
+
+	private static Text settingLabel(String key) {
+		if (ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA) {
+			return Text.translatable(key);
+		}
+		return Text.translatable(key).formatted(Formatting.LIGHT_PURPLE);
 	}
 
 	private void switchCategory(Category category) {

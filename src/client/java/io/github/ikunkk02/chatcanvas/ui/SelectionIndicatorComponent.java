@@ -1,5 +1,6 @@
 package io.github.ikunkk02.chatcanvas.ui;
 
+import io.github.ikunkk02.chatcanvas.editor.EditorUiStyle;
 import io.wispforest.owo.ui.base.BaseComponent;
 import io.wispforest.owo.ui.core.OwoUIDrawContext;
 import io.wispforest.owo.ui.core.Sizing;
@@ -49,9 +50,16 @@ public final class SelectionIndicatorComponent extends BaseComponent {
 				? animatedIndex
 				: clampPosition(directPosition.getAsDouble());
 		int indicatorX = x() + (int) Math.round(position * segmentWidth);
-		ModernUiTheme.roundedRect(context, x(), y(), width(), height(), 5, 0x7A202731);
-		ModernUiTheme.roundedRect(context, indicatorX + 1, y() + 1,
-				Math.max(1, segmentWidth - 2), Math.max(1, height() - 2), 4, 0xC53A536F);
+		boolean vanilla = ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA;
+		if (vanilla) {
+			context.fill(x(), y(), x() + width(), y() + height(), 0xFF333333);
+			context.fill(indicatorX + 1, y() + 1,
+					Math.max(1, segmentWidth - 2), Math.max(1, height() - 2), 0xFF666666);
+		} else {
+			ModernUiTheme.roundedRect(context, x(), y(), width(), height(), 5, 0x7A202731);
+			ModernUiTheme.roundedRect(context, indicatorX + 1, y() + 1,
+					Math.max(1, segmentWidth - 2), Math.max(1, height() - 2), 4, 0xC53A536F);
+		}
 	}
 
 	private int clampIndex(int index) {

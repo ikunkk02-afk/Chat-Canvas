@@ -82,8 +82,8 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	}
 
 	private FlowLayout buildToolbar() {
-		FlowLayout bar = Containers.horizontalFlow(Sizing.fixed(390), Sizing.fixed(32));
-		bar.positioning(Positioning.absolute(Math.max(8, (width - 390) / 2), 10));
+		FlowLayout bar = Containers.horizontalFlow(Sizing.fixed(460), Sizing.fixed(32));
+		bar.positioning(Positioning.absolute(Math.max(8, (width - 460) / 2), 10));
 		bar.padding(Insets.of(5).withLeft(16));
 		bar.gap(6);
 		bar.surface(ModernUiTheme.PANEL_SURFACE);
@@ -93,14 +93,14 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 		var title = Components.label(Text.translatable("chat_canvas.editor.title")
 				.formatted(Formatting.WHITE, Formatting.BOLD));
-		title.horizontalSizing(Sizing.fill(33));
+		title.horizontalSizing(Sizing.fill(28));
 		bar.child(title);
 
 		ButtonComponent styleButton = ModernUiTheme.button(
 				Text.translatable("chat_canvas.ui_theme").append(Text.literal(": "))
 						.append(Text.translatable("chat_canvas.ui_theme.chat_canvas")),
 				button -> onSwitchTheme());
-		styleButton.sizing(Sizing.fixed(80), Sizing.fixed(22));
+		styleButton.sizing(Sizing.fixed(140), Sizing.fixed(22));
 		bar.child(styleButton);
 
 		undoButton = ModernUiTheme.button(Text.translatable("chat_canvas.action.undo"), button -> undo());

@@ -2,6 +2,7 @@ package io.github.ikunkk02.chatcanvas.ui;
 
 import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
+import io.github.ikunkk02.chatcanvas.editor.EditorUiStyle;
 import io.wispforest.owo.ui.base.BaseComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
 import io.wispforest.owo.ui.core.OwoUIDrawContext;
@@ -49,19 +50,23 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
 		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
 		int valueLeft = valueLeft();
+		boolean vanilla = ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA;
 		context.fill(valueLeft, y() + 2, x() + width(), y() + height() - 2,
-				dragging ? 0xCC29384D : 0xB02A3543);
+				dragging ? (vanilla ? 0xFF777777 : 0xCC29384D)
+						: (vanilla ? 0xFF555555 : 0xB02A3543));
 		double progress = (property.read(session.mention()) - property.min)
 				/ Math.max(0.0001, property.max - property.min);
 		int progressRight = valueLeft
 				+ (int) Math.round((width() - (valueLeft - x())) * progress);
 		context.fill(valueLeft, y() + height() - 3, progressRight, y() + height() - 2,
-				dragging ? 0xFF8EB8FF : 0xCC6E9ED8);
+				dragging ? (vanilla ? 0xFFAAAAAA : 0xFF8EB8FF)
+						: (vanilla ? 0xFF999999 : 0xCC6E9ED8));
 		int textY = y() + (height() - renderer.fontHeight) / 2;
-		context.drawText(renderer, label, x() + 2, textY, 0xFFC7CEDA, false);
+		int labelColor = vanilla ? 0xFFFFFFFF : 0xFFC7CEDA;
+		context.drawText(renderer, label, x() + 2, textY, labelColor, false);
 		String value = property.format(property.read(session.mention()));
 		context.drawText(renderer, value, x() + width() - 8 - renderer.getWidth(value),
-				textY, 0xFFE9EDF4, false);
+				textY, vanilla ? 0xFFFFFFFF : 0xFFE9EDF4, false);
 	}
 
 	@Override

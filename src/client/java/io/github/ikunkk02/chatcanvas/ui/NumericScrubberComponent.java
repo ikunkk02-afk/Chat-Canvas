@@ -4,6 +4,7 @@ import io.github.ikunkk02.chatcanvas.config.LayoutConfig;
 import io.github.ikunkk02.chatcanvas.config.PixelLayout;
 import io.github.ikunkk02.chatcanvas.editor.EditorPointerTarget;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
+import io.github.ikunkk02.chatcanvas.editor.EditorUiStyle;
 import io.github.ikunkk02.chatcanvas.editor.NumericScrubberMath;
 import io.wispforest.owo.ui.base.BaseComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
@@ -59,26 +60,32 @@ public final class NumericScrubberComponent extends BaseComponent implements Num
 	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
 		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
 		int valueLeft = valueLeft();
+		boolean vanilla = ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA;
 		int background = dragging
-				? 0xCC29384D
-				: interpolateColor(0x88202731, 0xB02A3543, hoverProgress);
+				? (vanilla ? 0xFF777777 : 0xCC29384D)
+				: (vanilla ? 0xFF555555
+					: interpolateColor(0x88202731, 0xB02A3543, hoverProgress));
 		context.fill(valueLeft, y() + 2, x() + width(), y() + height() - 2, background);
-		context.fill(valueLeft, y() + height() - 3, x() + width(), y() + height() - 2, 0x553F526A);
+		if (!vanilla) {
+			context.fill(valueLeft, y() + height() - 3, x() + width(), y() + height() - 2, 0x553F526A);
+		}
 
 		double progress = valueProgress();
 		int progressRight = valueLeft + (int) Math.round((width() - (valueLeft - x())) * progress);
 		if (progressRight > valueLeft) {
 			context.fill(valueLeft, y() + height() - 3, progressRight, y() + height() - 2,
-					dragging ? 0xFF8EB8FF : 0xCC6E9ED8);
+					dragging ? (vanilla ? 0xFFAAAAAA : 0xFF8EB8FF)
+							: (vanilla ? 0xFF999999 : 0xCC6E9ED8));
 		}
 
 		int textY = y() + (height() - renderer.fontHeight) / 2;
-		context.drawText(renderer, label, x() + 2, textY, 0xFFC7CEDA, false);
+		int labelColor = vanilla ? 0xFFFFFFFF : 0xFFC7CEDA;
+		context.drawText(renderer, label, x() + 2, textY, labelColor, false);
 		String value = Integer.toString(currentValue());
 		int valueX = x() + width() - 8 - renderer.getWidth(value);
-		context.drawText(renderer, value, valueX, textY, dragging ? 0xFFFFFFFF : 0xFFE9EDF4, false);
+		context.drawText(renderer, value, valueX, textY, dragging ? 0xFFFFFFFF : (vanilla ? 0xFFFFFFFF : 0xFFE9EDF4), false);
 		if (valueHovered || dragging) {
-			context.drawText(renderer, "\u2194", valueLeft + 6, textY, 0xFFA9B9CF, false);
+			context.drawText(renderer, "\u2194", valueLeft + 6, textY, vanilla ? 0xFFFFFFFF : 0xFFA9B9CF, false);
 		}
 	}
 
