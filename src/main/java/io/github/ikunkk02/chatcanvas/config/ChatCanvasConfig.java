@@ -7,6 +7,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
+import io.github.ikunkk02.chatcanvas.editor.EditorUiStyle;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.IOException;
@@ -78,6 +79,10 @@ public final class ChatCanvasConfig {
 
 	public synchronized List<Integer> recentColors() {
 		return settings.recentColors();
+	}
+
+	public synchronized EditorUiStyle editorUiStyle() {
+		return settings.editorUiStyle();
 	}
 
 	public synchronized ChatCanvasSettings settings() {
@@ -248,7 +253,8 @@ public final class ChatCanvasConfig {
 				parsedPlayerColors,
 				parsedMention,
 				parsedCommandClipboard,
-				recentColorsOr(root, "recentColors")
+				recentColorsOr(root, "recentColors"),
+				editorUiStyleOr(root, "editorUiStyle", EditorUiStyle.CHAT_CANVAS)
 		);
 	}
 
@@ -340,6 +346,7 @@ public final class ChatCanvasConfig {
 			recentColors.add(color);
 		}
 		root.add("recentColors", recentColors);
+		root.addProperty("editorUiStyle", value.editorUiStyle().name());
 		return root;
 	}
 
@@ -464,6 +471,19 @@ public final class ChatCanvasConfig {
 		}
 		try {
 			return PlayerColorMode.valueOf(element.getAsString().toUpperCase(Locale.ROOT));
+		} catch (RuntimeException ignored) {
+			return fallback;
+		}
+	}
+
+	private static EditorUiStyle editorUiStyleOr(JsonObject object, String key,
+												 EditorUiStyle fallback) {
+		JsonElement element = object.get(key);
+		if (element == null || element.isJsonNull() || !element.isJsonPrimitive()) {
+			return fallback;
+		}
+		try {
+			return EditorUiStyle.valueOf(element.getAsString().toUpperCase(Locale.ROOT));
 		} catch (RuntimeException ignored) {
 			return fallback;
 		}

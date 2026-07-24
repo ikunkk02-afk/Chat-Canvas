@@ -176,5 +176,13 @@
   "chat_canvas.command.preset.difficulty_normal": "普通难度",
   "chat_canvas.command.preset.difficulty_hard": "困难难度",
   "chat_canvas.command.preset.spawnpoint": "设置出生点",
-  "chat_canvas.command.preset.kill_self": "自杀"
+  "chat_canvas.command.preset.kill_self": "自杀",
+  "chat_canvas.ui_style": "界面风格",
+  "chat_canvas.ui_style.chat_canvas": "Chat Canvas 界面",
+  "chat_canvas.ui_style.vanilla": "Minecraft 原版界面",
+  "chat_canvas.ui_style.choose": "选择界面风格",
+  "chat_canvas.ui_style.chat_canvas_desc": "现代化浮动面板与自定义控件",
+  "chat_canvas.ui_style.vanilla_desc": "Minecraft 原版按钮、滑块和列表",
+  "chat_canvas.ui_style.switch_note": "切换界面不会保存当前修改",
+  "chat_canvas.ui_style.current": "当前界面"
 }
