@@ -286,20 +286,6 @@ public final class AnimatedSettingsPanel {
 		registerPageButton(Category.LAYOUT, defaults);
 		body.child(defaults);
 
-		body.child(sectionLabel("chat_canvas.settings.coming_soon"));
-		for (String key : new String[]{
-				"chat_canvas.category.fade",
-				"chat_canvas.category.compatibility"
-		}) {
-			ButtonComponent disabled = ModernUiTheme.button(
-					Text.translatable(key).append(Text.literal(" · "))
-							.append(Text.translatable("chat_canvas.status.not_implemented")),
-					button -> {
-					});
-			disabled.active(false);
-			disabled.sizing(Sizing.fill(100), Sizing.fixed(20));
-			body.child(disabled);
-		}
 		return body;
 	}
 
