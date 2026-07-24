@@ -40,4 +40,4 @@
 
 ## Release
 
-- [ ] GitHub Release created
+- [x] GitHub Release created
