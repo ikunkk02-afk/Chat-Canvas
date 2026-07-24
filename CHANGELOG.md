@@ -6,7 +6,9 @@ All notable changes to Chat Canvas will be documented in this file.
 
 ### Fixed
 
-- Fixed an oversized opaque gray rectangle covering the editor preview area when using the Minecraft-style theme in large modpack environments. The vanilla button renderer now validates component bounds and transparent hit targets never draw a solid vanilla background.
+- Fixed incorrect right/bottom coordinates in the Minecraft-style selection indicator renderer causing a large opaque gray rectangle across the editor preview when the settings panel was positioned on the right side.
+- Fixed Minecraft-style category, alignment and background-mode selection indicators drawing outside their parent controls.
+- Added `ModernUiTheme.transparentButton()` for hit-target buttons that should never draw a solid background in either theme.
 
 ## [1.1.0] - 2026-07-24
 
