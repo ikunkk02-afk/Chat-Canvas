@@ -2,55 +2,55 @@
 
 All notable changes to Chat Canvas will be documented in this file.
 
+## [1.1.0] - 2026-07-24
+
+### Added
+
+- Selectable Chat Canvas and Minecraft-style editor visual themes.
+- Runtime theme switching without losing unsaved settings, undo history or current category.
+- Persistent editor theme preference across game restarts.
+- Theme-aware controls: labels, panels, tabs, numeric scrubbers, text fields and footer.
+- Dedicated theme selection button in the editor header.
+
+### Changed
+
+- Reworked the Minecraft-style interface from a separate screen into a **visual theme** of the main Chat Canvas editor. Both themes share the same layout, preview, controls, EditorSession and EditorHistory.
+- Updated the editor header layout to accommodate the theme button (toolbar widened to 460 px).
+- Completed Minecraft-style visuals for setting labels, numeric scrubbers, selection indicators and the footer.
+- Rewrote Chinese (`README.md`) and English (`README_EN.md`) documentation for v1.1.0.
+
+### Fixed
+
+- Theme button text overlapping the Undo button.
+- Incomplete Minecraft-style theme colours leaving purple labels and blue accents visible in the vanilla theme.
+- Numeric scrubber controls retaining modern-theme visuals (blue progress bar, dark panel) in the Minecraft-style theme.
+- Category tab selected state using modern-theme blue highlights in the vanilla theme.
+- Command clipboard launcher button remaining visible and interactive while the clipboard panel was open.
+- Invisible command launcher hitbox blocking panel input after the clipboard opened.
+- Theme switching previously creating a separate full-screen editor layout rather than swapping visual skins.
+
 ## [1.0.0] - 2026-07-24
 
 ### Added
 
-- Visual chat HUD editor with live game viewport preview
-- Drag-to-move and eight-direction resizing with snap-to-edge alignment guides
-- Settings panel with automatic left/right side avoidance
-- Six-category settings page system with horizontal tab switching
-- **Selectable editor UI: Chat Canvas (modern owo-ui) or Minecraft-style (vanilla widgets)**
-- **Runtime UI style switching without losing unsaved changes, undo history, or scroll positions**
-- **Vanilla-style editor with ButtonWidget, SliderWidget, TextFieldWidget, and all 6 category pages**
-- **VanillaColorPickerScreen with R/G/B sliders and hex input**
-- Text size, line spacing, character spacing, text opacity, and shadow toggle
-- Left, center, and right text alignment
-- Message background with colors, opacity, three display modes (follow text, full width, hidden), horizontal/vertical padding
-- Input field background with colors, opacity, and border
-- Per-player UUID-based stable automatic name colors with manual override
-- Player color palette customization (24 colors)
-- Online player search in color settings
-- Mention insertion by double-clicking player names in chat
-- Mention highlight with custom color and bold toggle
-- Mention sound notifications with multiple sound types, adjustable volume and pitch
-- Mention toast notifications with configurable preview length
-- Mention full-screen flash alerts with adjustable color, opacity, and duration
-- Option to ignore self-sent mentions and require `@` symbol
-- Player quick-action menu (right-click player name): mention, private message, copy name
-- Customizable private message command template
-- Persistent command clipboard with save, name, categorize, favorite, search, edit, delete, reorder, and batch clear
-- Command usage counters and recent commands tracking
-- 15 built-in command presets (gamemode, time, weather, keepInventory, difficulty, spawnpoint, kill)
-- Replace-input and insert-at-cursor modes with Shift-click inversion
-- Sensitive-command plaintext-storage warning dialog
-- Mod Menu integration
-- Chinese (zh_cn) and English (en_us) localisation
-
-### Fixed
-
-- Chat history overlapping with input field at extreme layouts
-- Right-aligned text overflowing chat boundary
-- Line-spacing causing black background artefacts
-- Inactive settings pages visually leaking into the chat preview area across modded UI environments
-- Settings page input dispatch broken after clipping fix
-- Editor title overflowing the toolbar left edge
-- Removed obsolete "Future categories" placeholder section
-
-### Compatibility
-
-- Chat Heads — head icons preserved and aligned with custom text, backgrounds, and layout
-- More Chat History — history capacity left to More Chat History
-- ChatAnimation — message entry animations left to ChatAnimation
-- Smooth Scrolling — scroll animations left to Smooth Scrolling
-- Tested in large Fabric 1.21.1 modpacks
+- Visual chat HUD editor with live game viewport preview.
+- Drag-to-move and eight-direction resizing with snap-to-edge alignment guides.
+- Settings panel with automatic left/right side avoidance.
+- Six-category settings page system with horizontal tab switching.
+- Text size, line spacing, character spacing, text opacity, and shadow toggle.
+- Left, centre, and right text alignment.
+- Message background with colours, opacity, and three display modes (follow text, full width, hidden).
+- Horizontal and vertical padding for message backgrounds.
+- Input field background colours, opacity, border colours, and border visibility.
+- Player name colour engine: automatic UUID-based colour assignment with a customisable palette.
+- Per-player manual colour override with online-player search.
+- Double-click player name to insert `@mention`.
+- Mention text highlighting with customisable colour, bold toggle, and `@`‑prefix requirement mode.
+- Mention notification system: configurable sound alerts, Toast popups, and full‑screen coloured flash.
+- Right-click player name quick-actions menu: mention, whisper, and copy name.
+- Persistent command clipboard with save, search, category filter, favourites, reorder, edit, and delete.
+- Built-in command presets.
+- `Ctrl+Z` / `Ctrl+Y` undo and redo support.
+- Compatibility with Chat Heads, More Chat History, ChatAnimation, and Smooth Scrolling.
+- Mod Menu integration.
+- Tested in a large Fabric 1.21.1 modpack environment.

@@ -1,37 +1,49 @@
 [简体中文](README.md) | [English](README_EN.md)
 
+<p align="center">
+  <img src="src/main/resources/assets/chat_canvas/icon.png" width="180" alt="Chat Canvas">
+</p>
+
 # Chat Canvas｜聊天画布
 
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1-green)
-![Mod Loader](https://img.shields.io/badge/Loader-Fabric-lightyellow)
-![Environment](https://img.shields.io/badge/Environment-Client-blue)
-![Java](https://img.shields.io/badge/Java-21-orange)
-![License](https://img.shields.io/badge/License-MIT-lightgrey)
+![Loader](https://img.shields.io/badge/Loader-Fabric-lightyellow)
+![Side](https://img.shields.io/badge/Side-Client--only-blue)
+![Java](https://img.shields.io/badge/Java-21%2B-orange)
+![Version](https://img.shields.io/badge/Version-1.1.0-informational)
+![License](https://img.shields.io/badge/License-MIT-brightgreen)
 
-**Chat Canvas（聊天画布）** 是一款适用于 Minecraft 1.21.1 Fabric 的**纯客户端**聊天栏自定义模组。它通过可视化编辑器让玩家直接拖动、缩放并实时预览聊天栏，同时提供文字、背景、玩家颜色、艾特通知、玩家快捷操作和持久化命令剪贴板。
+Chat Canvas 是一款适用于 **Minecraft 1.21.1 Fabric** 的纯客户端聊天栏自定义模组。
+
+玩家可以在实时游戏画面中直接拖拽、缩放并预览聊天栏，同时自定义文字样式、背景、玩家名字颜色、艾特提醒和命令输入功能。
+
+模组提供两套可随时切换的**编辑器视觉主题**，使用相同布局、功能和配置，只改变 UI 控件外观。
 
 ---
 
 ## 目录
 
 - [核心特色](#核心特色)
+- [两种编辑器视觉主题](#两种编辑器视觉主题)
 - [安装要求](#安装要求)
 - [安装方法](#安装方法)
 - [快速开始](#快速开始)
 - [可视化编辑器](#可视化编辑器)
+- [布局设置](#布局设置)
 - [文字设置](#文字设置)
 - [背景设置](#背景设置)
 - [玩家颜色](#玩家颜色)
-- [艾特和通知](#艾特和通知)
+- [艾特与通知](#艾特与通知)
 - [玩家快捷操作](#玩家快捷操作)
 - [命令剪贴板](#命令剪贴板)
-- [配置和数据](#配置和数据)
+- [配置与数据文件](#配置与数据文件)
 - [兼容性](#兼容性)
+- [安全说明](#安全说明)
 - [已知限制](#已知限制)
 - [常见问题](#常见问题)
 - [故障排查](#故障排查)
-- [开发和构建](#开发和构建)
-- [项目结构](#项目结构)
+- [开发与构建](#开发与构建)
+- [问题反馈](#问题反馈)
 - [作者与视频主页](#作者与视频主页)
 - [许可证](#许可证)
 
@@ -39,474 +51,381 @@
 
 ## 核心特色
 
-### 可视化编辑器
-- 实时游戏画面预览，所见即所得
-- 拖动聊天框自由移动位置
-- 八方向缩放调整大小
-- 屏幕边缘和中心自动吸附对齐
-- 设置面板自动避让（检测聊天框位置后左右换边）
-- 撤销（Ctrl+Z）和重做（Ctrl+Y）
-- 保存和取消，无需手动修改配置文件
+- ✅ 实时游戏画面中拖拽和缩放聊天栏
+- ✅ 所见即所得的聊天预览
+- ✅ 八方向缩放 + 屏幕边缘与中心吸附
+- ✅ 设置面板自动左右避让
+- ✅ **两套可切换的编辑器视觉主题**（Chat Canvas 原生 / Minecraft 原版风格）
+- ✅ 文字大小、字间距、行间距、透明度、阴影和对齐
+- ✅ 消息背景颜色、透明度和显示模式
+- ✅ 玩家名字自动分配颜色 + 手动覆盖
+- ✅ 双击 @ 艾特 + 提示音 / Toast / 全屏闪烁
+- ✅ 右键玩家名字快捷菜单
+- ✅ 持久化命令剪贴板（搜索 / 分类 / 收藏 / 预设）
+- ✅ 兼容 Chat Heads / More Chat History / ChatAnimation / Smooth Scrolling
+- ✅ Ctrl+Z / Ctrl+Y 撤销与重做
+- ✅ 主题偏好持久保存
 
-### 高度可自定义的文字
-- 文字大小、行间距、字间距独立调节
-- 文字透明度和阴影开关
-- 左对齐、居中、右对齐
-- 中文、英文和 Emoji 正常渲染
-- 正确换行和点击检测，链接点击和 HoverEvent 不受影响
+---
 
-### 背景自定义
-- 消息背景颜色和透明度
-- 跟随文字、整行宽度、隐藏三种显示模式
-- 水平和垂直内边距
-- 输入框背景颜色、透明度和边框独立设置
+## 两种编辑器视觉主题
 
-### 玩家名字颜色
-- 基于 UUID 的稳定自动颜色分配
-- 可手动覆盖单个玩家的颜色
-- 保留服务器原始颜色模式（不覆盖服务器设定的彩色名字）
-- 在线玩家搜索和实时预览
-- 不会给 Chat Heads 头像染色
+Chat Canvas 提供两套编辑器**视觉主题**，不是两套不同的编辑器。两套主题：
 
-### 艾特和通知
-- 双击聊天中玩家名字自动插入 `@玩家名`
-- 艾特文本高亮（可自定义颜色和粗体）
-- 艾特提示音（多种音效可选，可调音量和音高）
-- Toast 通知（可调摘要长度）
-- 全屏闪烁提醒（可调颜色、透明度和时长）
-- 可选择忽略自己发送的艾特
-- 每种通知方式可单独开关
+- 使用完全相同的编辑器布局
+- 使用完全相同的功能
+- 读写同一份配置文件
+- 共享同一个编辑会话（EditorSession）
+- 共享同一个撤销 / 重做历史
+- 切换主题不丢失未保存的修改
+- 只改变按钮、面板、滑块等 UI 控件的外观
 
-### 玩家快捷操作
-- 右键聊天中玩家名字打开快捷菜单
-- 艾特玩家、私聊玩家、复制玩家名字
-- 自定义私聊命令模板（支持 `/msg {player}`、`/tell {player}`、`/w {player}`）
-- 所有操作只填入输入框，**不自动发送**
+### Chat Canvas 原生主题
 
-### 命令剪贴板
-- 全局客户端持久化，不绑定世界或服务器
-- 保存当前输入框命令、自定义名称和分类
-- 收藏、搜索、编辑、删除和调整顺序
-- 最近使用和使用次数统计
-- 内置常用命令预设（游戏模式、时间、天气、死亡不掉落等）
-- 替换输入框或插入光标位置两种模式
-- Shift 点击临时反转插入模式
-- **永远不会自动执行命令**
-- 敏感命令明文存储警告
-- 退出世界或重启游戏后命令仍然保留
+- 半透明现代化设置面板
+- 圆角、阴影和自定义控件
+- 蓝色与紫色强调色
+- 自定义数值拖拽控件
+- 适合喜欢现代化 UI 的玩家
+
+### Minecraft 原版风格主题
+
+- 使用 Minecraft 风格按钮、边框、滑块和文本框
+- 方形结构和原版灰色视觉
+- 保持相同的编辑器布局和功能
+- 适合希望界面与原版游戏保持一致的玩家
+
+> **切换方式**：点击顶部标题栏中的「界面主题」按钮即可切换，偏好会自动保存。
 
 ---
 
 ## 安装要求
 
-| 依赖 | 类型 | 说明 |
-|------|------|------|
+| 依赖 | 类型 | 版本 |
+|---|---|---|
 | Minecraft | 必需 | 1.21.1 |
-| Java | 必需 | ≥ 21 |
-| Fabric Loader | 必需 | ≥ 0.19.3 |
-| Fabric API | 必需 | ≥ 0.116.14+1.21.1 |
-| owo-lib | 必需 | ≥ 0.12.15.4+1.21 |
-| Mod Menu | 可选 | 从模组菜单打开编辑器 |
+| Java | 必需 | 21 或更高 |
+| Fabric Loader | 必需 | 0.19.3 或更高 |
+| Fabric API | 必需 | 0.116.14+1.21.1 或更高兼容版本 |
+| owo-lib | 必需 | 0.12.15.4+1.21 或更高兼容版本 |
+| Mod Menu | 可选 | 11.0.4 或兼容版本 |
+
+> Chat Canvas 为纯客户端模组，服务器不需要安装，不会绕过服务器权限。
 
 ---
 
 ## 安装方法
 
-1. 安装 Minecraft 1.21.1
-2. 安装 [Fabric Loader](https://fabricmc.net/use/)（≥ 0.19.3）
-3. 安装 [Fabric API](https://modrinth.com/mod/fabric-api)（≥ 0.116.14）
-4. 安装 [owo-lib](https://modrinth.com/mod/owo-lib)（≥ 0.12.15.4）
-5. 将 Chat Canvas JAR 文件放入 `mods` 文件夹
-6. 启动游戏
+1. 下载 [Chat Canvas](https://github.com/ikunkk02-afk/Chat-Canvas/releases) 最新版本 JAR
+2. 将 JAR 放入 `.minecraft/mods/` 目录
+3. 启动 Minecraft 1.21.1 Fabric
 
-> Chat Canvas 是**客户端模组**，服务器**不需要**安装。
+安装后可以在 Mod Menu 中看到 Chat Canvas 配置入口。
 
 ---
 
 ## 快速开始
 
-1. 进入游戏世界
-2. 按默认快捷键 **K** 打开编辑器
-3. 拖动预览聊天框到想要的位置
-4. 拖动边缘调整大小
-5. 切换布局、文字、背景、玩家颜色、艾特、命令输入等分类页面
-6. 点击**保存**
-7. 按 **T** 打开真实聊天界面验证效果
-8. 双击玩家名字进行艾特
-9. 右键玩家名字打开快捷菜单
-10. 点击输入框旁的**命令**按钮打开命令剪贴板
+1. 按 **K**（默认快捷键）打开编辑器
+2. 拖拽聊天框到期望位置
+3. 拖拽边角调整聊天框大小
+4. 在右侧设置面板中切换分类标签进行详细自定义
+5. 点击「保存」应用设置
+
+> 编辑器打开时，你可以在左侧实时预览聊天框的最终效果。
 
 ---
 
 ## 可视化编辑器
 
-编辑器分为左右两个区域：
-- **左侧**：聊天预览区，可以直接拖动聊天框、调整大小，所见即所得
-- **右侧**：设置面板，包含六个分类页面
+- **实时预览**：在游戏画面中直接看到聊天框调整后的效果
+- **拖拽位置**：在预览区域按住鼠标拖拽聊天框
+- **八方向缩放**：拖拽聊天框的边和角来调整宽度和高度
+- **边缘吸附**：靠近屏幕边缘或中心时自动吸附
+- **设置面板**：右侧浮动面板，自动根据聊天框位置左右换边
+- **分类标签**：布局、文字、背景、玩家颜色、艾特、命令输入 — 共 6 个分类，横向滑动切换
+- **撤销 / 重做**：Ctrl+Z / Ctrl+Y，或点击顶部按钮
+- **保存 / 取消**：底部固定操作栏
 
-### 数值拖拽
+---
 
-- 鼠标放在数值上，按住**左键**左右拖动
-- **滚轮**微调（±1）
-- 按住 **Shift** 精细调整（±0.1）
-- 按住 **Ctrl** 快速调整（±10）
-- **右键**恢复该数值的默认值
+## 布局设置
 
-### 撤销和重做
-
-- 顶部工具栏提供**撤销**和**重做**按钮
-- 快捷键 **Ctrl+Z** 撤销，**Ctrl+Y** 重做
+- X 位置（像素）
+- Y 位置（像素）
+- 宽度（像素）
+- 高度（像素）
+- 聊天已打开 / 已关闭预览状态切换
+- 配置以实际像素计算，适配分辨率和 GUI Scale
 
 ---
 
 ## 文字设置
 
-| 选项 | 说明 | 范围 |
-|------|------|------|
-| 文字大小 | 聊天文字缩放 | 0.5 – 2.0 |
-| 行间距 | 行与行之间的间距 | 0 – 20px |
-| 字间距 | 字符之间的额外间距 | 0 – 8px |
-| 文字透明度 | 文字不透明度 | 0 – 100% |
-| 文字阴影 | 文字阴影开关 | 开 / 关 |
-| 文字对齐 | 左对齐、居中、右对齐 | — |
+- **文字大小**：50% ~ 200%
+- **行间距**：0 ~ 20 像素
+- **字间距**：0.0 ~ 8.0 像素
+- **文字透明度**：0% ~ 100%
+- **文字阴影**：开启 / 关闭
+- **文字对齐**：左对齐 / 居中 / 右对齐
 
-> 字间距为 0 时，文字渲染与原版完全一致，不会产生额外性能开销。
+所有文字设置支持中文、英文、Unicode 和 Emoji。
+
+### 数值拖拽
+
+- 鼠标放到数值区域，按住左键**左右拖动**
+- **滚轮**微调
+- **Shift** 精细调整
+- **Ctrl** 快速调整
+- **右键**恢复默认值
+- 松开鼠标后只记录一次撤销历史
 
 ---
 
 ## 背景设置
 
-### 消息背景
-
-| 选项 | 说明 |
-|------|------|
-| 显示模式 | 跟随文字 / 整行宽度 / 隐藏 |
-| 背景颜色 | 自定义 RGB 颜色 |
-| 背景透明度 | 0 – 100% |
-| 水平内边距 | 文字与背景左右间距 |
-| 垂直内边距 | 文字与背景上下间距 |
-
-### 输入框背景
-
-| 选项 | 说明 |
-|------|------|
-| 输入框颜色 | 自定义 RGB 颜色 |
-| 输入框透明度 | 0 – 100% |
-| 输入框边框 | 开关和颜色设置 |
+- **显示模式**：跟随文字 / 整行宽度 / 隐藏
+- **消息背景颜色**：RGB 颜色选择器
+- **消息背景透明度**：0% ~ 100%
+- **水平内边距**：0 ~ 12 像素
+- **垂直内边距**：0 ~ 6 像素
+- **输入框背景颜色**
+- **输入框透明度**：0% ~ 100%
+- **输入框边框颜色**及透明度
 
 ---
 
 ## 玩家颜色
 
-### 自动分配模式
-
-基于玩家 UUID 计算稳定的 HSV 颜色，同一玩家在不同服务器中颜色一致。
-
-### 原始颜色模式
-
-保留服务器设定的玩家名字颜色，不分配新颜色。
-
-### 手动覆盖
-
-在线玩家列表支持：
-- 搜索玩家名字
-- 点击色块为特定玩家设置自定义颜色
-- 右键重置为自动颜色
-- 自定义 24 色调色板
+- 根据玩家 **UUID 自动稳定分配**颜色
+- 玩家改名后 UUID 不变 → 颜色不变
+- 支持**手动覆盖**单个玩家颜色
+- 自定义颜色调色板
+- 搜索在线玩家
+- 恢复自动颜色
+- 保留服务器原始颜色模式（不强制替换）
+- 不给 Chat Heads 头像染色
 
 ---
 
-## 艾特和通知
+## 艾特与通知
 
-### 艾特插入
+### 艾特
 
-- 在聊天界面中**双击**玩家名字 → 自动插入 `@玩家名` 到输入框
-- 仅插入，不自动发送
-- 可设置双击时间间隔
+- **双击玩家名字**插入 `@玩家名`（插入到光标位置，不自动发送）
+- 艾特高亮显示
+- 自定义高亮颜色
+- 可选粗体
+- 可配置双击间隔时间
+- 可要求只有带 `@` 前缀的才触发
 
-### 艾特高亮
+### 艾特通知
 
-- 收到包含 `@你的名字` 的消息时，该条消息高亮
-- 可自定义高亮颜色和是否粗体
-- 可选择仅识别带 `@` 符号的艾特
-
-### 通知方式
-
-三种通知方式可独立开关：
-
-1. **提示音**：多种音效可选（经验球、音符盒、紫水晶、按钮点击），可调音量和音高
-2. **Toast**：屏幕顶部弹出消息摘要
-3. **全屏闪烁**：短暂的全屏颜色闪烁提醒
+- **提示音**：多种音效类型可选，可调节音量和音高
+- **Toast**：屏幕上方弹出通知，可配置消息摘要长度
+- **全屏闪烁**：自定义颜色、透明度、时长
+- 忽略自己的消息
 
 ---
 
 ## 玩家快捷操作
 
-在聊天界面中**右键**玩家名字，弹出快捷菜单：
+在聊天栏中**右键玩家名字**：
 
-| 操作 | 效果 |
-|------|------|
-| 艾特玩家 | 在输入框插入 `@玩家名` |
-| 私聊玩家 | 使用模板插入 `/msg 玩家名 ` |
-| 复制玩家名字 | 复制到剪贴板 |
+- **艾特玩家**：插入 `@玩家名`
+- **私聊玩家**：使用模板（`/msg {player}` / `/tell {player}` / `/w {player}`）
+- **复制玩家名**
 
-私聊模板可自定义，支持 `{player}` 占位符。默认 `/msg {player} `。
-
-> 所有操作**只填入输入框，不自动发送**，玩家必须手动确认。
+> 所有快捷操作只修改聊天输入框，不自动发送消息。
 
 ---
 
 ## 命令剪贴板
 
-Chat Canvas 提供一个**持久化命令剪贴板**，独立于世界和服务器。
+聊天输入框附近有一个「命令」按钮。点击打开命令剪贴板面板：
 
-### 核心功能
-
-- 保存当前输入的命令
-- 自定义命令名称和分类
-- 收藏常用命令
-- 全文搜索
-- 编辑命令名称和内容
-- 删除、排序和批量清理
-- 最近使用和使用次数统计
-
-### 内置预设
-
-| 预设 | 命令 |
-|------|------|
-| 生存模式 | `/gamemode survival` |
-| 创造模式 | `/gamemode creative` |
-| 旁观模式 | `/gamemode spectator` |
-| 设为白天 | `/time set day` |
-| 设为夜晚 | `/time set night` |
-| 晴天 | `/weather clear` |
-| 雨天 | `/weather rain` |
-| 开启死亡不掉落 | `/gamerule keepInventory true` |
-| 关闭死亡不掉落 | `/gamerule keepInventory false` |
-| 和平难度 | `/difficulty peaceful` |
-| 简单难度 | `/difficulty easy` |
-| 普通难度 | `/difficulty normal` |
-| 困难难度 | `/difficulty hard` |
-| 设置出生点 | `/spawnpoint` |
-| 自杀 | `/kill` |
-
-> 点击命令**只填入输入框，不自动执行**。按 Enter 后由游戏或服务器处理。
-
-### 插入模式
-
-- **替换输入框**：点击命令替换输入框全部内容
-- **插入光标位置**：点击命令插入到当前光标位置
-- 按住 **Shift** 点击可临时反转插入模式
+- 面板打开时**入口按钮自动隐藏**，关闭后恢复
+- **我的命令**：用户保存的命令列表
+- **常用预设**：内置游戏命令（难度、时间、天气等）
+- **搜索**：按标题、命令内容或分类搜索
+- **分类筛选**：按自定义分类过滤
+- **收藏**：标记常用命令
+- **最近使用**：按最近使用排序
+- **保存当前输入**：将聊天输入框中的命令保存
+- **编辑 / 删除 / 排序**
+- 插入到**光标位置**或**替换整个输入框**
+- Shift 点击临时反转插入模式
+- 二次确认防止误删、误清空
+- 退出世界和重启游戏后数据保留
+- **不自动执行命令**
 
 ---
 
-## 配置和数据
+## 配置与数据文件
 
-### 配置文件位置
+配置文件保存在客户端本地（非世界存档）：
 
-主配置：
-```
-.minecraft/config/chat_canvas.json
-```
+| 文件 | 路径 |
+|---|---|
+| 主配置 | `.minecraft/config/chat_canvas.json` |
+| 命令剪贴板 | `.minecraft/config/chat_canvas/command_clipboard.json` |
 
-命令剪贴板：
-```
-.minecraft/config/chat_canvas/command_clipboard.json
-```
-
-### 说明
-
-- 两者都是**客户端全局数据**，不位于世界存档
-- 删除主配置文件会恢复所有默认设置
-- 删除命令剪贴板文件会清空所有用户保存的命令
+- 切换世界或服务器不会丢失配置
+- 删除主配置文件可恢复默认设置
+- 删除命令剪贴板文件会清除所有用户命令
 - 修改前建议备份
-- 游戏运行时**不建议**手动编辑
-- 配置损坏时模组会尝试自动备份原文件并创建默认配置
-
-> [!WARNING]
-> 命令剪贴板以本地明文 JSON 保存命令。请勿在公用电脑或不受信任的环境中保存包含密码、令牌或隐私信息的命令，例如 `/login`、`/register` 和 `/password`。
-
-Chat Canvas 不会上传命令，不会将命令发送给作者，点击预设不会自动执行。按 Enter 后命令才由游戏或服务器处理。
+- 游戏运行期间不建议手动编辑
+- 配置损坏时模组会尝试备份并重建默认配置
 
 ---
 
 ## 兼容性
 
-Chat Canvas 针对以下模组进行了兼容设计，但不同版本组合仍可能存在差异。
+### Chat Heads
 
-| 模组 | 兼容说明 |
-|------|----------|
-| **Chat Heads** | Chat Canvas 不提供头像功能，会保留 Chat Heads 的头像，并尽量让头像与文字布局、背景、对齐和点击区域保持一致 |
-| **More Chat History** | Chat Canvas 不修改聊天历史容量，由 More Chat History 负责历史上限 |
-| **ChatAnimation** | Chat Canvas 不提供聊天消息进入动画，消息动画交由 ChatAnimation 处理 |
-| **Smooth Scrolling** | Chat Canvas 不实现重复的聊天滚动动画，滚动由 Smooth Scrolling 处理 |
+Chat Canvas 不提供玩家头像。安装 Chat Heads 后，头像会正常显示在聊天栏中，参与文字宽度、背景对齐的计算。双击和右键点击只响应玩家名字，不响应头像区域。
 
-> 以上兼容模组**不是强制依赖**，未安装时 Chat Canvas 正常运行。安装了它们的玩家可获得更好的综合体验。
+### More Chat History
+
+Chat Canvas 不修改聊天历史容量上限，由 More Chat History 管理。
+
+### ChatAnimation
+
+Chat Canvas 不提供消息进入动画。动画交给 ChatAnimation，Chat Canvas 继续负责布局和样式。
+
+### Smooth Scrolling
+
+Chat Canvas 不实现重复的滚动动画，平滑滚动交给 Smooth Scrolling。
+
+> 不同版本组合、资源包、自定义字体、GUI Scale 和大型整合包环境可能存在差异。
+
+---
+
+## 安全说明
+
+> [!WARNING]
+> 命令剪贴板以本地明文 JSON 保存命令。**请勿在公共电脑或不受信任的环境中保存密码、令牌或隐私信息**，例如 `/login`、`/register`、`/password`。
+
+- Chat Canvas**不会上传**用户命令
+- 不会将命令发送给作者或第三方
+- 点击命令**不会自动执行**，只填入输入框
+- 玩家按 Enter 后，命令才由客户端或服务器处理
+- 保存含敏感关键词的命令会显示明文存储警告
+- 用户仍应自行判断是否保存
 
 ---
 
 ## 已知限制
 
-1. 仅支持 **Fabric 1.21.1**，不支持 Forge、NeoForge 或其他 Minecraft 版本
-2. 纯客户端模组，无法在专用服务器上运行
-3. 服务器插件（如聊天格式插件）可能将玩家聊天转换成系统消息，导致玩家身份无法可靠识别，此时玩家颜色和艾特命中可能不生效
-4. 无法可靠识别发送者时，玩家名字快捷操作可能不适用
-5. 服务器是否支持 `/msg`、`/tell` 或 `/w` 由服务器决定，Chat Canvas 不绕过权限
-6. 命令是否有权限执行由服务器决定
-7. 自定义资源包和字体可能改变文字宽度和换行效果
-8. 命令剪贴板保存为明文 JSON
-9. Chat Canvas 不提供玩家头像功能
-10. Chat Canvas 不提供聊天消息进入和滚动动画
+1. 当前仅支持 Fabric 1.21.1
+2. 为客户端模组，不提供 Forge 或 NeoForge 版本
+3. 不提供玩家头像，需要使用 Chat Heads
+4. 不提供聊天消息进入动画，需要使用 ChatAnimation
+5. 不提供滚动动画，需要使用 Smooth Scrolling
+6. 某些服务器插件将玩家消息转换为系统消息后，可能无法可靠识别发送者 UUID
+7. 无法识别玩家身份时，玩家颜色和名字快捷操作可能不生效
+8. 自定义字体可能改变宽度、换行和点击区域
+9. 特殊聊天格式模组可能需要额外兼容
+10. 私聊命令由服务器决定，不一定支持 `/msg`
+11. 命令权限由服务器决定，Chat Canvas 不会绕过权限
+12. 命令剪贴板使用本地明文 JSON
 
 ---
 
 ## 常见问题
 
-### 为什么安装后没有配置按钮？
+### 如何打开编辑器？
 
-Mod Menu 是可选依赖。可以安装 [Mod Menu](https://modrinth.com/mod/modmenu)，或者使用 Chat Canvas 默认快捷键 **K** 直接打开编辑器。
+按 **K**（默认快捷键），或在 Mod Menu 中点击 Chat Canvas 的配置按钮。可以在 Minecraft 控制设置中修改快捷键。
 
-### 为什么命令点击后没有立即执行？
+### 如何切换两种主题？
 
-这是**安全设计**。Chat Canvas 只把命令填入聊天输入框，玩家必须自行确认并按 **Enter**。模组永远不会自动执行命令。
+点击编辑器顶部标题栏中的「界面主题」按钮，选择想要的主题。
 
-### 为什么某些服务器中玩家名字没有颜色？
+### 切换主题会不会丢失修改？
 
-服务器插件可能使用系统消息发送聊天内容，客户端无法可靠获得消息发送者的 UUID。这种情况同样会影响艾特命中。
+不会。切换主题只改变控件的视觉外观，所有未保存的修改、撤销记录和当前分类都会保留。
 
-### 为什么艾特没有通知？
+### 为什么安装后没有 Mod Menu 配置入口？
 
-请依次检查：
-- 消息中是否使用了完整的 `@玩家名`
-- 设置中 `requireAtSymbol` 是否开启（开启时只识别带 `@` 符号的艾特）
-- 提示音、Toast、闪烁各项开关是否已开启
-- 是否为自己发送的消息（默认忽略自己的艾特）
-- 服务器是否修改了聊天格式
+请确认已安装 Mod Menu。Chat Canvas 会在 Mod Menu 中自动注册配置入口。
 
-### 为什么保存的命令没有消失？
+### 为什么某些玩家名字没有自动颜色？
 
-命令剪贴板是**全局持久化数据**，不绑定世界或服务器。可以在命令管理中清理，或备份后手动删除配置文件。
+如果服务器将玩家消息转换为系统消息，可能丢失发送者 UUID 信息，导致无法分配颜色。
 
-### Chat Canvas 需要服务器安装吗？
+### 为什么双击名字没有插入艾特？
 
-**不需要**。Chat Canvas 是纯客户端模组。
+请确认艾特设置中「双击玩家名字」已启用，且在可配置的时间间隔内双击。
 
-### 能否在 Forge 或 NeoForge 使用？
+### 为什么命令按钮在面板打开后消失？
 
-目前不能。当前版本只支持 Fabric 1.21.1。
+这是正常行为。命令剪贴板打开时入口按钮自动隐藏，避免遮挡面板；关闭面板后按钮会恢复。
 
-### 是否包含 Chat Heads 功能？
+### 为什么点击命令不会直接执行？
 
-不包含。可以单独安装 [Chat Heads](https://modrinth.com/mod/chat-heads)。
+Chat Canvas 设计为只填入命令到输入框，由玩家确认后手动按 Enter 发送。这是为了安全和可控。
 
-### 是否包含聊天动画？
+### 命令保存在哪里？
 
-不包含。可以使用 [ChatAnimation](https://modrinth.com/mod/chat-animation) 或 [Smooth Scrolling](https://modrinth.com/mod/smooth-scrolling)。
+`.minecraft/config/chat_canvas/command_clipboard.json`（本地明文 JSON）。
+
+### Chat Canvas 是否需要服务器安装？
+
+不需要。Chat Canvas 是纯客户端模组。
+
+### 是否支持 Forge / NeoForge？
+
+当前版本仅支持 Fabric 1.21.1。
 
 ---
 
 ## 故障排查
 
-### 基本检查
-
-遇到问题时请先确认：
-1. Minecraft 是否为 **1.21.1**
-2. Fabric Loader 版本是否匹配
-3. Fabric API 版本是否匹配（≥ 0.116.14）
-4. owo-lib 版本是否匹配（≥ 0.12.15.4）
-5. 是否误装了 NeoForge 或 Forge 版本的依赖
-6. 是否使用旧版 Chat Canvas 配置
-7. 是否有自定义字体或资源包影响
-8. 是否有其他修改 ChatHud 或 ChatScreen 的模组
-
-### 排查流程
-
-1. 备份 `config/chat_canvas.json` 和 `config/chat_canvas/`
-2. 删除或重命名 Chat Canvas 配置文件
-3. 在仅保留 Fabric API、owo-lib、Chat Canvas 的环境下测试
-4. 分批恢复其他模组，定位冲突来源
-5. 提交 `latest.log`、完整模组列表、截图和复现步骤
+1. 确认 Minecraft 版本为 1.21.1
+2. 确认 Fabric Loader 已安装
+3. 确认 Fabric API 和 owo-lib 已安装
+4. 备份 `config/chat_canvas.json` 和 `config/chat_canvas/` 目录
+5. 临时重命名配置文件，测试是否为配置损坏
+6. 只保留 Chat Canvas 和必需依赖测试
+7. 分批恢复其他模组排查冲突
+8. 检查自定义字体和资源包
+9. 提交 `latest.log`、模组列表、截图和复现步骤
 
 ---
 
-## 开发和构建
+## 开发与构建
 
-### 环境要求
-- Java 21
-- Git
-
-### 克隆和构建
-
-**Windows：**
-```powershell
-git clone https://github.com/ikunkk02-afk/Chat-Canvas.git
-cd Chat-Canvas
-.\gradlew.bat clean build
-```
-
-**Linux / macOS：**
 ```bash
+# 克隆仓库
 git clone https://github.com/ikunkk02-afk/Chat-Canvas.git
 cd Chat-Canvas
-chmod +x gradlew
-./gradlew clean build
+
+# 构建
+./gradlew.bat build
+
+# 运行测试客户端
+./gradlew.bat runClient
 ```
 
-### 运行客户端
-```powershell
-.\gradlew.bat runClient
-```
-
-### 构建产物
-```
-build/libs/chat-canvas-1.0.0.jar
-```
-
-### 技术栈
-- Java 21
-- [Fabric Loom](https://fabricmc.net/wiki/documentation:fabric_loom) 1.17
-- [Yarn mappings](https://github.com/FabricMC/yarn) 1.21.1+build.3
-- [Fabric API](https://github.com/FabricMC/fabric) 0.116.14
-- [owo-lib](https://github.com/wisp-forest/owo-lib) 0.12.15.4
+- Java 21+
+- Gradle 通过 wrapper 自动下载
 
 ---
 
-## 项目结构
+## 问题反馈
 
-```
-src/
-├── main/java/io/github/ikunkk02/chatcanvas/
-│   ├── animation/          动画引擎（SpringValue、MotionPreset）
-│   ├── chat/
-│   │   ├── command/        命令剪贴板存储和预设
-│   │   ├── identity/       玩家消息身份识别
-│   │   ├── interaction/    艾特插入交互
-│   │   ├── layout/         聊天栏布局变换和度量
-│   │   ├── mention/        艾特匹配分析
-│   │   ├── notification/   艾特通知事件
-│   │   ├── style/          文字样式覆盖和索引
-│   │   └── text/           字间距字形测量
-│   ├── config/             配置系统
-│   ├── editor/             编辑器会话、历史和快照
-│   └── ui/                 通用 UI 组件
-│
-├── client/java/io/github/ikunkk02/chatcanvas/
-│   ├── chat/
-│   │   ├── command/        命令剪贴板 UI
-│   │   ├── identity/       玩家颜色运行时
-│   │   ├── interaction/    双击和快捷菜单
-│   │   ├── layout/         布局运行时缓存
-│   │   ├── notification/   通知控制器
-│   │   ├── render/         聊天渲染管线
-│   │   ├── style/          样式覆盖管线
-│   │   └── text/           字间距渲染
-│   ├── editor/             ChatCanvasEditorScreen
-│   ├── integration/        ModMenu 集成
-│   ├── mixin/client/       客户端 Mixin（12 个）
-│   └── ui/                 AnimatedSettingsPanel、ClippedPageViewport 等
-│
-└── test/java/              26 个单元测试
-```
+请在 [Issues](https://github.com/ikunkk02-afk/Chat-Canvas/issues) 提交问题，并尽可能提供：
+
+- Chat Canvas 版本
+- Minecraft 版本
+- Fabric Loader / Fabric API / owo-lib 版本
+- 其他聊天相关模组
+- GUI Scale
+- 资源包和字体
+- `latest.log`
+- 截图或视频
+- 稳定的复现步骤
 
 ---
 
@@ -514,15 +433,14 @@ src/
 
 Chat Canvas 由 **寿云** 开发和维护。
 
-- [哔哩哔哩主页](https://space.bilibili.com/1832031043?spm_id_from=333.1007.0.0)
-- [抖音主页](https://www.douyin.com/user/MS4wLjABAAAAXPEr9Q0OnMztYvgDTXt6H3g9_626CRAmMbX1L64pBkxbvbHR2ACMWmL55mIL0-Gi)
-- [GitHub 源代码](https://github.com/ikunkk02-afk/Chat-Canvas)
-- [问题反馈](https://github.com/ikunkk02-afk/Chat-Canvas/issues)
+- 哔哩哔哩：[https://space.bilibili.com/1832031043](https://space.bilibili.com/1832031043?spm_id_from=333.1007.0.0)
+- 抖音：[https://www.douyin.com/user/MS4wLjABAAAAXPEr9Q0OnMztYvgDTXt6H3g9_626CRAmMbX1L64pBkxbvbHR2ACMWmL55mIL0-Gi](https://www.douyin.com/user/MS4wLjABAAAAXPEr9Q0OnMztYvgDTXt6H3g9_626CRAmMbX1L64pBkxbvbHR2ACMWmL55mIL0-Gi)
+- GitHub：[https://github.com/ikunkk02-afk/Chat-Canvas](https://github.com/ikunkk02-afk/Chat-Canvas)
 
 ---
 
 ## 许可证
 
-本项目基于 [MIT License](LICENSE) 开源。
+本项目使用 [MIT License](LICENSE)。
 
-你可以在遵守 MIT License 的前提下使用、修改和分发本项目。
+Copyright &copy; 2026 寿云
