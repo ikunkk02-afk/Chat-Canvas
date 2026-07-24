@@ -3,6 +3,7 @@ package io.github.ikunkk02.chatcanvas.editor;
 import io.github.ikunkk02.chatcanvas.animation.AnimationClock;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatLayoutRuntime;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
+import io.github.ikunkk02.chatcanvas.config.ChatCanvasSettings;
 import io.github.ikunkk02.chatcanvas.ui.AlignmentGuideRenderer;
 import io.github.ikunkk02.chatcanvas.ui.AnimatedSettingsPanel;
 import io.github.ikunkk02.chatcanvas.ui.ModernUiTheme;
@@ -88,8 +89,8 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	}
 
 	private FlowLayout buildToolbar() {
-		FlowLayout bar = Containers.horizontalFlow(Sizing.fixed(330), Sizing.fixed(32));
-		bar.positioning(Positioning.absolute(Math.max(8, (width - 330) / 2), 10));
+		FlowLayout bar = Containers.horizontalFlow(Sizing.fixed(390), Sizing.fixed(32));
+		bar.positioning(Positioning.absolute(Math.max(8, (width - 390) / 2), 10));
 		bar.padding(Insets.of(5).withLeft(16));
 		bar.gap(6);
 		bar.surface(ModernUiTheme.PANEL_SURFACE);
@@ -99,8 +100,15 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 		var title = Components.label(Text.translatable("chat_canvas.editor.title")
 				.formatted(Formatting.WHITE, Formatting.BOLD));
-		title.horizontalSizing(Sizing.fill(48));
+		title.horizontalSizing(Sizing.fill(33));
 		bar.child(title);
+
+		ButtonComponent styleButton = ModernUiTheme.button(
+				Text.translatable("chat_canvas.ui_style").append(Text.literal(": "))
+						.append(Text.translatable("chat_canvas.ui_style.chat_canvas")),
+				button -> onSwitchUiStyle());
+		styleButton.sizing(Sizing.fixed(80), Sizing.fixed(22));
+		bar.child(styleButton);
 
 		undoButton = ModernUiTheme.button(Text.translatable("chat_canvas.action.undo"), button -> undo());
 		undoButton.sizing(Sizing.fixed(72), Sizing.fixed(22));
@@ -109,6 +117,27 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		bar.child(undoButton);
 		bar.child(redoButton);
 		return bar;
+	}
+
+	public EditorScreenState exportState() {
+		return new EditorScreenState(session,
+				settingsPanel != null ? settingsPanel.activeCategoryOrdinal() : 0);
+	}
+
+	private void onSwitchUiStyle() {
+		switchingUiStyle = true;
+		saveEditorUiStyle(EditorUiStyle.VANILLA);
+		EditorScreenState state = exportState();
+		if (client != null)
+			client.setScreen(new VanillaChatCanvasEditorScreen(parent, state));
+	}
+
+	private void saveEditorUiStyle(EditorUiStyle style) {
+		ChatCanvasSettings cur = ChatCanvasConfig.instance().settings();
+		ChatCanvasConfig.instance().save(new ChatCanvasSettings(
+				cur.layout(), cur.text(), cur.background(),
+				cur.playerColors(), cur.mention(), cur.commandClipboard(),
+				cur.recentColors(), style));
 	}
 
 	@Override

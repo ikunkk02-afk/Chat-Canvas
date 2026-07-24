@@ -1159,6 +1159,10 @@ public final class AnimatedSettingsPanel {
 		syncFromSession();
 	}
 
+	public int activeCategoryOrdinal() {
+		return activeCategory.ordinal();
+	}
+
 	private void switchCategory(Category category) {
 		if (category == activeCategory) return;
 		Category previous = activeCategory;
