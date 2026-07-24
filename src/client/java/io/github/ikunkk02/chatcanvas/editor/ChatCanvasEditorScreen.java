@@ -45,17 +45,9 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	private ButtonComponent redoButton;
 	private ModernColorPickerPopup colorPickerPopup;
 
-	/** True when this screen is about to be replaced by a style switch. */
-	boolean switchingUiStyle;
-
 	public ChatCanvasEditorScreen(@Nullable Screen parent) {
 		super(Text.translatable("chat_canvas.editor.title"));
 		this.parent = parent;
-	}
-
-	public ChatCanvasEditorScreen(@Nullable Screen parent, EditorScreenState state) {
-		this(parent);
-		this.session = state.session();
 	}
 
 	@Override
@@ -63,6 +55,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		if (session == null) {
 			session = new EditorSession(ChatCanvasConfig.instance().settings(), width, height);
 		}
+		ModernUiTheme.setStyle(ChatCanvasConfig.instance().editorUiStyle());
 		return OwoUIAdapter.create(this, Containers::verticalFlow);
 	}
 
@@ -104,9 +97,9 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		bar.child(title);
 
 		ButtonComponent styleButton = ModernUiTheme.button(
-				Text.translatable("chat_canvas.ui_style").append(Text.literal(": "))
-						.append(Text.translatable("chat_canvas.ui_style.chat_canvas")),
-				button -> onSwitchUiStyle());
+				Text.translatable("chat_canvas.ui_theme").append(Text.literal(": "))
+						.append(Text.translatable("chat_canvas.ui_theme.chat_canvas")),
+				button -> onSwitchTheme());
 		styleButton.sizing(Sizing.fixed(80), Sizing.fixed(22));
 		bar.child(styleButton);
 
@@ -119,25 +112,15 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		return bar;
 	}
 
-	public EditorScreenState exportState() {
-		return new EditorScreenState(session,
-				settingsPanel != null ? settingsPanel.activeCategoryOrdinal() : 0);
-	}
-
-	private void onSwitchUiStyle() {
-		switchingUiStyle = true;
-		saveEditorUiStyle(EditorUiStyle.VANILLA);
-		EditorScreenState state = exportState();
-		if (client != null)
-			client.setScreen(new VanillaChatCanvasEditorScreen(parent, state));
-	}
-
-	private void saveEditorUiStyle(EditorUiStyle style) {
+	private void onSwitchTheme() {
+		EditorUiStyle next = ModernUiTheme.currentStyle() == EditorUiStyle.CHAT_CANVAS
+				? EditorUiStyle.VANILLA : EditorUiStyle.CHAT_CANVAS;
+		ModernUiTheme.setStyle(next);
 		ChatCanvasSettings cur = ChatCanvasConfig.instance().settings();
 		ChatCanvasConfig.instance().save(new ChatCanvasSettings(
 				cur.layout(), cur.text(), cur.background(),
 				cur.playerColors(), cur.mention(), cur.commandClipboard(),
-				cur.recentColors(), style));
+				cur.recentColors(), next));
 	}
 
 	@Override
@@ -295,7 +278,6 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 	@Override
 	public void close() {
-		if (switchingUiStyle) return;
 		pointerCapture.cancel();
 		if (colorPickerPopup != null) {
 			colorPickerPopup.cancel();

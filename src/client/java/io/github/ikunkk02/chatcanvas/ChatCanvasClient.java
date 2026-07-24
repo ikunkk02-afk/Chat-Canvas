@@ -10,7 +10,6 @@ import io.github.ikunkk02.chatcanvas.chat.text.GlyphAdvanceCache;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.editor.ChatCanvasEditorScreen;
 import io.github.ikunkk02.chatcanvas.editor.EditorScreenFactory;
-import io.github.ikunkk02.chatcanvas.editor.VanillaChatCanvasEditorScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
@@ -64,8 +63,7 @@ public final class ChatCanvasClient implements ClientModInitializer {
 				PlayerNameDoubleClickHandler.instance().reset();
 			}
 			while (openEditor.wasPressed()) {
-				if (!(client.currentScreen instanceof ChatCanvasEditorScreen)
-						&& !(client.currentScreen instanceof VanillaChatCanvasEditorScreen)) {
+				if (!(client.currentScreen instanceof ChatCanvasEditorScreen)) {
 					client.setScreen(EditorScreenFactory.create(client.currentScreen));
 				}
 			}
