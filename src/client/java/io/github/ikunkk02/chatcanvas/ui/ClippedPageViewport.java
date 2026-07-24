@@ -3,6 +3,7 @@ package io.github.ikunkk02.chatcanvas.ui;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.core.Component;
 import io.wispforest.owo.ui.core.OwoUIDrawContext;
+import io.wispforest.owo.ui.core.ParentComponent;
 import io.wispforest.owo.ui.core.Sizing;
 
 import java.util.ArrayList;
@@ -11,14 +12,19 @@ import java.util.List;
 /**
  * A page viewport that clips its children to its bounds using GL scissor.
  * <p>
- * Only the active page (and optionally one transition target page) are rendered.
- * All other pages are completely skipped — they are invisible and do not
- * participate in hit-testing, scrolling, or keyboard focus.
+ * Only the active page (and optionally one transition target page) are
+ * rendered. All other pages are skipped — they are invisible.
+ * <p>
+ * <b>Event dispatch:</b> this component does <em>not</em> override any
+ * mouse or keyboard handler.  Events flow through owo-ui's native
+ * {@code BaseParentComponent} tree dispatch.  The only override is
+ * {@link #childAt(int, int)} which restricts hit‑testing to the active
+ * page so that off‑screen (inactive) pages never receive input.
  * <p>
  * This provides a "double protection" against page leakage:
  * <ol>
  *   <li>Hardware scissor clip at the viewport boundary</li>
- *   <li>Render culling — only 1-2 pages draw per frame</li>
+ *   <li>Render culling — only 1‑2 pages draw per frame</li>
  * </ol>
  */
 public final class ClippedPageViewport extends FlowLayout {
@@ -41,9 +47,9 @@ public final class ClippedPageViewport extends FlowLayout {
     // ── page management ──────────────────────────────────────────
 
     /**
-     * Add a page component. Pages are drawn in insertion order (index 0 first).
-     * Only the page at {@link #activePage} (and optionally the page at
-     * {@link #transitionPage}) is rendered each frame.
+     * Add a page component. Pages are drawn in insertion order (index 0
+     * first).  Only the page at {@link #activePage} (and optionally the
+     * page at {@link #transitionPage}) is rendered each frame.
      */
     public void addPage(Component page) {
         pages.add(page);
@@ -65,8 +71,8 @@ public final class ClippedPageViewport extends FlowLayout {
     }
 
     /**
-     * 0-based index of a second page to render during a category transition.
-     * Set to -1 when no transition is in progress.
+     * 0-based index of a second page to render during a category
+     * transition.  Set to -1 when no transition is in progress.
      */
     public void setTransitionPage(int index) {
         if (index < 0 || index >= pages.size()) {
@@ -98,9 +104,9 @@ public final class ClippedPageViewport extends FlowLayout {
 
         if (right <= left || bottom <= top) return;
 
-        // ── debug: viewport boundary ──
+        // ── debug: viewport boundary (blue) ──
         if (DEBUG_BOUNDARIES) {
-            drawDebugBoundary(context, left, top, right, bottom, 0xFF0000FF); // blue
+            drawDebugBoundary(context, left, top, right, bottom, 0xFF0000FF);
         }
 
         context.enableScissor(left, top, right, bottom);
@@ -110,13 +116,13 @@ public final class ClippedPageViewport extends FlowLayout {
                 Component page = pages.get(i);
                 if (page == null) continue;
 
-                // ── debug: active / transition page boundaries ──
+                // ── debug: active (green) / transition (yellow) ──
                 if (DEBUG_BOUNDARIES) {
                     int px = page.x();
                     int py = page.y();
-                    int color = (i == activePage) ? 0xFF00FF00  // green
-                                                  : 0xFFFFFF00; // yellow
-                    drawDebugBoundary(context, px, py, px + page.width(), py + page.height(), color);
+                    int color = (i == activePage) ? 0xFF00FF00 : 0xFFFFFF00;
+                    drawDebugBoundary(context, px, py,
+                            px + page.width(), py + page.height(), color);
                 }
 
                 page.draw(context, mouseX, mouseY, partialTicks, delta);
@@ -126,60 +132,45 @@ public final class ClippedPageViewport extends FlowLayout {
         }
     }
 
-    // ── input filtering — only active page receives events ───────
+    // ── hit-testing — restrict to active page ────────────────────
 
-    @Override
-    public boolean onMouseDown(double mouseX, double mouseY, int button) {
-        if (!containsScreenPoint(mouseX, mouseY)) return false;
-        Component page = pages.get(activePage);
-        return page != null && page.onMouseDown(mouseX, mouseY, button);
-    }
-
-    @Override
-    public boolean onMouseUp(double mouseX, double mouseY, int button) {
-        if (!containsScreenPoint(mouseX, mouseY)) return false;
-        Component page = pages.get(activePage);
-        return page != null && page.onMouseUp(mouseX, mouseY, button);
-    }
-
-    @Override
-    public boolean onMouseDrag(double mouseX, double mouseY, double deltaX, double deltaY, int button) {
-        if (!containsScreenPoint(mouseX, mouseY)) return false;
-        Component page = pages.get(activePage);
-        return page != null && page.onMouseDrag(mouseX, mouseY, deltaX, deltaY, button);
-    }
-
-    @Override
-    public boolean onMouseScroll(double mouseX, double mouseY, double amount) {
-        if (!containsScreenPoint(mouseX, mouseY)) return false;
-        Component page = pages.get(activePage);
-        return page != null && page.onMouseScroll(mouseX, mouseY, amount);
-    }
-
-    @Override
-    public boolean onKeyPress(int keyCode, int scanCode, int modifiers) {
-        Component page = pages.get(activePage);
-        return page != null && page.onKeyPress(keyCode, scanCode, modifiers);
-    }
-
-    // ── hit-testing (childAt) — restrict to active page ─────────
-
+    /**
+     * Restricts owo-ui's hit-test tree to the active page only.
+     * <p>
+     * owo-ui's {@code BaseParentComponent.onMouseDown()} iterates
+     * <em>all</em> children and calls {@code child.onMouseDown()},
+     * which naturally recurses into the deepest interactable control
+     * (buttons, sliders, text boxes, scroll containers, etc.).
+     * <p>
+     * The only guard needed here is {@code childAt}: by limiting the
+     * search to the active page we ensure that off‑screen (inactive)
+     * pages never become the target of a mouse event.
+     */
     @Override
     public Component childAt(int x, int y) {
-        if (!isInBoundingBox(x, y)) return null;
-        Component page = pages.get(activePage);
-        if (page != null && page.isInBoundingBox(x, y)) {
-            // Delegate to page so its own childAt() resolves correctly
-            if (page instanceof FlowLayout flow) {
-                Component hit = flow.childAt(x, y);
-                if (hit != null) return hit;
-            }
-            return page;
+        // Outside the viewport — not our concern.
+        if (!this.isInBoundingBox(x, y)) return null;
+
+        // During a page transition, block all interaction.
+        if (transitionPage >= 0) return null;
+
+        Component active = pages.get(activePage);
+        if (active == null) return null;
+
+        // Let the active page's own component tree resolve the
+        // deepest interactable child.  Works for FlowLayout,
+        // StackLayout, ScrollContainer, and any ParentComponent.
+        if (active instanceof ParentComponent parent) {
+            Component deepest = parent.childAt(x, y);
+            if (deepest != null) return deepest;
         }
+
+        // Fallback: the point is on the active page itself (e.g. an
+        // empty area at the bottom of the scroll content).
+        if (active.isInBoundingBox(x, y)) return active;
+
         return null;
     }
-
-    // ── layout ───────────────────────────────────────────────────
 
     // ── helpers ──────────────────────────────────────────────────
 
@@ -188,7 +179,8 @@ public final class ClippedPageViewport extends FlowLayout {
     }
 
     private static void drawDebugBoundary(
-            OwoUIDrawContext context, int x1, int y1, int x2, int y2, int color) {
+            OwoUIDrawContext context, int x1, int y1, int x2, int y2,
+            int color) {
         // top edge
         context.fill(x1, y1, x2, y1 + 1, color);
         // bottom edge
@@ -197,14 +189,5 @@ public final class ClippedPageViewport extends FlowLayout {
         context.fill(x1, y1, x1 + 1, y2, color);
         // right edge
         context.fill(x2 - 1, y1, x2, y2, color);
-    }
-
-    // ── internal: test whether screen coordinate falls in viewport ─
-
-    private boolean containsScreenPoint(double screenX, double screenY) {
-        return screenX >= this.x
-            && screenX <  this.x + this.width
-            && screenY >= this.y
-            && screenY <  this.y + this.height;
     }
 }
