@@ -3,12 +3,12 @@
 	"id": "chat_canvas",
 	"version": "${version}",
 	"name": "Chat Canvas",
-	"description": "A visual editor foundation for a customizable Minecraft chat canvas.",
+	"description": "A visual and highly customizable client-side chat HUD editor for Minecraft.",
 	"authors": [
 		"寿云"
 	],
 	"contact": {
-		"homepage": "https://github.com/ikunkk02-afk/Chat-Canvas",
+		"homepage": "https://space.bilibili.com/1832031043",
 		"sources": "https://github.com/ikunkk02-afk/Chat-Canvas",
 		"issues": "https://github.com/ikunkk02-afk/Chat-Canvas/issues"
 	},
