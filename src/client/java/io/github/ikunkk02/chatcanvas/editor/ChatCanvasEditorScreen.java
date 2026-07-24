@@ -44,9 +44,17 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	private ButtonComponent redoButton;
 	private ModernColorPickerPopup colorPickerPopup;
 
+	/** True when this screen is about to be replaced by a style switch. */
+	boolean switchingUiStyle;
+
 	public ChatCanvasEditorScreen(@Nullable Screen parent) {
 		super(Text.translatable("chat_canvas.editor.title"));
 		this.parent = parent;
+	}
+
+	public ChatCanvasEditorScreen(@Nullable Screen parent, EditorScreenState state) {
+		this(parent);
+		this.session = state.session();
 	}
 
 	@Override
@@ -258,6 +266,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 	@Override
 	public void close() {
+		if (switchingUiStyle) return;
 		pointerCapture.cancel();
 		if (colorPickerPopup != null) {
 			colorPickerPopup.cancel();
