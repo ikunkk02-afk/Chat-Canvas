@@ -10,6 +10,10 @@ All notable changes to Chat Canvas will be documented in this file.
 - Drag-to-move and eight-direction resizing with snap-to-edge alignment guides
 - Settings panel with automatic left/right side avoidance
 - Six-category settings page system with horizontal tab switching
+- **Selectable editor UI: Chat Canvas (modern owo-ui) or Minecraft-style (vanilla widgets)**
+- **Runtime UI style switching without losing unsaved changes, undo history, or scroll positions**
+- **Vanilla-style editor with ButtonWidget, SliderWidget, TextFieldWidget, and all 6 category pages**
+- **VanillaColorPickerScreen with R/G/B sliders and hex input**
 - Text size, line spacing, character spacing, text opacity, and shadow toggle
 - Left, center, and right text alignment
 - Message background with colors, opacity, three display modes (follow text, full width, hidden), horizontal/vertical padding
