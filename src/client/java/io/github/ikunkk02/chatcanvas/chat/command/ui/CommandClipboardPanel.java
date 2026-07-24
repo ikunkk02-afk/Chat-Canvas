@@ -114,11 +114,11 @@ public final class CommandClipboardPanel {
 		CommandClipboardConfig config = ChatCanvasConfig.instance().commandClipboard();
 		if (!config.enabled()) return false;
 		if (dialog != Dialog.NONE) return dialogClick(mouseX, mouseY, button);
-		if (config.showPanelButton()
+		if (config.showPanelButton() && !open
 				&& buttonX(screen, chatField) <= mouseX
 				&& mouseX < buttonX(screen, chatField) + 43
 				&& chatField.getY() <= mouseY && mouseY < chatField.getY() + 14) {
-			open = !open;
+			open = true;
 			statusKey = null;
 			return true;
 		}
@@ -278,7 +278,7 @@ public final class CommandClipboardPanel {
 					   int mouseX, int mouseY, float delta) {
 		CommandClipboardConfig config = ChatCanvasConfig.instance().commandClipboard();
 		if (!config.enabled()) return;
-		if (config.showPanelButton()) {
+		if (config.showPanelButton() && !open) {
 			int bx = buttonX(screen, chatField);
 			fillButton(context, bx, chatField.getY(), 43, 14, open);
 			context.drawCenteredTextWithShadow(MinecraftClient.getInstance().textRenderer,
