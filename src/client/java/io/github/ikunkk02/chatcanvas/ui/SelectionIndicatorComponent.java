@@ -53,8 +53,13 @@ public final class SelectionIndicatorComponent extends BaseComponent {
 		boolean vanilla = ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA;
 		if (vanilla) {
 			context.fill(x(), y(), x() + width(), y() + height(), 0xFF333333);
-			context.fill(indicatorX + 1, y() + 1,
-					Math.max(1, segmentWidth - 2), Math.max(1, height() - 2), 0xFF666666);
+			int selLeft = indicatorX + 1;
+			int selTop = y() + 1;
+			int selRight = Math.min(x() + width() - 1, indicatorX + segmentWidth - 1);
+			int selBottom = y() + height() - 1;
+			if (selRight > selLeft && selBottom > selTop) {
+				context.fill(selLeft, selTop, selRight, selBottom, 0xFF666666);
+			}
 		} else {
 			ModernUiTheme.roundedRect(context, x(), y(), width(), height(), 5, 0x7A202731);
 			ModernUiTheme.roundedRect(context, indicatorX + 1, y() + 1,
