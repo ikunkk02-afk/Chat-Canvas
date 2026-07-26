@@ -2,8 +2,9 @@ package io.github.ikunkk02.chatcanvas.chat.layout;
 
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.config.PixelLayout;
+import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputMode;
+import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputScreenBridge;
 import io.github.ikunkk02.chatcanvas.mixin.client.ChatHudAccessor;
-import io.github.ikunkk02.chatcanvas.mixin.client.ChatScreenAccessor;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.hud.ChatHud;
 import net.minecraft.client.gui.screen.ChatScreen;
@@ -27,8 +28,10 @@ public final class ChatLayoutRuntime {
 		double configuredScale = ChatCanvasConfig.instance().text().fontScale();
 		boolean chatOpen = client.currentScreen instanceof ChatScreen;
 		int inputHeight = 0;
-		if (chatOpen) {
-			TextFieldWidget chatField = ((ChatScreenAccessor) client.currentScreen).chat_canvas$chatField();
+		if (chatOpen
+				&& client.currentScreen instanceof ChatCanvasInputScreenBridge bridge
+				&& bridge.chat_canvas$inputMode() == ChatCanvasInputMode.PLAYER_CHAT) {
+			TextFieldWidget chatField = bridge.chat_canvas$activeInputField();
 			if (chatField != null) {
 				inputHeight = chatField.getHeight();
 			}

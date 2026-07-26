@@ -2,6 +2,7 @@ package io.github.ikunkk02.chatcanvas.chat.identity;
 
 import com.mojang.authlib.GameProfile;
 import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerNameDoubleClickHandler;
+import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputController;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessageIngress;
 import io.github.ikunkk02.chatcanvas.chat.render.DualChatHudRenderer;
 import io.github.ikunkk02.chatcanvas.chat.message.MessageIngress;
@@ -48,15 +49,22 @@ public final class PlayerChatCapture {
 					metadata.map(ChatMessageMetadata::sender).orElse(null),
 					null, false);
 		});
-		ClientSendMessageEvents.COMMAND.register(
-				command -> ChatCanvasMessageIngress.instance().acceptCommand(command));
+		ClientSendMessageEvents.CHAT.register(
+				message -> ChatCanvasInputController.instance()
+						.recordSentPlayerChat(message));
+		ClientSendMessageEvents.COMMAND.register(command -> {
+			ChatCanvasInputController.instance().recordExecutedCommand(command);
+			ChatCanvasMessageIngress.instance().acceptCommand(command);
+		});
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+			ChatCanvasInputController.instance().clearSession();
 			ChatCanvasMessageIngress.instance().clearWorld();
 			DualChatHudRenderer.instance().resetWorld();
 			MentionNotificationController.instance().clearSession();
 			PlayerRosterTracker.refresh(handler);
 		});
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+			ChatCanvasInputController.instance().clearSession();
 			PlayerRosterTracker.clear();
 			ChatMessageMetadataRegistry.instance().clearAll();
 			PlayerNameHitboxRegistry.clear();

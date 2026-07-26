@@ -3,6 +3,8 @@ package io.github.ikunkk02.chatcanvas.chat.render;
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameHitbox;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameHitboxRegistry;
+import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputMode;
+import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputScreenBridge;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChannelMessageLayoutEngine;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatBackgroundMetrics;
 import io.github.ikunkk02.chatcanvas.chat.layout.RuntimeChatBounds;
@@ -17,7 +19,6 @@ import io.github.ikunkk02.chatcanvas.config.*;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ChatScreen;
-import io.github.ikunkk02.chatcanvas.mixin.client.ChatScreenAccessor;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Style;
@@ -270,12 +271,14 @@ public final class DualChatHudRenderer {
 
 	private static int messageBottom(MinecraftClient client, ChatCanvasChannel channel,
 									 PixelLayout box, ChatTextConfig text) {
-		if (!(client.currentScreen instanceof ChatScreen screen)) return box.bottom();
-		TextFieldWidget field = ((ChatScreenAccessor) screen).chat_canvas$chatField();
+		if (!(client.currentScreen instanceof ChatCanvasInputScreenBridge bridge)) {
+			return box.bottom();
+		}
+		TextFieldWidget field = bridge.chat_canvas$activeInputField();
 		if (field == null) return box.bottom();
-		boolean commandInput = field.getText().startsWith("/");
 		boolean belongsHere = channel == ChatCanvasChannel.COMMAND_SYSTEM
-				? commandInput : !commandInput;
+				? bridge.chat_canvas$inputMode() == ChatCanvasInputMode.COMMAND
+				: bridge.chat_canvas$inputMode() == ChatCanvasInputMode.PLAYER_CHAT;
 		if (!belongsHere) return box.bottom();
 		int minimum = Math.max(1, (int) Math.ceil(
 				client.textRenderer.fontHeight * text.fontScale()));

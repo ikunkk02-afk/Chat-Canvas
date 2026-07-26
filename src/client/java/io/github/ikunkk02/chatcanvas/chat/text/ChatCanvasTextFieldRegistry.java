@@ -1,9 +1,9 @@
 package io.github.ikunkk02.chatcanvas.chat.text;
 
+import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputMode;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 
-import java.util.Collections;
-import java.util.Set;
+import java.util.Map;
 import java.util.WeakHashMap;
 
 /**
@@ -12,14 +12,22 @@ import java.util.WeakHashMap;
  * behavior.
  */
 public final class ChatCanvasTextFieldRegistry {
-	private static final Set<TextFieldWidget> CHAT_FIELDS =
-			Collections.newSetFromMap(new WeakHashMap<>());
+	private static final Map<TextFieldWidget, ChatCanvasInputMode> CHAT_FIELDS =
+			new WeakHashMap<>();
 
 	private ChatCanvasTextFieldRegistry() {
 	}
 
 	public static synchronized void register(TextFieldWidget field) {
-		if (field != null) CHAT_FIELDS.add(field);
+		register(field, ChatCanvasInputMode.PLAYER_CHAT);
+	}
+
+	public static synchronized void register(
+			TextFieldWidget field, ChatCanvasInputMode mode) {
+		if (field != null) {
+			CHAT_FIELDS.put(field, mode == null
+					? ChatCanvasInputMode.PLAYER_CHAT : mode);
+		}
 	}
 
 	public static synchronized void unregister(TextFieldWidget field) {
@@ -27,6 +35,10 @@ public final class ChatCanvasTextFieldRegistry {
 	}
 
 	public static synchronized boolean isChatField(TextFieldWidget field) {
-		return CHAT_FIELDS.contains(field);
+		return CHAT_FIELDS.containsKey(field);
+	}
+
+	public static synchronized ChatCanvasInputMode modeOf(TextFieldWidget field) {
+		return CHAT_FIELDS.get(field);
 	}
 }

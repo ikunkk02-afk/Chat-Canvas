@@ -1,6 +1,7 @@
 package io.github.ikunkk02.chatcanvas.mixin.client;
 
 import io.github.ikunkk02.chatcanvas.chat.text.ChatCanvasTextFieldRegistry;
+import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputMode;
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextHitTester;
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextMetrics;
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextRenderer;
@@ -189,7 +190,10 @@ public abstract class TextFieldWidgetMixin {
 	@Unique
 	private static double chat_canvas$spacing(TextFieldWidget field) {
 		if (!ChatCanvasTextFieldRegistry.isChatField(field)) return Double.NaN;
-		double spacing = ChatCanvasConfig.instance().text().characterSpacing();
+		ChatCanvasInputMode mode = ChatCanvasTextFieldRegistry.modeOf(field);
+		double spacing = mode == ChatCanvasInputMode.COMMAND
+				? ChatCanvasConfig.instance().commandSystem().text().characterSpacing()
+				: ChatCanvasConfig.instance().text().characterSpacing();
 		return Math.abs(spacing) < 0.00001 ? Double.NaN : spacing;
 	}
 }
