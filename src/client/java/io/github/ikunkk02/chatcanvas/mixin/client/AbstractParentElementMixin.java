@@ -2,6 +2,7 @@ package io.github.ikunkk02.chatcanvas.mixin.client;
 
 import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerNameDoubleClickHandler;
 import io.github.ikunkk02.chatcanvas.chat.command.ui.CommandToolPanel;
+import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputScreenBridge;
 import net.minecraft.client.gui.ParentElement;
 import net.minecraft.client.gui.screen.ChatScreen;
 import org.spongepowered.asm.mixin.Mixin;
@@ -36,8 +37,13 @@ public interface AbstractParentElementMixin {
 	@Inject(method = "charTyped", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$commandClipboardCharTyped(
 			char chr, int modifiers, CallbackInfoReturnable<Boolean> cir) {
-		if ((Object) this instanceof ChatScreen screen
-				&& CommandToolPanel.dispatchCharTyped(screen, chr, modifiers)) {
+		if (!((Object) this instanceof ChatScreen screen)) return;
+		if (CommandToolPanel.dispatchCharTyped(screen, chr, modifiers)) {
+			cir.setReturnValue(true);
+			return;
+		}
+		if (screen instanceof ChatCanvasInputScreenBridge bridge
+				&& bridge.chat_canvas$dispatchUnicodeChar(chr, modifiers)) {
 			cir.setReturnValue(true);
 		}
 	}

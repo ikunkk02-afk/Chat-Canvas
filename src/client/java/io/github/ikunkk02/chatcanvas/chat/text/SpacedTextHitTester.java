@@ -28,7 +28,9 @@ public final class SpacedTextHitTester {
 		int utf16 = 0;
 		for (GlyphAdvanceCache.Glyph glyph : run.glyphs()) {
 			double midpoint = glyph.x() + glyph.advance() * 0.5;
-			if (x < midpoint) return utf16;
+			if (x < midpoint) {
+				return UnicodeTextNavigator.nearestGraphemeBoundary(text, utf16);
+			}
 			utf16 += glyph.utf16Length();
 		}
 		return text.length();

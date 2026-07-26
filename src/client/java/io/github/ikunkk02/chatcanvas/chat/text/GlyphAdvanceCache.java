@@ -1,5 +1,6 @@
 package io.github.ikunkk02.chatcanvas.chat.text;
 
+import com.ibm.icu.text.BreakIterator;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Style;
@@ -8,6 +9,7 @@ import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 
 /**
  * Bounded identity cache for the glyph runs used by every spaced text operation.
@@ -55,23 +57,26 @@ public final class GlyphAdvanceCache {
 
 	private static GlyphRun build(TextRenderer renderer, OrderedText text, double spacing) {
 		List<MutableGlyph> captured = new ArrayList<>();
+		int[] utf16 = {0};
 		text.accept((sourceIndex, style, codePoint) -> {
 			Style safeStyle = style == null ? Style.EMPTY : style;
 			float vanilla = renderer.getTextHandler().getWidth(
 					OrderedText.styled(codePoint, safeStyle));
 			captured.add(new MutableGlyph(
-					sourceIndex, codePoint, safeStyle, Math.max(0.0f, vanilla)));
+					sourceIndex, utf16[0], codePoint, safeStyle,
+					Math.max(0.0f, vanilla)));
+			utf16[0] += Character.charCount(codePoint);
 			return true;
 		});
 
+		boolean[] addSpacingAfter = clusterSpacingTargets(captured);
 		List<Glyph> glyphs = new ArrayList<>(captured.size());
 		double x = 0.0;
 		double combiningX = 0.0;
 		for (int index = 0; index < captured.size(); index++) {
 			MutableGlyph glyph = captured.get(index);
-			boolean hasFollowing = hasFollowingVisibleGlyph(captured, index + 1);
 			double advance = SpacedAdvanceMath.advance(
-					glyph.vanillaAdvance(), spacing, hasFollowing);
+					glyph.vanillaAdvance(), spacing, addSpacingAfter[index]);
 			double glyphX = glyph.vanillaAdvance() <= 0.0f ? combiningX : x;
 			if (glyph.vanillaAdvance() > 0.0f) {
 				combiningX = x + glyph.vanillaAdvance();
@@ -84,11 +89,32 @@ public final class GlyphAdvanceCache {
 		return new GlyphRun(List.copyOf(glyphs), x, fontEpoch);
 	}
 
-	private static boolean hasFollowingVisibleGlyph(List<MutableGlyph> glyphs, int from) {
-		for (int index = from; index < glyphs.size(); index++) {
-			if (glyphs.get(index).vanillaAdvance() > 0.0f) return true;
+	private static boolean[] clusterSpacingTargets(List<MutableGlyph> glyphs) {
+		boolean[] targets = new boolean[glyphs.size()];
+		if (glyphs.isEmpty()) return targets;
+		StringBuilder plain = new StringBuilder();
+		for (MutableGlyph glyph : glyphs) plain.appendCodePoint(glyph.codePoint());
+		BreakIterator iterator = BreakIterator.getCharacterInstance(Locale.ROOT);
+		iterator.setText(plain.toString());
+		List<Integer> lastVisiblePerCluster = new ArrayList<>();
+		int glyphIndex = 0;
+		int start = iterator.first();
+		for (int end = iterator.next(); end != BreakIterator.DONE;
+			 start = end, end = iterator.next()) {
+			int lastVisible = -1;
+			while (glyphIndex < glyphs.size()
+					&& glyphs.get(glyphIndex).utf16Start() < end) {
+				if (glyphs.get(glyphIndex).vanillaAdvance() > 0.0f) {
+					lastVisible = glyphIndex;
+				}
+				glyphIndex++;
+			}
+			if (lastVisible >= 0) lastVisiblePerCluster.add(lastVisible);
 		}
-		return false;
+		for (int index = 0; index + 1 < lastVisiblePerCluster.size(); index++) {
+			targets[lastVisiblePerCluster.get(index)] = true;
+		}
+		return targets;
 	}
 
 	private static long spacingKey(double spacing) {
@@ -96,7 +122,11 @@ public final class GlyphAdvanceCache {
 	}
 
 	private record MutableGlyph(
-			int sourceIndex, int codePoint, Style style, float vanillaAdvance) {
+			int sourceIndex,
+			int utf16Start,
+			int codePoint,
+			Style style,
+			float vanillaAdvance) {
 	}
 
 	public record Glyph(

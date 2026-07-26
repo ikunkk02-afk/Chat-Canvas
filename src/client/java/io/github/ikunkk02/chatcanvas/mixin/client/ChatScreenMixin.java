@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
 import io.github.ikunkk02.chatcanvas.chat.command.ui.CommandToolPanel;
+import io.github.ikunkk02.chatcanvas.chat.emoji.EmojiPickerPanel;
 import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputController;
 import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputMode;
 import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputScreenBridge;
@@ -18,6 +19,7 @@ import io.github.ikunkk02.chatcanvas.chat.layout.RuntimeChatBounds;
 import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
 import io.github.ikunkk02.chatcanvas.chat.render.DualChatHudRenderer;
 import io.github.ikunkk02.chatcanvas.chat.text.ChatCanvasTextFieldRegistry;
+import io.github.ikunkk02.chatcanvas.chat.text.UnicodeTextNavigator;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.config.PixelLayout;
@@ -47,6 +49,9 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 	private final CommandToolPanel chat_canvas$commandTools =
 			new CommandToolPanel();
 	@Unique
+	private final EmojiPickerPanel chat_canvas$emojiPicker =
+			new EmojiPickerPanel();
+	@Unique
 	private final ChatCanvasInputController chat_canvas$inputController =
 			ChatCanvasInputController.instance();
 	@Unique
@@ -62,6 +67,8 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 	private boolean chat_canvas$inputInitialized;
 	@Unique
 	private boolean chat_canvas$inputHealthy;
+	@Unique
+	private char chat_canvas$pendingHighSurrogate;
 
 	@Shadow
 	protected TextFieldWidget chatField;
@@ -113,6 +120,9 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 					chat_canvas$inputController.snapshot(ChatCanvasInputMode.COMMAND));
 			chat_canvas$applyInputMode(chat_canvas$inputMode);
 			chat_canvas$commandTools.init(screen, chatField);
+			chat_canvas$emojiPicker.init(
+					screen, chat_canvas$playerChatField,
+					chat_canvas$playerChatSuggestor);
 			chat_canvas$inputInitialized = true;
 			chat_canvas$inputHealthy = true;
 		} catch (Throwable throwable) {
@@ -158,6 +168,11 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 			cir.setReturnValue(true);
 			return;
 		}
+		if (chat_canvas$inputMode == ChatCanvasInputMode.PLAYER_CHAT
+				&& chat_canvas$emojiPicker.mouseClicked(mouseX, mouseY, button)) {
+			cir.setReturnValue(true);
+			return;
+		}
 		if (chat_canvas$inputMode == ChatCanvasInputMode.COMMAND
 				&& chat_canvas$commandTools.mouseClicked(
 						screen, chatField, chatInputSuggestor,
@@ -191,6 +206,12 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 			CallbackInfoReturnable<Boolean> cir) {
 		if (!chat_canvas$inputHealthy) return;
 		PlayerNameDoubleClickHandler.instance().reset();
+		if (chat_canvas$inputMode == ChatCanvasInputMode.PLAYER_CHAT
+				&& chat_canvas$emojiPicker.mouseScrolled(
+						mouseX, mouseY, horizontalAmount, verticalAmount)) {
+			cir.setReturnValue(true);
+			return;
+		}
 		if (chat_canvas$inputMode == ChatCanvasInputMode.COMMAND
 				&& chat_canvas$commandTools.mouseScrolled(verticalAmount)) {
 			cir.setReturnValue(true);
@@ -212,6 +233,8 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 		chat_canvas$unregisterFields();
 		chat_canvas$quickActionMenu.reset((ChatScreen) (Object) this);
 		chat_canvas$commandTools.removed();
+		chat_canvas$emojiPicker.dispose();
+		chat_canvas$pendingHighSurrogate = 0;
 	}
 
 	@Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
@@ -223,6 +246,12 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 		TextFieldWidget activeField = chat_canvas$activeInputField();
 		ChatInputSuggestor activeSuggestor = chat_canvas$activeInputSuggestor();
 
+		if (chat_canvas$inputMode == ChatCanvasInputMode.PLAYER_CHAT
+				&& chat_canvas$emojiPicker.keyPressed(
+						keyCode, scanCode, modifiers)) {
+			cir.setReturnValue(true);
+			return;
+		}
 		if (chat_canvas$inputMode == ChatCanvasInputMode.COMMAND
 				&& chat_canvas$commandTools.keyPressed(
 						keyCode, scanCode, modifiers, chatField, chatInputSuggestor)) {
@@ -306,7 +335,10 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 			chat_canvas$commandTools.render(
 					(ChatScreen) (Object) this, chatField,
 					context, mouseX, mouseY, delta);
+		} else {
+			chat_canvas$emojiPicker.render(context, mouseX, mouseY, delta);
 		}
+		chat_canvas$renderInputLength(context, activeField);
 	}
 
 	@WrapOperation(
@@ -373,6 +405,28 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 		chat_canvas$applyInputMode(ChatCanvasInputMode.PLAYER_CHAT);
 	}
 
+	@Override
+	public boolean chat_canvas$dispatchUnicodeChar(char character, int modifiers) {
+		if (!chat_canvas$inputHealthy) return false;
+		if (Character.isHighSurrogate(character)) {
+			chat_canvas$pendingHighSurrogate = character;
+			return true;
+		}
+		if (Character.isLowSurrogate(character)) {
+			if (chat_canvas$pendingHighSurrogate == 0) return true;
+			String pair = new String(new char[]{
+					chat_canvas$pendingHighSurrogate, character});
+			chat_canvas$pendingHighSurrogate = 0;
+			if (chat_canvas$inputMode == ChatCanvasInputMode.PLAYER_CHAT
+					&& chat_canvas$emojiPicker.writeComposedText(pair)) return true;
+			chat_canvas$activeInputField().write(pair);
+			return true;
+		}
+		chat_canvas$pendingHighSurrogate = 0;
+		return chat_canvas$inputMode == ChatCanvasInputMode.PLAYER_CHAT
+				&& chat_canvas$emojiPicker.charTyped(character, modifiers);
+	}
+
 	@Unique
 	private void chat_canvas$onPlayerInputChanged(String text) {
 		if (chat_canvas$suppressInputUpdates) return;
@@ -382,6 +436,8 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 			ChatInputSnapshot playerDraft =
 					chat_canvas$inputController.snapshot(ChatCanvasInputMode.PLAYER_CHAT);
 			chat_canvas$inputController.switchPlayerTextToCommand(changed);
+			chat_canvas$emojiPicker.close();
+			chat_canvas$pendingHighSurrogate = 0;
 			chat_canvas$restoreField(chat_canvas$playerChatField, playerDraft);
 			chat_canvas$restoreField(
 					chatField,
@@ -417,6 +473,10 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 		if (!command) chatInputSuggestor.clearWindow();
 		else chat_canvas$playerChatSuggestor.clearWindow();
 		if (!command) chat_canvas$commandTools.close();
+		if (command) {
+			chat_canvas$emojiPicker.close();
+			chat_canvas$pendingHighSurrogate = 0;
+		}
 		chat_canvas$applyInputPlacement();
 		chat_canvas$focusActiveField();
 		chat_canvas$activeInputSuggestor().refresh();
@@ -434,19 +494,20 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 	private void chat_canvas$applyInputPlacement() {
 		chat_canvas$placeField(
 				chat_canvas$playerChatField,
-				chat_canvas$inputBounds(ChatCanvasInputMode.PLAYER_CHAT));
+				chat_canvas$inputBounds(ChatCanvasInputMode.PLAYER_CHAT),
+				EmojiPickerPanel.BUTTON_SPACE);
 		chat_canvas$placeField(
 				chatField,
-				chat_canvas$inputBounds(ChatCanvasInputMode.COMMAND));
+				chat_canvas$inputBounds(ChatCanvasInputMode.COMMAND), 0);
 	}
 
 	@Unique
 	private static void chat_canvas$placeField(
-			TextFieldWidget field, RuntimeChatBounds bounds) {
+			TextFieldWidget field, RuntimeChatBounds bounds, int reservedRight) {
 		if (field == null) return;
 		field.setX(bounds.left());
 		field.setY(bounds.inputTop());
-		field.setWidth(Math.max(1, bounds.messageWidth()));
+		field.setWidth(Math.max(1, bounds.messageWidth() - Math.max(0, reservedRight)));
 	}
 
 	@Unique
@@ -528,5 +589,29 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 		} finally {
 			chat_canvas$suppressInputUpdates = previousSuppression;
 		}
+	}
+
+	@Unique
+	private void chat_canvas$renderInputLength(
+			DrawContext context, TextFieldWidget activeField) {
+		if (chat_canvas$inputMode != ChatCanvasInputMode.PLAYER_CHAT
+				|| activeField == null) return;
+		String text = activeField.getText();
+		int graphemes = UnicodeTextNavigator.graphemeCount(text);
+		Text counter = Text.translatable(
+				"chat_canvas.emoji.length", graphemes, text.length(), 256);
+		int color = text.length() >= 256 ? 0xFFFF6B6B
+				: text.length() >= 230 ? 0xFFF6C85F : 0xFFADB6C7;
+		int width = MinecraftClient.getInstance().textRenderer.getWidth(counter);
+		int modeWidth = MinecraftClient.getInstance().textRenderer.getWidth(
+				Text.translatable("chat_canvas.input.mode.player"));
+		int counterY = activeField.getWidth() < width + modeWidth + 8
+				? Math.max(2, activeField.getY() - 20)
+				: Math.max(2, activeField.getY() - 10);
+		context.drawTextWithShadow(
+				MinecraftClient.getInstance().textRenderer, counter,
+				Math.max(activeField.getX(),
+						activeField.getX() + activeField.getWidth() - width),
+				counterY, color);
 	}
 }

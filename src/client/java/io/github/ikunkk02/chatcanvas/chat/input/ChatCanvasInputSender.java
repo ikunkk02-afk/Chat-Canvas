@@ -1,5 +1,6 @@
 package io.github.ikunkk02.chatcanvas.chat.input;
 
+import io.github.ikunkk02.chatcanvas.chat.text.UnicodeTextNavigator;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ChatScreen;
 
@@ -9,7 +10,8 @@ public final class ChatCanvasInputSender {
 
 	public static boolean sendPlayerChat(
 			MinecraftClient client, ChatScreen screen, String input) {
-		String message = screen.normalize(input);
+		String message = screen.normalize(
+				UnicodeTextNavigator.truncateAtGraphemeBoundary(input, 256));
 		if (message.isEmpty() || message.startsWith("/") || client.player == null) {
 			return false;
 		}
@@ -20,7 +22,8 @@ public final class ChatCanvasInputSender {
 
 	public static boolean executeCommand(
 			MinecraftClient client, ChatScreen screen, String input) {
-		String normalized = screen.normalize(input);
+		String normalized = screen.normalize(
+				UnicodeTextNavigator.truncateAtGraphemeBoundary(input, 256));
 		if (client.player == null) return false;
 		String command = normalized.startsWith("/")
 				? normalized.substring(1) : normalized;

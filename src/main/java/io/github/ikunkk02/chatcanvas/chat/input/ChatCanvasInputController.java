@@ -2,6 +2,8 @@ package io.github.ikunkk02.chatcanvas.chat.input;
 
 import java.util.List;
 
+import io.github.ikunkk02.chatcanvas.chat.text.UnicodeTextNavigator;
+
 public final class ChatCanvasInputController {
 	private static final ChatCanvasInputController INSTANCE = new ChatCanvasInputController();
 
@@ -102,6 +104,11 @@ public final class ChatCanvasInputController {
 
 	public synchronized PlayerChatInputState playerChatState() {
 		return playerChatState;
+	}
+
+	public synchronized UnicodeTextNavigator.EditResult insertPlayerText(
+			String value, int maxUtf16Length) {
+		return playerChatState.replaceSelection(value, maxUtf16Length);
 	}
 
 	public synchronized CommandInputState commandState() {

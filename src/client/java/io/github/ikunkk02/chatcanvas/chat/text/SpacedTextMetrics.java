@@ -31,7 +31,8 @@ public final class SpacedTextMetrics {
 
 	public static double xAtUtf16(
 			TextRenderer renderer, String text, double spacing, int utf16Index) {
-		int clamped = Math.max(0, Math.min(utf16Index, text.length()));
+		int clamped = UnicodeTextNavigator.floorGraphemeBoundary(
+				text, Math.max(0, Math.min(utf16Index, text.length())));
 		int codePoints = text.codePointCount(0, clamped);
 		return xAtCodePoint(
 				renderer,
@@ -43,7 +44,11 @@ public final class SpacedTextMetrics {
 	public static String trimToWidth(
 			TextRenderer renderer, String text, int maxWidth, double spacing) {
 		if (maxWidth <= 0 || text.isEmpty()) return "";
-		if (Math.abs(spacing) < EPSILON) return renderer.trimToWidth(text, maxWidth);
+		if (Math.abs(spacing) < EPSILON) {
+			String candidate = renderer.trimToWidth(text, maxWidth);
+			return text.substring(0, UnicodeTextNavigator.floorGraphemeBoundary(
+					text, candidate.length()));
+		}
 		GlyphAdvanceCache.GlyphRun run = GlyphAdvanceCache.layout(
 				renderer, OrderedText.styledForwardsVisitedString(text, Style.EMPTY), spacing);
 		int utf16End = 0;
@@ -52,15 +57,17 @@ public final class SpacedTextMetrics {
 			if (right > maxWidth + EPSILON) break;
 			utf16End += glyph.utf16Length();
 		}
-		return text.substring(0, Math.min(text.length(), utf16End));
+		return text.substring(0, UnicodeTextNavigator.floorGraphemeBoundary(
+				text, Math.min(text.length(), utf16End)));
 	}
 
 	public static int firstVisibleIndex(
 			TextRenderer renderer, String text, int cursor, int maxWidth, double spacing) {
-		int safeCursor = Math.max(0, Math.min(cursor, text.length()));
+		int safeCursor = UnicodeTextNavigator.floorGraphemeBoundary(
+				text, Math.max(0, Math.min(cursor, text.length())));
 		int start = safeCursor;
 		while (start > 0) {
-			int previous = text.offsetByCodePoints(start, -1);
+			int previous = UnicodeTextNavigator.previousGraphemeBoundary(text, start);
 			if (width(renderer, text.substring(previous, safeCursor), spacing) > maxWidth) break;
 			start = previous;
 		}

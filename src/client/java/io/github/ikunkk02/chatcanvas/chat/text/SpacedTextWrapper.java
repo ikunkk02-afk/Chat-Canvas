@@ -62,16 +62,14 @@ public final class SpacedTextWrapper {
 
 	private static double widthOf(
 			List<Cluster> clusters, int start, int end, double spacing) {
-		int atomCount = 0;
-		for (int index = start; index < end; index++) {
-			atomCount += clusters.get(index).atoms().size();
-		}
-		double[] advances = new double[atomCount];
+		double[] advances = new double[end - start];
 		int target = 0;
 		for (int clusterIndex = start; clusterIndex < end; clusterIndex++) {
+			double clusterWidth = 0.0;
 			for (Atom atom : clusters.get(clusterIndex).atoms()) {
-				advances[target++] = atom.vanillaAdvance();
+				clusterWidth += atom.vanillaAdvance();
 			}
+			advances[target++] = clusterWidth;
 		}
 		return SpacedAdvanceMath.width(advances, spacing);
 	}

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class ChatCanvasInputControllerTest {
 	private ChatCanvasInputController controller;
@@ -94,5 +95,34 @@ class ChatCanvasInputControllerTest {
 		assertEquals("/", controller.snapshot(ChatCanvasInputMode.COMMAND).text());
 		assertEquals(java.util.List.of(), controller.playerHistory());
 		assertEquals(java.util.List.of(), controller.commandHistory());
+	}
+
+	@Test
+	void emojiInsertionUsesTheFormalPlayerDraftAndSelection() {
+		controller.capture(ChatCanvasInputMode.PLAYER_CHAT,
+				new ChatInputSnapshot("大家好", 2, 2));
+
+		var inserted = controller.insertPlayerText("😀", 256);
+
+		assertFalse(inserted.limitExceeded());
+		assertEquals("大家😀好",
+				controller.snapshot(ChatCanvasInputMode.PLAYER_CHAT).text());
+		assertEquals(4,
+				controller.snapshot(ChatCanvasInputMode.PLAYER_CHAT).cursor());
+	}
+
+	@Test
+	void emojiInsertionReplacesSelectionWithoutTouchingCommandDraft() {
+		controller.capture(ChatCanvasInputMode.PLAYER_CHAT,
+				new ChatInputSnapshot("hello world", 5, 11));
+		controller.capture(ChatCanvasInputMode.COMMAND,
+				ChatInputSnapshot.atEnd("/say keep"));
+
+		controller.insertPlayerText("❤️", 256);
+
+		assertEquals("hello❤️",
+				controller.snapshot(ChatCanvasInputMode.PLAYER_CHAT).text());
+		assertEquals("/say keep",
+				controller.snapshot(ChatCanvasInputMode.COMMAND).text());
 	}
 }

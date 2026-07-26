@@ -7,6 +7,8 @@ import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerNameDoubleClickHandl
 import io.github.ikunkk02.chatcanvas.chat.notification.MentionNotificationController;
 import io.github.ikunkk02.chatcanvas.chat.render.DualChatHudRenderer;
 import io.github.ikunkk02.chatcanvas.chat.command.CommandToolRuntime;
+import io.github.ikunkk02.chatcanvas.chat.emoji.EmojiFontSupport;
+import io.github.ikunkk02.chatcanvas.chat.emoji.EmojiRuntime;
 import io.github.ikunkk02.chatcanvas.chat.text.GlyphAdvanceCache;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.compat.ChatCanvasCompat;
@@ -31,11 +33,15 @@ public final class ChatCanvasClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		ChatCanvasConfig.initialize();
+		EmojiRuntime.initialize();
 		ChatCanvasCompat.initialize();
 		MentionNotificationController.instance().register();
 		PlayerChatCapture.register();
 		ClientLifecycleEvents.CLIENT_STOPPING.register(
-				client -> CommandToolRuntime.manager().flush());
+				client -> {
+					CommandToolRuntime.manager().flush();
+					EmojiRuntime.flush();
+				});
 		openEditor = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 				"key.chat_canvas.open_editor",
 				InputUtil.Type.KEYSYM,
@@ -53,6 +59,7 @@ public final class ChatCanvasClient implements ClientModInitializer {
 					public void reload(ResourceManager manager) {
 						ChatLineWidthCache.clear();
 						GlyphAdvanceCache.onFontResourcesReloaded();
+						EmojiFontSupport.onFontResourcesReloaded();
 						ChatLayoutRuntime.onFontResourcesReloaded();
 						DualChatHudRenderer.instance().invalidateLayouts();
 					}
@@ -61,6 +68,7 @@ public final class ChatCanvasClient implements ClientModInitializer {
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			ChatLayoutRuntime.tick(client);
 			CommandToolRuntime.manager().tick(System.currentTimeMillis());
+			EmojiRuntime.tick(client);
 			if (client.currentScreen instanceof net.minecraft.client.gui.screen.ChatScreen chatScreen) {
 				PlayerNameDoubleClickHandler.instance().tick(chatScreen);
 			} else {

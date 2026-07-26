@@ -5,6 +5,7 @@ import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputMode;
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextHitTester;
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextMetrics;
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextRenderer;
+import io.github.ikunkk02.chatcanvas.chat.text.UnicodeTextNavigator;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -13,6 +14,7 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.text.OrderedText;
 import net.minecraft.util.Colors;
+import net.minecraft.util.StringHelper;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 import org.jetbrains.annotations.Nullable;
@@ -22,6 +24,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -61,6 +64,8 @@ public abstract class TextFieldWidgetMixin {
 	@Shadow
 	public abstract void setCursor(int cursor, boolean shiftKeyPressed);
 	@Shadow
+	public abstract int getWordSkipPosition(int wordOffset);
+	@Shadow
 	private void drawSelectionHighlight(
 			DrawContext context, int x1, int y1, int x2, int y2) {
 		throw new AssertionError();
@@ -79,8 +84,78 @@ public abstract class TextFieldWidgetMixin {
 				textRenderer, remaining, getInnerWidth(), spacing);
 		int localIndex = SpacedTextHitTester.utf16IndexAt(
 				textRenderer, visible, spacing, localX);
-		setCursor(firstCharacterIndex + localIndex, Screen.hasShiftDown());
+		setCursor(UnicodeTextNavigator.nearestGraphemeBoundary(
+				text, firstCharacterIndex + localIndex), Screen.hasShiftDown());
 		ci.cancel();
+	}
+
+	@Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
+	private void chat_canvas$navigateUnicodeClusters(
+			int keyCode, int scanCode, int modifiers,
+			CallbackInfoReturnable<Boolean> cir) {
+		TextFieldWidget self = (TextFieldWidget) (Object) this;
+		if (!ChatCanvasTextFieldRegistry.isChatField(self)
+				|| !self.isFocused()) return;
+		boolean shift = Screen.hasShiftDown();
+		boolean control = Screen.hasControlDown();
+		if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT
+				|| keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT) {
+			boolean right = keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT;
+			int target;
+			if (control) {
+				target = getWordSkipPosition(right ? 1 : -1);
+				target = right
+						? UnicodeTextNavigator.ceilGraphemeBoundary(text, target)
+						: UnicodeTextNavigator.floorGraphemeBoundary(text, target);
+			} else {
+				target = right
+						? UnicodeTextNavigator.nextGraphemeBoundary(
+								text, selectionStart)
+						: UnicodeTextNavigator.previousGraphemeBoundary(
+								text, selectionStart);
+			}
+			setCursor(target, shift);
+			cir.setReturnValue(true);
+			return;
+		}
+		if (!control && editable
+				&& (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE
+				|| keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_DELETE)) {
+			UnicodeTextNavigator.EditResult result =
+					keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE
+							? UnicodeTextNavigator.deletePreviousGrapheme(
+									text, selectionStart, selectionEnd)
+							: UnicodeTextNavigator.deleteNextGrapheme(
+									text, selectionStart, selectionEnd);
+			chat_canvas$applyEdit(self, result);
+			cir.setReturnValue(true);
+		}
+	}
+
+	@Inject(method = "write", at = @At("HEAD"), cancellable = true)
+	private void chat_canvas$writeWholeUnicodeText(
+			String value, CallbackInfo ci) {
+		TextFieldWidget self = (TextFieldWidget) (Object) this;
+		if (!ChatCanvasTextFieldRegistry.isChatField(self)) return;
+		String sanitized = StringHelper.stripInvalidChars(
+				value == null ? "" : value);
+		if (!UnicodeTextNavigator.isWellFormedUtf16(sanitized)) {
+			ci.cancel();
+			return;
+		}
+		UnicodeTextNavigator.EditResult result =
+				UnicodeTextNavigator.replaceSelection(
+						text, selectionStart, selectionEnd,
+						sanitized, maxLength);
+		if (!result.limitExceeded()) chat_canvas$applyEdit(self, result);
+		ci.cancel();
+	}
+
+	@ModifyVariable(method = "setText", at = @At("HEAD"), argsOnly = true)
+	private String chat_canvas$truncateWholeUnicodeText(String value) {
+		TextFieldWidget self = (TextFieldWidget) (Object) this;
+		if (!ChatCanvasTextFieldRegistry.isChatField(self)) return value;
+		return UnicodeTextNavigator.truncateAtGraphemeBoundary(value, maxLength);
 	}
 
 	@Inject(method = "updateFirstCharacterIndex", at = @At("HEAD"), cancellable = true)
@@ -99,12 +174,8 @@ public abstract class TextFieldWidgetMixin {
 		} else if (cursor < firstCharacterIndex) {
 			firstCharacterIndex = cursor;
 		}
-		firstCharacterIndex = MathHelper.clamp(firstCharacterIndex, 0, text.length());
-		if (firstCharacterIndex > 0
-				&& firstCharacterIndex < text.length()
-				&& Character.isLowSurrogate(text.charAt(firstCharacterIndex))) {
-			firstCharacterIndex--;
-		}
+		firstCharacterIndex = UnicodeTextNavigator.floorGraphemeBoundary(
+				text, MathHelper.clamp(firstCharacterIndex, 0, text.length()));
 		ci.cancel();
 	}
 
@@ -194,6 +265,18 @@ public abstract class TextFieldWidgetMixin {
 		double spacing = mode == ChatCanvasInputMode.COMMAND
 				? ChatCanvasConfig.instance().commandSystem().text().characterSpacing()
 				: ChatCanvasConfig.instance().text().characterSpacing();
-		return Math.abs(spacing) < 0.00001 ? Double.NaN : spacing;
+		return spacing;
+	}
+
+	@Unique
+	private void chat_canvas$applyEdit(
+			TextFieldWidget field, UnicodeTextNavigator.EditResult result) {
+		if (!result.changed()) {
+			field.setCursor(result.cursor(), false);
+			return;
+		}
+		field.setText(result.text());
+		field.setCursor(result.cursor(), false);
+		field.setSelectionEnd(result.selectionEnd());
 	}
 }

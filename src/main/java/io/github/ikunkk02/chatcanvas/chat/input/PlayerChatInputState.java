@@ -1,5 +1,7 @@
 package io.github.ikunkk02.chatcanvas.chat.input;
 
+import io.github.ikunkk02.chatcanvas.chat.text.UnicodeTextNavigator;
+
 public final class PlayerChatInputState {
 	private String text = "";
 	private int cursor;
@@ -31,6 +33,19 @@ public final class PlayerChatInputState {
 
 	public int historyIndex() {
 		return historyIndex;
+	}
+
+	public UnicodeTextNavigator.EditResult replaceSelection(
+			String value, int maxUtf16Length) {
+		UnicodeTextNavigator.EditResult result =
+				UnicodeTextNavigator.replaceSelection(
+						text, cursor, selectionEnd, value, maxUtf16Length);
+		if (result.changed()) {
+			text = result.text();
+			cursor = result.cursor();
+			selectionEnd = result.selectionEnd();
+		}
+		return result;
 	}
 
 	void historyIndex(int historyIndex) {

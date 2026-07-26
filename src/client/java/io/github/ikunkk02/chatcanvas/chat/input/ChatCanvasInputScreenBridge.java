@@ -11,4 +11,6 @@ public interface ChatCanvasInputScreenBridge {
 	ChatInputSuggestor chat_canvas$activeInputSuggestor();
 
 	void chat_canvas$openPlayerInput();
+
+	boolean chat_canvas$dispatchUnicodeChar(char character, int modifiers);
 }
