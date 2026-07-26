@@ -8,8 +8,7 @@ import io.github.ikunkk02.chatcanvas.config.ChatTextAlignment;
 import io.github.ikunkk02.chatcanvas.config.CommandClipboardConfig;
 import io.github.ikunkk02.chatcanvas.config.CommandInsertMode;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
-import io.github.ikunkk02.chatcanvas.chat.command.ui.CommandClipboardPanel;
-import io.github.ikunkk02.chatcanvas.chat.command.CommandPresetRegistry;
+import io.github.ikunkk02.chatcanvas.chat.command.ui.CommandToolPanel;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.config.MessageBackgroundMode;
@@ -104,9 +103,10 @@ public final class AnimatedSettingsPanel {
 	private ButtonComponent commandEnabledButton;
 	private ButtonComponent commandPanelButton;
 	private ButtonComponent commandInsertModeButton;
-	private ButtonComponent commandDuplicatesButton;
 	private ButtonComponent commandSensitiveButton;
-	private final Map<String, ButtonComponent> commandPresetButtons = new java.util.LinkedHashMap<>();
+	private ButtonComponent commandRecordRecentButton;
+	private ButtonComponent commandClearRecentOnDisconnectButton;
+	private ButtonComponent commandMaxRecentButton;
 	private FlowLayout playerListBody;
 	private String playerSearch = "";
 	private long rosterRevision = Long.MIN_VALUE;
@@ -483,21 +483,6 @@ public final class AnimatedSettingsPanel {
 		defaults.sizing(Sizing.fill(100), Sizing.fixed(22));
 		registerPageButton(Category.MENTION, defaults);
 		body.child(defaults);
-		body.child(sectionLabel("chat_canvas.command.preset_visibility"));
-		for (CommandPresetRegistry.Preset preset : CommandPresetRegistry.all()) {
-			ButtonComponent button = ModernUiTheme.button(Text.empty(), clicked -> {
-				CommandClipboardConfig config = session.commandClipboard();
-				boolean hidden = config.hiddenPresetIds().contains(preset.id());
-				session.setCommandClipboard(config.withPresetHidden(preset.id(), !hidden));
-				session.commit();
-				committed.run();
-				syncFromSession();
-			});
-			button.sizing(Sizing.fill(100), Sizing.fixed(20));
-			commandPresetButtons.put(preset.id(), button);
-			registerPageButton(Category.COMMAND, button);
-			body.child(button);
-		}
 		return body;
 	}
 
@@ -521,15 +506,36 @@ public final class AnimatedSettingsPanel {
 		});
 		commandInsertModeButton.sizing(Sizing.fill(100), Sizing.fixed(22));
 		registerPageButton(Category.COMMAND, commandInsertModeButton);
-		commandDuplicatesButton = commandToggle("chat_canvas.command.allow_duplicates",
-				config -> config.withAllowDuplicates(!config.allowDuplicates()));
 		commandSensitiveButton = commandToggle("chat_canvas.command.sensitive_warning",
 				config -> config.withSensitiveWarning(!config.sensitiveWarning()));
+		commandRecordRecentButton = commandToggle(
+				"chat_canvas.command.record_recent",
+				config -> config.withRecordRecentCommands(
+						!config.recordRecentCommands()));
+		commandClearRecentOnDisconnectButton = commandToggle(
+				"chat_canvas.command.clear_recent_disconnect",
+				config -> config.withClearRecentOnDisconnect(
+						!config.clearRecentOnDisconnect()));
+		commandMaxRecentButton = ModernUiTheme.button(Text.empty(), clicked -> {
+			CommandClipboardConfig config = session.commandClipboard();
+			int next = config.maxRecentCommands() >=
+					CommandClipboardConfig.MAX_RECENT_COMMANDS
+					? CommandClipboardConfig.MIN_RECENT_COMMANDS
+					: config.maxRecentCommands() + 10;
+			session.setCommandClipboard(config.withMaxRecentCommands(next));
+			session.commit();
+			committed.run();
+			syncFromSession();
+		});
+		commandMaxRecentButton.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.COMMAND, commandMaxRecentButton);
 		body.child(commandEnabledButton);
 		body.child(commandPanelButton);
 		body.child(commandInsertModeButton);
-		body.child(commandDuplicatesButton);
 		body.child(commandSensitiveButton);
+		body.child(commandRecordRecentButton);
+		body.child(commandClearRecentOnDisconnectButton);
+		body.child(commandMaxRecentButton);
 		CommandMaxScrubberComponent maxCommands =
 				new CommandMaxScrubberComponent(session, geometryChanged, committed);
 		scrubbers.add(maxCommands);
@@ -539,8 +545,8 @@ public final class AnimatedSettingsPanel {
 					MinecraftClient client = MinecraftClient.getInstance();
 					if (client.player == null) return;
 					ChatCanvasConfig.instance().save(session.settings());
-					CommandClipboardPanel.requestOpenNextChatScreen();
-					client.setScreen(new ChatScreen(""));
+					CommandToolPanel.requestOpenNextChatScreen();
+					client.setScreen(new ChatScreen("/"));
 				});
 		manage.sizing(Sizing.fill(100), Sizing.fixed(22));
 		registerPageButton(Category.COMMAND, manage);
@@ -1213,10 +1219,18 @@ public final class AnimatedSettingsPanel {
 		setToggleMessage(commandEnabledButton, "chat_canvas.command.enabled", config.enabled());
 		setToggleMessage(commandPanelButton, "chat_canvas.command.show_button",
 				config.showPanelButton());
-		setToggleMessage(commandDuplicatesButton, "chat_canvas.command.allow_duplicates",
-				config.allowDuplicates());
 		setToggleMessage(commandSensitiveButton, "chat_canvas.command.sensitive_warning",
 				config.sensitiveWarning());
+		setToggleMessage(commandRecordRecentButton, "chat_canvas.command.record_recent",
+				config.recordRecentCommands());
+		setToggleMessage(commandClearRecentOnDisconnectButton,
+				"chat_canvas.command.clear_recent_disconnect",
+				config.clearRecentOnDisconnect());
+		if (commandMaxRecentButton != null) {
+			commandMaxRecentButton.setMessage(Text.translatable(
+					"chat_canvas.command.max_recent")
+					.append(Text.literal("  " + config.maxRecentCommands())));
+		}
 		if (commandInsertModeButton != null) {
 			commandInsertModeButton.setMessage(
 					Text.translatable("chat_canvas.command.insert_mode")
@@ -1225,15 +1239,6 @@ public final class AnimatedSettingsPanel {
 									== CommandInsertMode.REPLACE_INPUT
 									? "chat_canvas.command.insert_replace"
 									: "chat_canvas.command.insert_cursor")));
-		}
-		for (CommandPresetRegistry.Preset preset : CommandPresetRegistry.all()) {
-			ButtonComponent button = commandPresetButtons.get(preset.id());
-			if (button == null) continue;
-			boolean visible = !config.hiddenPresetIds().contains(preset.id());
-			button.setMessage(Text.translatable(preset.titleKey())
-					.append(Text.literal("  "))
-					.append(Text.translatable(visible
-							? "chat_canvas.state.on" : "chat_canvas.state.off")));
 		}
 	}
 

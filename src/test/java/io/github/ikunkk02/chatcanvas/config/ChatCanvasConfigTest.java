@@ -195,4 +195,35 @@ class ChatCanvasConfigTest {
 		assertEquals(LayoutConfig.DEFAULT, reloaded.layout());
 		assertEquals(command.sanitized(), reloaded.commandSystem());
 	}
+
+	@Test
+	void commandToolPrivacySettingsRoundTripAndOldConfigGetsSafeDefaults() throws IOException {
+		Path path = temporaryDirectory.resolve("chat_canvas.json");
+		CommandClipboardConfig commandTools = CommandClipboardConfig.DEFAULT
+				.withRecordRecentCommands(false)
+				.withMaxRecentCommands(40)
+				.withClearRecentOnDisconnect(true)
+				.withExcludedCommandNames(java.util.Set.of("secret", "/customauth"));
+		ChatCanvasSettings defaults = ChatCanvasSettings.DEFAULT;
+		ChatCanvasConfig config = new ChatCanvasConfig(path);
+		assertTrue(config.save(new ChatCanvasSettings(
+				defaults.layout(), defaults.text(), defaults.background(),
+				defaults.playerColors(), defaults.mention(), commandTools,
+				defaults.recentColors(), defaults.editorUiStyle(),
+				defaults.enabled(), defaults.playerChatEnabled(),
+				defaults.commandSystem())));
+
+		ChatCanvasConfig reloaded = new ChatCanvasConfig(path);
+		reloaded.load();
+		assertEquals(commandTools, reloaded.commandClipboard());
+
+		Files.writeString(path, """
+				{"commandClipboard":{"enabled":true,"maxCommands":50}}
+				""");
+		ChatCanvasConfig legacy = new ChatCanvasConfig(path);
+		legacy.load();
+		assertTrue(legacy.commandClipboard().recordRecentCommands());
+		assertEquals(CommandClipboardConfig.DEFAULT_EXCLUDED_COMMAND_NAMES,
+				legacy.commandClipboard().excludedCommandNames());
+	}
 }

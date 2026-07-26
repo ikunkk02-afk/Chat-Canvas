@@ -13,6 +13,7 @@ import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessage;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessageManager;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatChannelHistory;
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextHitTester;
+import io.github.ikunkk02.chatcanvas.chat.text.ChatHeadsCompat;
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextMetrics;
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextRenderer;
 import io.github.ikunkk02.chatcanvas.config.*;
@@ -97,13 +98,19 @@ public final class DualChatHudRenderer {
 			ChatCanvasMessage message = messages.get(messageIndex);
 			float alpha = open ? 1.0f : fadeAlpha(now - message.receivedAt(), fadeSeconds);
 			if (alpha <= 0.01f && scroll <= 0.0) continue;
+			int headWidth = channel == ChatCanvasChannel.PLAYER_CHAT
+					? (int) Math.ceil(ChatHeadsCompat.channelHeadWidth(
+							message, client) * text.fontScale())
+					: 0;
 			ChannelMessageLayoutEngine.Layout layout = ChannelMessageLayoutEngine.instance().layout(
-					message, client.textRenderer, available, text, lineHeight,
+					message, client.textRenderer, Math.max(1, available - headWidth),
+					text, lineHeight,
 					messageSpacing, history.layoutEpoch());
 			int messageTop = cursorBottom - layout.height();
 			if (messageTop < renderBottom && cursorBottom > box.y()) {
 				drawMessage(context, client, channel, message, messageIndex, layout,
-						box.x() + padding, messageTop, lineHeight, text, background, rgb, alpha);
+						box.x() + padding, messageTop, lineHeight, text, background,
+						rgb, alpha, headWidth);
 			}
 			cursorBottom = messageTop;
 			if (cursorBottom < box.y() && scroll <= 0.0) break;
@@ -118,25 +125,26 @@ public final class DualChatHudRenderer {
 							 ChatCanvasChannel channel, ChatCanvasMessage message, int messageIndex,
 							 ChannelMessageLayoutEngine.Layout layout, int x, int top,
 							 int lineHeight, ChatTextConfig text, ChatBackgroundConfig background,
-							 int rgb, float alpha) {
+							 int rgb, float alpha, int headWidth) {
 		int backgroundColor = ChatBackgroundMetrics.composeBackgroundColor(
 				background.messageColor(), background.messageOpacity(), alpha);
 		int y = top;
 		for (int lineIndex = 0; lineIndex < layout.lines().size(); lineIndex++) {
 			OrderedText line = layout.lines().get(lineIndex);
+			int textX = x + headWidth;
 			int lineWidth = (int) Math.ceil(
 					SpacedTextMetrics.width(client.textRenderer, line, text.characterSpacing())
 							* text.fontScale());
 			if (background.messageMode() != MessageBackgroundMode.HIDDEN && backgroundColor >>> 24 != 0) {
 				context.fill(x - background.horizontalPadding(), y - background.verticalPadding(),
-						x + lineWidth + background.horizontalPadding(),
+						textX + lineWidth + background.horizontalPadding(),
 						y + lineHeight + background.verticalPadding(), backgroundColor);
 			}
 			int color = ((Math.max(4, Math.min(255,
 					(int) Math.round(alpha * text.textOpacity() * 255)))) << 24)
 					| (rgb & 0xFFFFFF);
 			context.getMatrices().push();
-			context.getMatrices().translate(x, y, 0);
+			context.getMatrices().translate(textX, y, 0);
 			context.getMatrices().scale((float) text.fontScale(), (float) text.fontScale(), 1);
 			if (channel == ChatCanvasChannel.COMMAND_SYSTEM
 					&& ChatCanvasConfig.instance().commandSystem().outline()) {
@@ -156,7 +164,16 @@ public final class DualChatHudRenderer {
 			SpacedTextRenderer.draw(context, client.textRenderer, line, 0, 0,
 					color, text.shadow(), text.characterSpacing());
 			context.getMatrices().pop();
-			HitLine hit = new HitLine(channel, message, line, x, y, lineWidth, lineHeight,
+			if (lineIndex == 0 && headWidth > 0) {
+				context.getMatrices().push();
+				context.getMatrices().translate(x, y, 0);
+				context.getMatrices().scale(
+						(float) text.fontScale(), (float) text.fontScale(), 1);
+				ChatHeadsCompat.renderChannelHead(
+						context, message, client, 0, 0, alpha);
+				context.getMatrices().pop();
+			}
+			HitLine hit = new HitLine(channel, message, line, textX, y, lineWidth, lineHeight,
 					text.fontScale(), text.characterSpacing());
 			hitLines.add(hit);
 			if (channel == ChatCanvasChannel.PLAYER_CHAT && lineIndex == 0) {
@@ -263,8 +280,13 @@ public final class DualChatHudRenderer {
 		int total = 0;
 		ChatChannelHistory history = ChatCanvasMessageManager.instance().history(channel);
 		for (ChatCanvasMessage message : history.messages()) {
+			int headWidth = channel == ChatCanvasChannel.PLAYER_CHAT
+					? (int) Math.ceil(ChatHeadsCompat.channelHeadWidth(
+							message, client) * text.fontScale())
+					: 0;
 			total += ChannelMessageLayoutEngine.instance().layout(message, client.textRenderer,
-					available, text, lineHeight, spacing, history.layoutEpoch()).height();
+					Math.max(1, available - headWidth), text, lineHeight,
+					spacing, history.layoutEpoch()).height();
 		}
 		return Math.max(0, total - (renderBottom - box.y()) + background.verticalPadding() * 2);
 	}

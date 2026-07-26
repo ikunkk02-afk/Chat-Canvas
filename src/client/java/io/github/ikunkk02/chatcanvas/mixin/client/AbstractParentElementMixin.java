@@ -1,7 +1,7 @@
 package io.github.ikunkk02.chatcanvas.mixin.client;
 
 import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerNameDoubleClickHandler;
-import io.github.ikunkk02.chatcanvas.chat.command.ui.CommandClipboardPanel;
+import io.github.ikunkk02.chatcanvas.chat.command.ui.CommandToolPanel;
 import net.minecraft.client.gui.ParentElement;
 import net.minecraft.client.gui.screen.ChatScreen;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,7 +17,7 @@ public interface AbstractParentElementMixin {
 			CallbackInfoReturnable<Boolean> cir) {
 		if ((Object) this instanceof ChatScreen screen) {
 			PlayerNameDoubleClickHandler.instance().reset();
-			if (CommandClipboardPanel.dispatchMouseDragged(screen, mouseX, mouseY, button)) {
+			if (CommandToolPanel.dispatchMouseDragged(screen, mouseX, mouseY, button)) {
 				cir.setReturnValue(true);
 			}
 		}
@@ -28,7 +28,7 @@ public interface AbstractParentElementMixin {
 			double mouseX, double mouseY, int button,
 			CallbackInfoReturnable<Boolean> cir) {
 		if ((Object) this instanceof ChatScreen screen
-				&& CommandClipboardPanel.dispatchMouseReleased(screen, button)) {
+				&& CommandToolPanel.dispatchMouseReleased(screen, button)) {
 			cir.setReturnValue(true);
 		}
 	}
@@ -37,7 +37,7 @@ public interface AbstractParentElementMixin {
 	private void chat_canvas$commandClipboardCharTyped(
 			char chr, int modifiers, CallbackInfoReturnable<Boolean> cir) {
 		if ((Object) this instanceof ChatScreen screen
-				&& CommandClipboardPanel.dispatchCharTyped(screen, chr, modifiers)) {
+				&& CommandToolPanel.dispatchCharTyped(screen, chr, modifiers)) {
 			cir.setReturnValue(true);
 		}
 	}

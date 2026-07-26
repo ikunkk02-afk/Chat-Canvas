@@ -258,7 +258,16 @@ public final class ChatCanvasConfig {
 						booleanOr(commandClipboard, "sensitiveWarning",
 								commandDefaults.sensitiveWarning()),
 						intOr(commandClipboard, "maxCommands", commandDefaults.maxCommands()),
-						stringSetOr(commandClipboard, "hiddenPresetIds")
+						stringSetOr(commandClipboard, "hiddenPresetIds"),
+						booleanOr(commandClipboard, "recordRecentCommands",
+								commandDefaults.recordRecentCommands()),
+						intOr(commandClipboard, "maxRecentCommands",
+								commandDefaults.maxRecentCommands()),
+						booleanOr(commandClipboard, "clearRecentOnDisconnect",
+								commandDefaults.clearRecentOnDisconnect()),
+						commandClipboard.has("excludedCommandNames")
+								? stringSetOr(commandClipboard, "excludedCommandNames")
+								: commandDefaults.excludedCommandNames()
 				).sanitized();
 		return new ChatCanvasSettings(
 				parsedLayout,
@@ -400,6 +409,13 @@ public final class ChatCanvasConfig {
 		JsonArray hiddenPresets = new JsonArray();
 		command.hiddenPresetIds().forEach(hiddenPresets::add);
 		commandObject.add("hiddenPresetIds", hiddenPresets);
+		commandObject.addProperty("recordRecentCommands", command.recordRecentCommands());
+		commandObject.addProperty("maxRecentCommands", command.maxRecentCommands());
+		commandObject.addProperty("clearRecentOnDisconnect",
+				command.clearRecentOnDisconnect());
+		JsonArray excludedCommands = new JsonArray();
+		command.excludedCommandNames().stream().sorted().forEach(excludedCommands::add);
+		commandObject.add("excludedCommandNames", excludedCommands);
 		root.add("commandClipboard", commandObject);
 
 		JsonArray recentColors = new JsonArray();

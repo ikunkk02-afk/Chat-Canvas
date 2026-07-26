@@ -16,5 +16,8 @@ class CommandClipboardConfigTest {
 		assertEquals(20, low.maxCommands());
 		assertEquals(CommandInsertMode.REPLACE_INPUT, low.insertMode());
 		assertEquals(1000, high.maxCommands());
+		assertEquals(100, low.maxRecentCommands());
+		assertEquals(CommandClipboardConfig.DEFAULT_EXCLUDED_COMMAND_NAMES,
+				low.excludedCommandNames());
 	}
 }

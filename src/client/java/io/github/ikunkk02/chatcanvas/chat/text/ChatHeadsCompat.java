@@ -1,8 +1,14 @@
 package io.github.ikunkk02.chatcanvas.chat.text;
 
+import io.github.ikunkk02.chatcanvas.ChatCanvas;
+import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasChannel;
+import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessage;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.hud.ChatHudLine;
+import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.text.OrderedText;
 
 import java.lang.reflect.Method;
@@ -17,11 +23,14 @@ public final class ChatHeadsCompat {
 	private static final boolean ACTIVE =
 			FabricLoader.getInstance().isModLoaded("chat_heads")
 					|| FabricLoader.getInstance().isModLoaded("chat-heads");
-	private static boolean reflectionFailed;
+	private static boolean visibleReflectionFailed;
+	private static boolean channelReflectionFailed;
 	private static Method getHeadData;
 	private static Method getTextWidthDifference;
 	private static Method codePointIndex;
 	private static Method hasHeadPosition;
+	private static Method renderChatHead;
+	private static Method channelHeadWidth;
 
 	private ChatHeadsCompat() {
 	}
@@ -32,6 +41,57 @@ public final class ChatHeadsCompat {
 
 	public static boolean isAtomicCodePoint(int codePoint) {
 		return ACTIVE && Character.isValidCodePoint(codePoint);
+	}
+
+	public static boolean channelAdapterAvailable() {
+		if (!ACTIVE || channelReflectionFailed) return false;
+		try {
+			resolveChannelApi();
+			return true;
+		} catch (ReflectiveOperationException | RuntimeException failure) {
+			failChannelAdapter(failure);
+			return false;
+		}
+	}
+
+	public static int channelHeadWidth(
+			ChatCanvasMessage message, MinecraftClient client) {
+		if (!channelMessageSupported(message, client)
+				|| !channelAdapterAvailable()) {
+			return 0;
+		}
+		try {
+			return Math.max(0, ((Number) channelHeadWidth.invoke(null)).intValue());
+		} catch (ReflectiveOperationException | RuntimeException failure) {
+			failChannelAdapter(failure);
+			return 0;
+		}
+	}
+
+	public static boolean renderChannelHead(
+			DrawContext context,
+			ChatCanvasMessage message,
+			MinecraftClient client,
+			int x,
+			int y,
+			float opacity
+	) {
+		if (!channelMessageSupported(message, client)
+				|| !channelAdapterAvailable()) {
+			return false;
+		}
+		PlayerListEntry player = client.getNetworkHandler()
+				.getPlayerListEntry(message.senderUuid());
+		if (player == null) return false;
+		try {
+			renderChatHead.invoke(
+					null, context, x, y, player,
+					Math.max(0.0f, Math.min(1.0f, opacity)));
+			return true;
+		} catch (ReflectiveOperationException | RuntimeException failure) {
+			failChannelAdapter(failure);
+			return false;
+		}
 	}
 
 	public static int extraWidth(ChatHudLine.Visible line) {
@@ -67,9 +127,9 @@ public final class ChatHeadsCompat {
 	}
 
 	private static synchronized HeadGeometry geometry(ChatHudLine.Visible line) {
-		if (!ACTIVE || reflectionFailed || line == null) return null;
+		if (!ACTIVE || visibleReflectionFailed || line == null) return null;
 		try {
-			resolve(line.getClass());
+			resolveVisibleApi(line.getClass());
 			Object headData = getHeadData.invoke(null, line);
 			if (headData == null || !(Boolean) hasHeadPosition.invoke(headData)) return null;
 			int width = ((Number) getTextWidthDifference.invoke(null, line)).intValue();
@@ -77,12 +137,13 @@ public final class ChatHeadsCompat {
 			int insertion = Math.max(0, ((Number) codePointIndex.invoke(headData)).intValue());
 			return new HeadGeometry(insertion, width);
 		} catch (ReflectiveOperationException | RuntimeException ignored) {
-			reflectionFailed = true;
+			visibleReflectionFailed = true;
 			return null;
 		}
 	}
 
-	private static void resolve(Class<?> visibleClass) throws ReflectiveOperationException {
+	private static void resolveVisibleApi(Class<?> visibleClass)
+			throws ReflectiveOperationException {
 		if (getHeadData != null) return;
 		Class<?> chatHeads = Class.forName("dzwdz.chat_heads.ChatHeads");
 		for (Method method : chatHeads.getMethods()) {
@@ -101,6 +162,40 @@ public final class ChatHeadsCompat {
 		Class<?> headDataClass = getHeadData.getReturnType();
 		codePointIndex = headDataClass.getMethod("codePointIndex");
 		hasHeadPosition = headDataClass.getMethod("hasHeadPosition");
+	}
+
+	private static synchronized void resolveChannelApi()
+			throws ReflectiveOperationException {
+		if (renderChatHead != null && channelHeadWidth != null) return;
+		Class<?> chatHeads = Class.forName("dzwdz.chat_heads.ChatHeads");
+		renderChatHead = chatHeads.getMethod(
+				"renderChatHead",
+				DrawContext.class,
+				int.class,
+				int.class,
+				PlayerListEntry.class,
+				float.class);
+		channelHeadWidth = chatHeads.getMethod("headWidth");
+	}
+
+	private static boolean channelMessageSupported(
+			ChatCanvasMessage message, MinecraftClient client) {
+		return ACTIVE
+				&& message != null
+				&& message.channel() == ChatCanvasChannel.PLAYER_CHAT
+				&& message.senderUuid() != null
+				&& client != null
+				&& client.getNetworkHandler() != null
+				&& client.getNetworkHandler()
+				.getPlayerListEntry(message.senderUuid()) != null;
+	}
+
+	private static synchronized void failChannelAdapter(Throwable failure) {
+		if (channelReflectionFailed) return;
+		channelReflectionFailed = true;
+		ChatCanvas.LOGGER.warn(
+				"Chat Heads channel adapter unavailable; falling back to text-only chat",
+				failure);
 	}
 
 	private record HeadGeometry(int insertionCodePoint, int width) {

@@ -6,7 +6,7 @@ import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatCapture;
 import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerNameDoubleClickHandler;
 import io.github.ikunkk02.chatcanvas.chat.notification.MentionNotificationController;
 import io.github.ikunkk02.chatcanvas.chat.render.DualChatHudRenderer;
-import io.github.ikunkk02.chatcanvas.chat.command.CommandClipboardManager;
+import io.github.ikunkk02.chatcanvas.chat.command.CommandToolRuntime;
 import io.github.ikunkk02.chatcanvas.chat.text.GlyphAdvanceCache;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.compat.ChatCanvasCompat;
@@ -35,7 +35,7 @@ public final class ChatCanvasClient implements ClientModInitializer {
 		MentionNotificationController.instance().register();
 		PlayerChatCapture.register();
 		ClientLifecycleEvents.CLIENT_STOPPING.register(
-				client -> CommandClipboardManager.instance().flush());
+				client -> CommandToolRuntime.manager().flush());
 		openEditor = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 				"key.chat_canvas.open_editor",
 				InputUtil.Type.KEYSYM,
@@ -60,7 +60,7 @@ public final class ChatCanvasClient implements ClientModInitializer {
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			ChatLayoutRuntime.tick(client);
-			CommandClipboardManager.instance().tick(System.currentTimeMillis());
+			CommandToolRuntime.manager().tick(System.currentTimeMillis());
 			if (client.currentScreen instanceof net.minecraft.client.gui.screen.ChatScreen chatScreen) {
 				PlayerNameDoubleClickHandler.instance().tick(chatScreen);
 			} else {

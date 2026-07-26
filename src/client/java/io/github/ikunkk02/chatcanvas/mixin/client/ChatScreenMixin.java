@@ -3,7 +3,7 @@ package io.github.ikunkk02.chatcanvas.mixin.client;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
-import io.github.ikunkk02.chatcanvas.chat.command.ui.CommandClipboardPanel;
+import io.github.ikunkk02.chatcanvas.chat.command.ui.CommandToolPanel;
 import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputController;
 import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputMode;
 import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputScreenBridge;
@@ -44,8 +44,8 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 	private final PlayerQuickActionMenu chat_canvas$quickActionMenu =
 			new PlayerQuickActionMenu();
 	@Unique
-	private final CommandClipboardPanel chat_canvas$commandClipboard =
-			new CommandClipboardPanel();
+	private final CommandToolPanel chat_canvas$commandTools =
+			new CommandToolPanel();
 	@Unique
 	private final ChatCanvasInputController chat_canvas$inputController =
 			ChatCanvasInputController.instance();
@@ -112,7 +112,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 					chatField,
 					chat_canvas$inputController.snapshot(ChatCanvasInputMode.COMMAND));
 			chat_canvas$applyInputMode(chat_canvas$inputMode);
-			chat_canvas$commandClipboard.init(screen, chatField);
+			chat_canvas$commandTools.init(screen, chatField);
 			chat_canvas$inputInitialized = true;
 			chat_canvas$inputHealthy = true;
 		} catch (Throwable throwable) {
@@ -159,7 +159,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 			return;
 		}
 		if (chat_canvas$inputMode == ChatCanvasInputMode.COMMAND
-				&& chat_canvas$commandClipboard.mouseClicked(
+				&& chat_canvas$commandTools.mouseClicked(
 						screen, chatField, chatInputSuggestor,
 						mouseX, mouseY, button)) {
 			cir.setReturnValue(true);
@@ -192,7 +192,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 		if (!chat_canvas$inputHealthy) return;
 		PlayerNameDoubleClickHandler.instance().reset();
 		if (chat_canvas$inputMode == ChatCanvasInputMode.COMMAND
-				&& chat_canvas$commandClipboard.mouseScrolled(verticalAmount)) {
+				&& chat_canvas$commandTools.mouseScrolled(verticalAmount)) {
 			cir.setReturnValue(true);
 			return;
 		}
@@ -211,7 +211,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 		if (chat_canvas$inputHealthy) chat_canvas$captureBothFields();
 		chat_canvas$unregisterFields();
 		chat_canvas$quickActionMenu.reset((ChatScreen) (Object) this);
-		chat_canvas$commandClipboard.removed();
+		chat_canvas$commandTools.removed();
 	}
 
 	@Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
@@ -224,7 +224,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 		ChatInputSuggestor activeSuggestor = chat_canvas$activeInputSuggestor();
 
 		if (chat_canvas$inputMode == ChatCanvasInputMode.COMMAND
-				&& chat_canvas$commandClipboard.keyPressed(
+				&& chat_canvas$commandTools.keyPressed(
 						keyCode, scanCode, modifiers, chatField, chatInputSuggestor)) {
 			cir.setReturnValue(true);
 			return;
@@ -303,7 +303,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 		chat_canvas$quickActionMenu.render(
 				(ChatScreen) (Object) this, context, mouseX, mouseY);
 		if (chat_canvas$inputMode == ChatCanvasInputMode.COMMAND) {
-			chat_canvas$commandClipboard.render(
+			chat_canvas$commandTools.render(
 					(ChatScreen) (Object) this, chatField,
 					context, mouseX, mouseY, delta);
 		}
@@ -416,6 +416,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 		chat_canvas$playerChatSuggestor.setWindowActive(!command);
 		if (!command) chatInputSuggestor.clearWindow();
 		else chat_canvas$playerChatSuggestor.clearWindow();
+		if (!command) chat_canvas$commandTools.close();
 		chat_canvas$applyInputPlacement();
 		chat_canvas$focusActiveField();
 		chat_canvas$activeInputSuggestor().refresh();
