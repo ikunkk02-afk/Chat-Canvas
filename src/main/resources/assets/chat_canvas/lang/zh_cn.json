@@ -206,5 +206,9 @@
   "chat_canvas.ui_theme.chat_canvas_desc": "现代化半透明面板与自定义控件",
   "chat_canvas.ui_theme.vanilla_desc": "Minecraft 原版风格按钮与边框",
   "chat_canvas.ui_theme.switch_note": "只改变编辑器外观，不改变功能和布局",
-  "chat_canvas.ui_theme.current": "当前主题"
+  "chat_canvas.ui_theme.current": "当前主题",
+  "chat_canvas.player_layout.mode": "消息布局",
+  "chat_canvas.player_layout.classic": "经典布局",
+  "chat_canvas.player_layout.split": "左右分栏布局",
+  "chat_canvas.player_layout.max_width": "分栏消息最大宽度"
 }

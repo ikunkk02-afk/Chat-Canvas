@@ -9,6 +9,8 @@ import io.github.ikunkk02.chatcanvas.chat.style.TextIndexing;
 import io.github.ikunkk02.chatcanvas.chat.style.TextRange;
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextMetrics;
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextWrapper;
+import io.github.ikunkk02.chatcanvas.chat.layout.PlayerChatLayoutStrategies;
+import io.github.ikunkk02.chatcanvas.config.PlayerChatLayoutMode;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -21,15 +23,23 @@ public final class ChatLayoutCalculator {
 	private String cachedMentionName = "";
 	private boolean cachedRequireAt;
 	private long cachedSpacingBits;
+	private PlayerChatLayoutMode cachedLayoutMode = PlayerChatLayoutMode.CLASSIC;
+	private long cachedSplitRatioBits;
 
 	public List<ChatLine> calculate(TextRenderer renderer, List<PreviewChatMessage> messages, int width,
 									String localPlayerName, boolean requireAtSymbol,
-									double characterSpacing) {
+									double characterSpacing,
+									PlayerChatLayoutMode layoutMode,
+									double splitRatio) {
 		int safeWidth = Math.max(1, width);
+		PlayerChatLayoutMode safeMode = layoutMode == null
+				? PlayerChatLayoutMode.CLASSIC : layoutMode;
 		String mentionName = localPlayerName == null ? "" : localPlayerName;
 		if (messages == cachedMessages && safeWidth == cachedWidth
 				&& mentionName.equals(cachedMentionName) && requireAtSymbol == cachedRequireAt
-				&& cachedSpacingBits == Double.doubleToLongBits(characterSpacing)) {
+				&& cachedSpacingBits == Double.doubleToLongBits(characterSpacing)
+				&& cachedLayoutMode == safeMode
+				&& cachedSplitRatioBits == Double.doubleToLongBits(splitRatio)) {
 			return cachedLines;
 		}
 
@@ -38,6 +48,8 @@ public final class ChatLayoutCalculator {
 		cachedMentionName = mentionName;
 		cachedRequireAt = requireAtSymbol;
 		cachedSpacingBits = Double.doubleToLongBits(characterSpacing);
+		cachedLayoutMode = safeMode;
+		cachedSplitRatioBits = Double.doubleToLongBits(splitRatio);
 		cachedLines.clear();
 		for (PreviewChatMessage message : messages) {
 			String plain = message.text().getString();
@@ -52,12 +64,14 @@ public final class ChatLayoutCalculator {
 			}
 			List<TextRange> globalMentions = MentionMatcher.findMentions(
 					plain, mentionName, requireAtSymbol);
+			int messageWidth = PlayerChatLayoutStrategies.forMode(safeMode)
+					.wrapWidth(safeWidth, 0, splitRatio, message.selfMessage());
 			List<OrderedText> wrapped = Math.abs(characterSpacing) < 0.00001
-					? renderer.wrapLines(message.text(), safeWidth)
+					? renderer.wrapLines(message.text(), messageWidth)
 					: SpacedTextWrapper.wrap(
 							renderer,
 							renderer.wrapLines(message.text(), Integer.MAX_VALUE / 4),
-							safeWidth,
+							messageWidth,
 							characterSpacing);
 			int[] source = plain.codePoints().toArray();
 			int sourceCursor = 0;
@@ -72,7 +86,8 @@ public final class ChatLayoutCalculator {
 						SpacedTextMetrics.width(renderer, line, characterSpacing),
 						nameRange == null ? null : message.sender(),
 						nameRange,
-						mapping.localRanges(globalMentions)
+						mapping.localRanges(globalMentions),
+						message.selfMessage()
 				));
 			}
 		}
@@ -112,7 +127,8 @@ public final class ChatLayoutCalculator {
 			int width,
 			@Nullable PlayerChatIdentity sender,
 			@Nullable TextRange playerNameRange,
-			List<TextRange> mentionRanges
+			List<TextRange> mentionRanges,
+			boolean selfMessage
 	) {
 		public ChatLine {
 			mentionRanges = mentionRanges == null ? List.of() : List.copyOf(mentionRanges);

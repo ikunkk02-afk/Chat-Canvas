@@ -188,6 +188,10 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 				session.playerColors(),
 				session.mention(),
 				Text.translatable("chat_canvas.preview.shouyun_name").getString(),
+				channel == EditorChannel.PLAYER_CHAT
+						? session.playerChatLayoutMode()
+						: io.github.ikunkk02.chatcanvas.config.PlayerChatLayoutMode.CLASSIC,
+				session.splitMessageMaxWidthRatio(),
 				MinecraftClient.getInstance().options.getTextBackgroundOpacity().getValue()
 		));
 		drawEditorAssist(context, layout);
@@ -207,7 +211,7 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 		return List.of(
 				new PreviewChatMessage(steve, previewIdentity("Steve")),
 				new PreviewChatMessage(alex, previewIdentity("Alex")),
-				new PreviewChatMessage(shouyun, previewIdentity(shouyunName)),
+				new PreviewChatMessage(shouyun, previewIdentity(shouyunName), true),
 				new PreviewChatMessage(system)
 		);
 	}

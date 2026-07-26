@@ -43,4 +43,8 @@ public final class ChatCanvasMessageManager {
 		playerChat.invalidateLayout();
 		commandSystem.invalidateLayout();
 	}
+
+	public void invalidateLayout(ChatCanvasChannel channel) {
+		history(channel).invalidateLayout();
+	}
 }

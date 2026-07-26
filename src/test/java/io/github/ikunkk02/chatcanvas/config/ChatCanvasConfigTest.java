@@ -24,6 +24,8 @@ class ChatCanvasConfigTest {
 		assertEquals(ChatBackgroundConfig.DEFAULT, config.background());
 		assertEquals(PlayerColorConfig.DEFAULT, config.playerColors());
 		assertEquals(MentionConfig.DEFAULT, config.mention());
+		assertEquals(PlayerChatLayoutMode.CLASSIC, config.playerChatLayoutMode());
+		assertEquals(.75, config.splitMessageMaxWidthRatio(), .00001);
 		assertTrue(config.recentColors().isEmpty());
 
 		LayoutConfig custom = new LayoutConfig(0.12, 0.31, 0.42, 0.22);
@@ -225,5 +227,42 @@ class ChatCanvasConfigTest {
 		assertTrue(legacy.commandClipboard().recordRecentCommands());
 		assertEquals(CommandClipboardConfig.DEFAULT_EXCLUDED_COMMAND_NAMES,
 				legacy.commandClipboard().excludedCommandNames());
+	}
+
+	@Test
+	void playerLayoutRoundTripsAndLegacyOrInvalidValuesUseSafeDefaults()
+			throws IOException {
+		Path path = temporaryDirectory.resolve("chat_canvas.json");
+		ChatCanvasSettings defaults = ChatCanvasSettings.DEFAULT;
+		ChatCanvasConfig config = new ChatCanvasConfig(path);
+		assertTrue(config.save(new ChatCanvasSettings(
+				defaults.layout(), defaults.text(), defaults.background(),
+				defaults.playerColors(), defaults.mention(), defaults.commandClipboard(),
+				defaults.recentColors(), defaults.editorUiStyle(),
+				defaults.enabled(), defaults.playerChatEnabled(),
+				PlayerChatLayoutMode.SPLIT_ALIGNMENT, .62,
+				defaults.commandSystem())));
+		ChatCanvasConfig reloaded = new ChatCanvasConfig(path);
+		reloaded.load();
+		assertEquals(PlayerChatLayoutMode.SPLIT_ALIGNMENT,
+				reloaded.playerChatLayoutMode());
+		assertEquals(.62, reloaded.splitMessageMaxWidthRatio(), .00001);
+
+		Files.writeString(path, """
+				{
+				  "playerChatLayoutMode": "unknown",
+				  "splitMessageMaxWidthRatio": 9
+				}
+				""");
+		ChatCanvasConfig invalid = new ChatCanvasConfig(path);
+		invalid.load();
+		assertEquals(PlayerChatLayoutMode.CLASSIC, invalid.playerChatLayoutMode());
+		assertEquals(1.0, invalid.splitMessageMaxWidthRatio(), .00001);
+
+		Files.writeString(path, "{}");
+		ChatCanvasConfig legacy = new ChatCanvasConfig(path);
+		legacy.load();
+		assertEquals(PlayerChatLayoutMode.CLASSIC, legacy.playerChatLayoutMode());
+		assertEquals(.75, legacy.splitMessageMaxWidthRatio(), .00001);
 	}
 }

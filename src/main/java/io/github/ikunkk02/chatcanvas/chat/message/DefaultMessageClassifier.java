@@ -63,9 +63,25 @@ public final class DefaultMessageClassifier implements MessageClassifier {
 
 	private static boolean isSelf(PlayerChatIdentity sender, MessageContext context) {
 		if (sender == null) return false;
-		if (sender.uuid() != null && sender.uuid().equals(context.localPlayerUuid())) return true;
-		return PlayerColorConfig.normalizeName(sender.playerName()).equals(
-				PlayerColorConfig.normalizeName(context.localPlayerName()));
+		if (sender.uuid() != null && context.localPlayerUuid() != null) {
+			if (!sender.uuid().equals(context.localPlayerUuid())) return false;
+			if (sender.reliable()) return true;
+			return uniquelyMatchesLocalPlayer(sender, context);
+		}
+		if (!sender.reliable()) return false;
+		return uniquelyMatchesLocalPlayer(sender, context);
+	}
+
+	private static boolean uniquelyMatchesLocalPlayer(
+			PlayerChatIdentity sender, MessageContext context) {
+		String senderName = PlayerColorConfig.normalizeName(sender.playerName());
+		String localName = PlayerColorConfig.normalizeName(context.localPlayerName());
+		if (senderName.isEmpty() || !senderName.equals(localName)) return false;
+		long matches = context.onlinePlayers().stream()
+				.filter(player -> PlayerColorConfig.normalizeName(player.playerName())
+						.equals(localName))
+				.count();
+		return matches == 1;
 	}
 
 	private static ChatCanvasMessageSource vanillaSource(Text message) {

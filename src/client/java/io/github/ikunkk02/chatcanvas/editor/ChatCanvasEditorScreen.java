@@ -138,6 +138,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 				cur.layout(), cur.text(), cur.background(),
 				cur.playerColors(), cur.mention(), cur.commandClipboard(),
 				cur.recentColors(), next, cur.enabled(), cur.playerChatEnabled(),
+				cur.playerChatLayoutMode(), cur.splitMessageMaxWidthRatio(),
 				cur.commandSystem()));
 		// Update the theme button text to reflect the new theme.
 		if (themeButton != null) {
@@ -387,6 +388,8 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	private void saveAndClose() {
 		if (ChatCanvasConfig.instance().save(session.settings())) {
 			ChatLayoutRuntime.applySavedSettings();
+			io.github.ikunkk02.chatcanvas.chat.render.DualChatHudRenderer.instance()
+					.invalidatePlayerLayouts();
 			returnToParent();
 		}
 	}

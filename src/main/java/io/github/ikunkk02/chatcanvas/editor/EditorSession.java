@@ -10,6 +10,7 @@ import io.github.ikunkk02.chatcanvas.config.PixelLayout;
 import io.github.ikunkk02.chatcanvas.config.RecentColorStore;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
 import io.github.ikunkk02.chatcanvas.config.CommandSystemConfig;
+import io.github.ikunkk02.chatcanvas.config.PlayerChatLayoutMode;
 
 public final class EditorSession {
 	private final EditorSnapshot original;
@@ -21,6 +22,8 @@ public final class EditorSession {
 	private PlayerColorConfig playerColors;
 	private MentionConfig mention;
 	private CommandClipboardConfig commandClipboard;
+	private PlayerChatLayoutMode playerChatLayoutMode;
+	private double splitMessageMaxWidthRatio;
 	private PixelLayout commandLayout;
 	private CommandSystemConfig commandSystem;
 	private EditorChannel selectedChannel = EditorChannel.PLAYER_CHAT;
@@ -38,7 +41,8 @@ public final class EditorSession {
 		ChatCanvasSettings safe = original.sanitized();
 		this.original = new EditorSnapshot(
 				safe.layout(), safe.text(), safe.background(), safe.playerColors(), safe.mention(),
-				safe.commandClipboard(), safe.commandSystem());
+				safe.commandClipboard(), safe.playerChatLayoutMode(),
+				safe.splitMessageMaxWidthRatio(), safe.commandSystem());
 		this.screenWidth = Math.max(1, screenWidth);
 		this.screenHeight = Math.max(1, screenHeight);
 		this.layout = this.original.layout().toPixels(this.screenWidth, this.screenHeight);
@@ -47,6 +51,8 @@ public final class EditorSession {
 		this.playerColors = this.original.playerColors();
 		this.mention = this.original.mention();
 		this.commandClipboard = this.original.commandClipboard();
+		this.playerChatLayoutMode = this.original.playerChatLayoutMode();
+		this.splitMessageMaxWidthRatio = this.original.splitMessageMaxWidthRatio();
 		this.commandSystem = this.original.commandSystem();
 		this.commandLayout = commandSystem.layout().toPixels(this.screenWidth, this.screenHeight);
 		this.enabled = safe.enabled();
@@ -110,6 +116,8 @@ public final class EditorSession {
 				playerColors,
 				mention,
 				commandClipboard,
+				playerChatLayoutMode,
+				splitMessageMaxWidthRatio,
 				commandSnapshot
 		);
 	}
@@ -127,6 +135,8 @@ public final class EditorSession {
 				editorUiStyle,
 				enabled,
 				playerChatEnabled,
+				snapshot.playerChatLayoutMode(),
+				snapshot.splitMessageMaxWidthRatio(),
 				snapshot.commandSystem()
 		);
 	}
@@ -181,6 +191,28 @@ public final class EditorSession {
 		commandClipboard = value.sanitized();
 	}
 
+	public PlayerChatLayoutMode playerChatLayoutMode() {
+		return playerChatLayoutMode;
+	}
+
+	public void setPlayerChatLayoutMode(PlayerChatLayoutMode value) {
+		playerChatLayoutMode = value == null
+				? PlayerChatLayoutMode.CLASSIC : value;
+	}
+
+	public double splitMessageMaxWidthRatio() {
+		return splitMessageMaxWidthRatio;
+	}
+
+	public void setSplitMessageMaxWidthRatio(double value) {
+		if (!Double.isFinite(value)) {
+			value = ChatCanvasSettings.DEFAULT_SPLIT_MESSAGE_MAX_WIDTH_RATIO;
+		}
+		splitMessageMaxWidthRatio = Math.max(
+				ChatCanvasSettings.MIN_SPLIT_MESSAGE_MAX_WIDTH_RATIO,
+				Math.min(ChatCanvasSettings.MAX_SPLIT_MESSAGE_MAX_WIDTH_RATIO, value));
+	}
+
 	public void apply(EditorSnapshot value) {
 		layout = value.layout().toPixels(screenWidth, screenHeight);
 		text = value.text();
@@ -188,6 +220,8 @@ public final class EditorSession {
 		playerColors = value.playerColors();
 		mention = value.mention();
 		commandClipboard = value.commandClipboard();
+		playerChatLayoutMode = value.playerChatLayoutMode();
+		splitMessageMaxWidthRatio = value.splitMessageMaxWidthRatio();
 		commandSystem = value.commandSystem();
 		commandLayout = commandSystem.layout().toPixels(screenWidth, screenHeight);
 	}
@@ -202,7 +236,12 @@ public final class EditorSession {
 	}
 
 	public void restoreLayoutDefaults() {
-		if (selectedChannel == EditorChannel.PLAYER_CHAT) apply(LayoutConfig.DEFAULT);
+		if (selectedChannel == EditorChannel.PLAYER_CHAT) {
+			apply(LayoutConfig.DEFAULT);
+			playerChatLayoutMode = PlayerChatLayoutMode.CLASSIC;
+			splitMessageMaxWidthRatio =
+					ChatCanvasSettings.DEFAULT_SPLIT_MESSAGE_MAX_WIDTH_RATIO;
+		}
 		else commandLayout = CommandSystemConfig.DEFAULT.layout().toPixels(screenWidth, screenHeight);
 		commit();
 	}

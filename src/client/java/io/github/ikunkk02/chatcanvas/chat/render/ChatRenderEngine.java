@@ -7,6 +7,7 @@ import io.github.ikunkk02.chatcanvas.chat.layout.ChatBackgroundBounds;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatBackgroundMetrics;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatTextLayout;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatVerticalMetrics;
+import io.github.ikunkk02.chatcanvas.chat.layout.PlayerChatLayoutStrategies;
 import io.github.ikunkk02.chatcanvas.chat.layout.RuntimeChatBounds;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
@@ -84,6 +85,8 @@ public final class ChatRenderEngine {
 				baseContext.playerColorConfig(),
 				baseContext.mentionConfig(),
 				baseContext.localPlayerName(),
+				baseContext.playerChatLayoutMode(),
+				baseContext.splitMessageMaxWidthRatio(),
 				baseContext.vanillaBackgroundOpacity()
 		);
 
@@ -115,7 +118,9 @@ public final class ChatRenderEngine {
 						context.localPlayerName(),
 						context.mentionConfig() == null
 								|| context.mentionConfig().requireAtSymbol(),
-						textConfig.characterSpacing());
+						textConfig.characterSpacing(),
+						context.playerChatLayoutMode(),
+						context.splitMessageMaxWidthRatio());
 		ChatVerticalMetrics verticalMetrics = ChatTextLayout.verticalMetrics(
 				context.textRenderer().fontHeight,
 				context.textRenderer().fontHeight,
@@ -136,20 +141,13 @@ public final class ChatRenderEngine {
 					: 1.0f;
 			float vanillaLineOpacity = opacity * ageFade;
 			float lineOpacity = vanillaLineOpacity * (float) textConfig.textOpacity();
-			ChatLineMetrics metrics = ChatTextLayout.metrics(
-					index,
-					line.width(),
-					wrapWidth,
-					0,
-					textConfig.alignment(),
-					lineY,
-					screenLineHeight
-			);
+			int lineX = PlayerChatLayoutStrategies
+					.forMode(context.playerChatLayoutMode())
+					.textX(0, wrapWidth, line.width(), 0, line.selfMessage());
 			context.drawContext().getMatrices().push();
 			context.drawContext().getMatrices().translate(
 					context.x() + backgroundConfig.horizontalPadding(), (float) lineY, 0.0f);
 			context.drawContext().getMatrices().scale((float) fontScale, (float) fontScale, 1.0f);
-			int lineX = (int) Math.round(metrics.drawX());
 			backgroundRenderer.drawMessageBackground(
 					new ChatRenderContext(
 							context.drawContext(),
@@ -166,6 +164,8 @@ public final class ChatRenderEngine {
 							context.playerColorConfig(),
 							context.mentionConfig(),
 							context.localPlayerName(),
+							context.playerChatLayoutMode(),
+							context.splitMessageMaxWidthRatio(),
 							context.vanillaBackgroundOpacity()
 					),
 					ChatBackgroundMetrics.messageBounds(

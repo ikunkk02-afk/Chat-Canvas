@@ -26,6 +26,16 @@ class ChatCanvasMessageManagerTest {
 		assertEquals(1, manager.commandSystem().messages().size());
 	}
 
+	@Test
+	void layoutInvalidationCanTargetOnlyPlayerHistory() {
+		ChatCanvasMessageManager manager = new ChatCanvasMessageManager(5, 5);
+		long playerBefore = manager.playerChat().layoutEpoch();
+		long commandBefore = manager.commandSystem().layoutEpoch();
+		manager.invalidateLayout(ChatCanvasChannel.PLAYER_CHAT);
+		assertEquals(playerBefore + 1, manager.playerChat().layoutEpoch());
+		assertEquals(commandBefore, manager.commandSystem().layoutEpoch());
+	}
+
 	private static ChatCanvasMessage message(ChatCanvasChannel channel) {
 		return new ChatCanvasMessage(UUID.randomUUID(), channel,
 				channel == ChatCanvasChannel.PLAYER_CHAT

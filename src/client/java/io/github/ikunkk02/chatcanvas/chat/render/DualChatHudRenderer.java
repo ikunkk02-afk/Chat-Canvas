@@ -7,6 +7,8 @@ import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputMode;
 import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputScreenBridge;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChannelMessageLayoutEngine;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatBackgroundMetrics;
+import io.github.ikunkk02.chatcanvas.chat.layout.PlayerChatLayoutStrategies;
+import io.github.ikunkk02.chatcanvas.chat.layout.PlayerChatLayoutStrategy;
 import io.github.ikunkk02.chatcanvas.chat.layout.RuntimeChatBounds;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasChannel;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessage;
@@ -93,24 +95,42 @@ public final class DualChatHudRenderer {
 		long now = System.currentTimeMillis();
 		double scroll = history.scrollOffsetPixels();
 		int cursorBottom = renderBottom + (int) Math.round(scroll) - padding;
+		int contentLeft = box.x() + padding;
+		int contentRight = contentLeft + available;
 		context.enableScissor(box.x(), box.y(), box.right(), renderBottom);
 		for (int messageIndex = messages.size() - 1; messageIndex >= 0; messageIndex--) {
 			ChatCanvasMessage message = messages.get(messageIndex);
 			float alpha = open ? 1.0f : fadeAlpha(now - message.receivedAt(), fadeSeconds);
 			if (alpha <= 0.01f && scroll <= 0.0) continue;
-			int headWidth = channel == ChatCanvasChannel.PLAYER_CHAT
+			PlayerChatLayoutMode layoutMode = channel == ChatCanvasChannel.PLAYER_CHAT
+					? ChatCanvasConfig.instance().playerChatLayoutMode()
+					: PlayerChatLayoutMode.CLASSIC;
+			PlayerChatLayoutStrategy strategy =
+					PlayerChatLayoutStrategies.forMode(layoutMode);
+			int candidateHeadWidth = channel == ChatCanvasChannel.PLAYER_CHAT
 					? (int) Math.ceil(ChatHeadsCompat.channelHeadWidth(
 							message, client) * text.fontScale())
 					: 0;
+			int headWidth = strategy.reserveHead(message.selfMessage())
+					? candidateHeadWidth : 0;
+			double splitRatio = channel == ChatCanvasChannel.PLAYER_CHAT
+					? ChatCanvasConfig.instance().splitMessageMaxWidthRatio()
+					: ChatCanvasSettings.DEFAULT_SPLIT_MESSAGE_MAX_WIDTH_RATIO;
+			int wrapWidth = channel == ChatCanvasChannel.PLAYER_CHAT
+					? strategy.wrapWidth(
+							available, headWidth, splitRatio, message.selfMessage())
+					: available;
+			int visualSafety = text.shadow() ? 2 : 1;
 			ChannelMessageLayoutEngine.Layout layout = ChannelMessageLayoutEngine.instance().layout(
-					message, client.textRenderer, Math.max(1, available - headWidth),
+					message, client.textRenderer, wrapWidth,
 					text, lineHeight,
-					messageSpacing, history.layoutEpoch());
+					messageSpacing, history.layoutEpoch(), layoutMode, splitRatio,
+					visualSafety, client.getWindow().getScaleFactor());
 			int messageTop = cursorBottom - layout.height();
 			if (messageTop < renderBottom && cursorBottom > box.y()) {
 				drawMessage(context, client, channel, message, messageIndex, layout,
-						box.x() + padding, messageTop, lineHeight, text, background,
-						rgb, alpha, headWidth);
+						contentLeft, contentRight, messageTop, lineHeight, text, background,
+						rgb, alpha, headWidth, strategy, layoutMode);
 			}
 			cursorBottom = messageTop;
 			if (cursorBottom < box.y() && scroll <= 0.0) break;
@@ -123,20 +143,28 @@ public final class DualChatHudRenderer {
 
 	private void drawMessage(DrawContext context, MinecraftClient client,
 							 ChatCanvasChannel channel, ChatCanvasMessage message, int messageIndex,
-							 ChannelMessageLayoutEngine.Layout layout, int x, int top,
+							 ChannelMessageLayoutEngine.Layout layout,
+							 int contentLeft, int contentRight, int top,
 							 int lineHeight, ChatTextConfig text, ChatBackgroundConfig background,
-							 int rgb, float alpha, int headWidth) {
+							 int rgb, float alpha, int headWidth,
+							 PlayerChatLayoutStrategy strategy,
+							 PlayerChatLayoutMode layoutMode) {
 		int backgroundColor = ChatBackgroundMetrics.composeBackgroundColor(
 				background.messageColor(), background.messageOpacity(), alpha);
 		int y = top;
 		for (int lineIndex = 0; lineIndex < layout.lines().size(); lineIndex++) {
-			OrderedText line = layout.lines().get(lineIndex);
-			int textX = x + headWidth;
-			int lineWidth = (int) Math.ceil(
-					SpacedTextMetrics.width(client.textRenderer, line, text.characterSpacing())
-							* text.fontScale());
+			ChannelMessageLayoutEngine.Line layoutLine = layout.lines().get(lineIndex);
+			int textX = channel == ChatCanvasChannel.PLAYER_CHAT
+					? strategy.textX(contentLeft, contentRight, layoutLine.width(),
+							headWidth, message.selfMessage())
+					: contentLeft;
+			int lineWidth = layoutLine.width();
+			int backgroundLeft = layoutMode == PlayerChatLayoutMode.SPLIT_ALIGNMENT
+					&& message.selfMessage()
+					? textX - background.horizontalPadding()
+					: contentLeft - background.horizontalPadding();
 			if (background.messageMode() != MessageBackgroundMode.HIDDEN && backgroundColor >>> 24 != 0) {
-				context.fill(x - background.horizontalPadding(), y - background.verticalPadding(),
+				context.fill(backgroundLeft, y - background.verticalPadding(),
 						textX + lineWidth + background.horizontalPadding(),
 						y + lineHeight + background.verticalPadding(), backgroundColor);
 			}
@@ -152,50 +180,58 @@ public final class DualChatHudRenderer {
 				int outlineAlpha = Math.max(0, Math.min(255, (int) Math.round(
 						alpha * command.outlineOpacity() * 255)));
 				int outlineColor = (outlineAlpha << 24) | command.outlineColor();
-				SpacedTextRenderer.draw(context, client.textRenderer, line, -1, 0,
+				SpacedTextRenderer.draw(context, client.textRenderer, layoutLine.text(), -1, 0,
 						outlineColor, false, text.characterSpacing());
-				SpacedTextRenderer.draw(context, client.textRenderer, line, 1, 0,
+				SpacedTextRenderer.draw(context, client.textRenderer, layoutLine.text(), 1, 0,
 						outlineColor, false, text.characterSpacing());
-				SpacedTextRenderer.draw(context, client.textRenderer, line, 0, -1,
+				SpacedTextRenderer.draw(context, client.textRenderer, layoutLine.text(), 0, -1,
 						outlineColor, false, text.characterSpacing());
-				SpacedTextRenderer.draw(context, client.textRenderer, line, 0, 1,
+				SpacedTextRenderer.draw(context, client.textRenderer, layoutLine.text(), 0, 1,
 						outlineColor, false, text.characterSpacing());
 			}
-			SpacedTextRenderer.draw(context, client.textRenderer, line, 0, 0,
+			SpacedTextRenderer.draw(context, client.textRenderer, layoutLine.text(), 0, 0,
 					color, text.shadow(), text.characterSpacing());
 			context.getMatrices().pop();
 			if (lineIndex == 0 && headWidth > 0) {
+				int headX = strategy.headX(
+						contentLeft, textX, headWidth, message.selfMessage());
 				context.getMatrices().push();
-				context.getMatrices().translate(x, y, 0);
+				context.getMatrices().translate(headX, y, 0);
 				context.getMatrices().scale(
 						(float) text.fontScale(), (float) text.fontScale(), 1);
 				ChatHeadsCompat.renderChannelHead(
 						context, message, client, 0, 0, alpha);
 				context.getMatrices().pop();
 			}
-			HitLine hit = new HitLine(channel, message, line, textX, y, lineWidth, lineHeight,
+			HitLine hit = new HitLine(channel, message, layoutLine.text(),
+					textX, y, lineWidth, lineHeight,
 					text.fontScale(), text.characterSpacing());
 			hitLines.add(hit);
-			if (channel == ChatCanvasChannel.PLAYER_CHAT && lineIndex == 0) {
-				addPlayerNameHitbox(client, message, messageIndex, hit);
+			if (channel == ChatCanvasChannel.PLAYER_CHAT
+					&& layoutLine.playerNameRange() != null) {
+				addPlayerNameHitbox(client, message, messageIndex, layoutLine, hit);
 			}
 			y += lineHeight;
 		}
 	}
 
 	private void addPlayerNameHitbox(MinecraftClient client, ChatCanvasMessage message,
-									 int messageIndex, HitLine line) {
+									 int messageIndex,
+									 ChannelMessageLayoutEngine.Line layoutLine,
+									 HitLine line) {
 		if (message.senderName() == null) return;
 		String name = message.senderName().getString();
-		String plain = message.content().getString();
-		int start = plain.indexOf(name);
-		if (start < 0) return;
-		double prefix = SpacedTextMetrics.width(client.textRenderer,
-				plain.substring(0, start), line.spacing()) * line.scale();
-		double width = SpacedTextMetrics.width(client.textRenderer, name, line.spacing()) * line.scale();
+		double start = SpacedTextMetrics.xAtCodePoint(
+				client.textRenderer, layoutLine.text(), line.spacing(),
+				layoutLine.playerNameRange().startCodePoint()) * line.scale();
+		double end = SpacedTextMetrics.xAtCodePoint(
+				client.textRenderer, layoutLine.text(), line.spacing(),
+				layoutLine.playerNameRange().endCodePoint()) * line.scale();
+		double width = Math.max(0.0, end - start);
 		PlayerNameHitboxRegistry.add(new PlayerNameHitbox(
 				message.senderUuid(), name, messageIndex,
-				line.x() + prefix, line.y(), line.x() + prefix + width, line.y() + line.height()));
+				line.x() + start, line.y(), line.x() + start + width,
+				line.y() + line.height()));
 	}
 
 	public boolean scroll(double mouseX, double mouseY, double amount) {
@@ -236,6 +272,15 @@ public final class DualChatHudRenderer {
 	public void invalidateLayouts() {
 		ChannelMessageLayoutEngine.instance().invalidateResources();
 		ChatCanvasMessageManager.instance().invalidateLayouts();
+	}
+
+	public void invalidatePlayerLayouts() {
+		hitLines.clear();
+		PlayerNameHitboxRegistry.clear();
+		ChannelMessageLayoutEngine.instance().invalidateChannel(
+				ChatCanvasChannel.PLAYER_CHAT);
+		ChatCanvasMessageManager.instance().invalidateLayout(
+				ChatCanvasChannel.PLAYER_CHAT);
 	}
 
 	private HitLine hitAt(double x, double y) {
@@ -280,13 +325,29 @@ public final class DualChatHudRenderer {
 		int total = 0;
 		ChatChannelHistory history = ChatCanvasMessageManager.instance().history(channel);
 		for (ChatCanvasMessage message : history.messages()) {
-			int headWidth = channel == ChatCanvasChannel.PLAYER_CHAT
+			PlayerChatLayoutMode layoutMode = channel == ChatCanvasChannel.PLAYER_CHAT
+					? ChatCanvasConfig.instance().playerChatLayoutMode()
+					: PlayerChatLayoutMode.CLASSIC;
+			PlayerChatLayoutStrategy strategy =
+					PlayerChatLayoutStrategies.forMode(layoutMode);
+			int candidateHeadWidth = channel == ChatCanvasChannel.PLAYER_CHAT
 					? (int) Math.ceil(ChatHeadsCompat.channelHeadWidth(
 							message, client) * text.fontScale())
 					: 0;
+			int headWidth = strategy.reserveHead(message.selfMessage())
+					? candidateHeadWidth : 0;
+			double splitRatio = channel == ChatCanvasChannel.PLAYER_CHAT
+					? ChatCanvasConfig.instance().splitMessageMaxWidthRatio()
+					: ChatCanvasSettings.DEFAULT_SPLIT_MESSAGE_MAX_WIDTH_RATIO;
+			int wrapWidth = channel == ChatCanvasChannel.PLAYER_CHAT
+					? strategy.wrapWidth(
+							available, headWidth, splitRatio, message.selfMessage())
+					: available;
 			total += ChannelMessageLayoutEngine.instance().layout(message, client.textRenderer,
-					Math.max(1, available - headWidth), text, lineHeight,
-					spacing, history.layoutEpoch()).height();
+					wrapWidth, text, lineHeight,
+					spacing, history.layoutEpoch(), layoutMode, splitRatio,
+					text.shadow() ? 2 : 1,
+					client.getWindow().getScaleFactor()).height();
 		}
 		return Math.max(0, total - (renderBottom - box.y()) + background.verticalPadding() * 2);
 	}

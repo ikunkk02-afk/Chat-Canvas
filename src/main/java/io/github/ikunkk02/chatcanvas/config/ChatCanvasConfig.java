@@ -93,6 +93,14 @@ public final class ChatCanvasConfig {
 		return settings.playerChatEnabled();
 	}
 
+	public synchronized PlayerChatLayoutMode playerChatLayoutMode() {
+		return settings.playerChatLayoutMode();
+	}
+
+	public synchronized double splitMessageMaxWidthRatio() {
+		return settings.splitMessageMaxWidthRatio();
+	}
+
 	public synchronized CommandSystemConfig commandSystem() {
 		return settings.commandSystem();
 	}
@@ -127,6 +135,7 @@ public final class ChatCanvasConfig {
 				value, settings.text(), settings.background(), settings.playerColors(),
 				settings.mention(), settings.commandClipboard(), settings.recentColors(),
 				settings.editorUiStyle(), settings.enabled(), settings.playerChatEnabled(),
+				settings.playerChatLayoutMode(), settings.splitMessageMaxWidthRatio(),
 				settings.commandSystem()));
 	}
 
@@ -280,6 +289,10 @@ public final class ChatCanvasConfig {
 				editorUiStyleOr(root, "editorUiStyle", EditorUiStyle.CHAT_CANVAS),
 				booleanOr(root, "enabled", true),
 				booleanOr(root, "playerChatEnabled", true),
+				playerChatLayoutModeOr(root, "playerChatLayoutMode",
+						PlayerChatLayoutMode.CLASSIC),
+				doubleOr(root, "splitMessageMaxWidthRatio",
+						ChatCanvasSettings.DEFAULT_SPLIT_MESSAGE_MAX_WIDTH_RATIO),
 				parseCommandSystem(objectOr(root, "commandSystem", null))
 		);
 	}
@@ -330,6 +343,8 @@ public final class ChatCanvasConfig {
 		JsonObject root = new JsonObject();
 		root.addProperty("enabled", value.enabled());
 		root.addProperty("playerChatEnabled", value.playerChatEnabled());
+		root.addProperty("playerChatLayoutMode", value.playerChatLayoutMode().name());
+		root.addProperty("splitMessageMaxWidthRatio", value.splitMessageMaxWidthRatio());
 		LayoutConfig layout = value.layout();
 		root.addProperty("chatXRatio", layout.chatXRatio());
 		root.addProperty("chatYRatio", layout.chatYRatio());
@@ -558,6 +573,20 @@ public final class ChatCanvasConfig {
 		}
 		try {
 			return ChatTextAlignment.valueOf(element.getAsString().toUpperCase(java.util.Locale.ROOT));
+		} catch (RuntimeException ignored) {
+			return fallback;
+		}
+	}
+
+	private static PlayerChatLayoutMode playerChatLayoutModeOr(
+			JsonObject object, String key, PlayerChatLayoutMode fallback) {
+		JsonElement element = object.get(key);
+		if (element == null || element.isJsonNull() || !element.isJsonPrimitive()) {
+			return fallback;
+		}
+		try {
+			return PlayerChatLayoutMode.valueOf(
+					element.getAsString().toUpperCase(Locale.ROOT));
 		} catch (RuntimeException ignored) {
 			return fallback;
 		}

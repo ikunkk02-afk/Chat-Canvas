@@ -206,5 +206,9 @@
   "chat_canvas.ui_theme.chat_canvas_desc": "Modern translucent panels and custom controls",
   "chat_canvas.ui_theme.vanilla_desc": "Minecraft-style buttons and borders",
   "chat_canvas.ui_theme.switch_note": "Changes only the editor appearance, not its features or layout",
-  "chat_canvas.ui_theme.current": "Current Theme"
+  "chat_canvas.ui_theme.current": "Current Theme",
+  "chat_canvas.player_layout.mode": "Message Layout",
+  "chat_canvas.player_layout.classic": "Classic",
+  "chat_canvas.player_layout.split": "Split Alignment",
+  "chat_canvas.player_layout.max_width": "Split Message Max Width"
 }

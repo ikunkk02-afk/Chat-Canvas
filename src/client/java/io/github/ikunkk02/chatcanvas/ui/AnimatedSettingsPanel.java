@@ -16,6 +16,7 @@ import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import io.github.ikunkk02.chatcanvas.config.MentionSound;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorMode;
+import io.github.ikunkk02.chatcanvas.config.PlayerChatLayoutMode;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatIdentity;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameColorProvider;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerRosterTracker;
@@ -71,12 +72,15 @@ public final class AnimatedSettingsPanel {
 	private final FlowLayout component;
 	private final List<NumericScrubber> scrubbers = new ArrayList<>();
 	private final Map<Category, List<ButtonComponent>> pageButtons = new EnumMap<>(Category.class);
+	private final Map<Category, List<NumericScrubber>> pageScrubbers = new EnumMap<>(Category.class);
 	private final Map<Category, CategoryPage> pages = new EnumMap<>(Category.class);
 	private final SpringValue categorySpring;
 	private final PlayerNameColorProvider playerColorProvider = new PlayerNameColorProvider();
 
 	private ButtonComponent openPreviewButton;
 	private ButtonComponent closedPreviewButton;
+	private ButtonComponent classicLayoutButton;
+	private ButtonComponent splitLayoutButton;
 	private ButtonComponent shadowButton;
 	private ButtonComponent messageColorButton;
 	private ButtonComponent inputColorButton;
@@ -142,6 +146,7 @@ public final class AnimatedSettingsPanel {
 		this.side = session.layout().centerX() > screenWidth * 0.5 ? Side.LEFT : Side.RIGHT;
 		for (Category category : Category.values()) {
 			pageButtons.put(category, new ArrayList<>());
+			pageScrubbers.put(category, new ArrayList<>());
 		}
 		double initialX = targetX();
 		this.spring = new SpringValue(initialX, MotionPreset.PANEL_SLIDE);
@@ -270,6 +275,18 @@ public final class AnimatedSettingsPanel {
 		body.child(Components.label(Text.translatable("chat_canvas.preview.state")
 				.formatted(Formatting.GRAY)));
 		body.child(previewStateRow());
+		body.child(Components.label(Text.translatable("chat_canvas.player_layout.mode")
+				.formatted(Formatting.GRAY)));
+		body.child(playerLayoutSelector());
+		SplitMessageRatioScrubberComponent splitRatio =
+				new SplitMessageRatioScrubberComponent(
+						session,
+						Text.translatable("chat_canvas.player_layout.max_width")
+								.formatted(Formatting.LIGHT_PURPLE),
+						geometryChanged,
+						committed);
+		registerScrubber(Category.LAYOUT, splitRatio);
+		body.child(splitRatio);
 		body.child(layoutScrubber(NumericScrubberComponent.Property.X, "chat_canvas.option.x"));
 		body.child(layoutScrubber(NumericScrubberComponent.Property.Y, "chat_canvas.option.y"));
 		body.child(layoutScrubber(NumericScrubberComponent.Property.WIDTH, "chat_canvas.option.width"));
@@ -288,6 +305,39 @@ public final class AnimatedSettingsPanel {
 		body.child(defaults);
 
 		return body;
+	}
+
+	private StackLayout playerLayoutSelector() {
+		StackLayout stack = Containers.stack(Sizing.fill(100), Sizing.fixed(24));
+		stack.child(new SelectionIndicatorComponent(
+				() -> session.playerChatLayoutMode().ordinal(),
+				PlayerChatLayoutMode.values().length));
+		FlowLayout buttons = Containers.horizontalFlow(
+				Sizing.fill(100), Sizing.fill(100));
+		classicLayoutButton = transparentButton(Text.empty(),
+				clicked -> selectPlayerLayout(PlayerChatLayoutMode.CLASSIC));
+		splitLayoutButton = transparentButton(Text.empty(),
+				clicked -> selectPlayerLayout(PlayerChatLayoutMode.SPLIT_ALIGNMENT));
+		classicLayoutButton.sizing(Sizing.fill(50), Sizing.fill(100));
+		splitLayoutButton.sizing(Sizing.fill(50), Sizing.fill(100));
+		registerPageButton(Category.LAYOUT, classicLayoutButton);
+		registerPageButton(Category.LAYOUT, splitLayoutButton);
+		buttons.child(classicLayoutButton);
+		buttons.child(splitLayoutButton);
+		stack.child(buttons);
+		return stack;
+	}
+
+	private void selectPlayerLayout(PlayerChatLayoutMode mode) {
+		if (session.selectedChannel() != io.github.ikunkk02.chatcanvas.editor.EditorChannel.PLAYER_CHAT
+				|| session.playerChatLayoutMode() == mode) {
+			return;
+		}
+		session.setPlayerChatLayoutMode(mode);
+		session.commit();
+		geometryChanged.run();
+		committed.run();
+		syncFromSession();
 	}
 
 	private FlowLayout buildMentionBody() {
@@ -310,7 +360,7 @@ public final class AnimatedSettingsPanel {
 						.formatted(Formatting.LIGHT_PURPLE),
 				geometryChanged,
 				committed);
-		scrubbers.add(interval);
+		registerScrubber(Category.MENTION, interval);
 		body.child(interval);
 
 		mentionHighlightButton = mentionToggleButton(
@@ -538,7 +588,7 @@ public final class AnimatedSettingsPanel {
 		body.child(commandMaxRecentButton);
 		CommandMaxScrubberComponent maxCommands =
 				new CommandMaxScrubberComponent(session, geometryChanged, committed);
-		scrubbers.add(maxCommands);
+		registerScrubber(Category.COMMAND, maxCommands);
 		body.child(maxCommands);
 		ButtonComponent manage = ModernUiTheme.button(
 				Text.translatable("chat_canvas.command.manage"), clicked -> {
@@ -584,7 +634,7 @@ public final class AnimatedSettingsPanel {
 		MentionNumericScrubberComponent component = new MentionNumericScrubberComponent(
 				session, property, Text.translatable(key).formatted(Formatting.LIGHT_PURPLE),
 				geometryChanged, committed);
-		scrubbers.add(component);
+		registerScrubber(Category.MENTION, component);
 		return component;
 	}
 
@@ -949,7 +999,7 @@ public final class AnimatedSettingsPanel {
 				geometryChanged,
 				committed
 		);
-		scrubbers.add(scrubber);
+		registerScrubber(Category.LAYOUT, scrubber);
 		return scrubber;
 	}
 
@@ -962,7 +1012,7 @@ public final class AnimatedSettingsPanel {
 				geometryChanged,
 				committed
 		);
-		scrubbers.add(scrubber);
+		registerScrubber(Category.TEXT, scrubber);
 		return scrubber;
 	}
 
@@ -976,7 +1026,7 @@ public final class AnimatedSettingsPanel {
 				geometryChanged,
 				committed
 		);
-		scrubbers.add(scrubber);
+		registerScrubber(Category.BACKGROUND, scrubber);
 		return scrubber;
 	}
 
@@ -1195,6 +1245,7 @@ public final class AnimatedSettingsPanel {
 
 	public void syncFromSession() {
 		syncPreviewButtons();
+		syncPlayerLayoutButtons();
 		if (shadowButton != null) {
 			boolean shadow = session.text().shadow();
 			shadowButton.setMessage(
@@ -1211,6 +1262,25 @@ public final class AnimatedSettingsPanel {
 		if (lastPlayerColors == null || !lastPlayerColors.equals(session.playerColors())
 				|| rosterRevision != PlayerRosterTracker.revision()) {
 			rebuildPlayerRows();
+		}
+	}
+
+	private void syncPlayerLayoutButtons() {
+		boolean player = session.selectedChannel()
+				== io.github.ikunkk02.chatcanvas.editor.EditorChannel.PLAYER_CHAT;
+		if (classicLayoutButton != null) {
+			classicLayoutButton.setMessage(Text.literal(
+					session.playerChatLayoutMode() == PlayerChatLayoutMode.CLASSIC
+							? "● " : "○ ")
+					.append(Text.translatable("chat_canvas.player_layout.classic")));
+			classicLayoutButton.active(player && !categoryTransitioning);
+		}
+		if (splitLayoutButton != null) {
+			splitLayoutButton.setMessage(Text.literal(
+					session.playerChatLayoutMode() == PlayerChatLayoutMode.SPLIT_ALIGNMENT
+							? "● " : "○ ")
+					.append(Text.translatable("chat_canvas.player_layout.split")));
+			splitLayoutButton.active(player && !categoryTransitioning);
 		}
 	}
 
@@ -1411,6 +1481,11 @@ public final class AnimatedSettingsPanel {
 		pageButtons.get(category).add(button);
 	}
 
+	private void registerScrubber(Category category, NumericScrubber scrubber) {
+		scrubbers.add(scrubber);
+		pageScrubbers.get(category).add(scrubber);
+	}
+
 	public void resizeViewport(int width, int height) {
 		double previousPageWidth = pageWidth();
 		double pageProgress = previousPageWidth <= 0.0
@@ -1443,8 +1518,10 @@ public final class AnimatedSettingsPanel {
 	}
 
 	public @Nullable NumericScrubber scrubberAt(double mouseX, double mouseY) {
-		if (categoryTransitioning) return null;
-		for (NumericScrubber scrubber : scrubbers) {
+		int x = (int) Math.floor(mouseX);
+		int y = (int) Math.floor(mouseY);
+		if (categoryTransitioning || pageHost == null || !pageHost.isInBoundingBox(x, y)) return null;
+		for (NumericScrubber scrubber : pageScrubbers.get(activeCategory)) {
 			if (scrubber.valueRegionContains(mouseX, mouseY)) return scrubber;
 		}
 		return null;

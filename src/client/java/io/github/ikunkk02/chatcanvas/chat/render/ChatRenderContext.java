@@ -5,6 +5,7 @@ import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
 import io.github.ikunkk02.chatcanvas.config.MentionConfig;
+import io.github.ikunkk02.chatcanvas.config.PlayerChatLayoutMode;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.text.Text;
 
@@ -23,6 +24,8 @@ public record ChatRenderContext(
 		PlayerColorConfig playerColorConfig,
 		MentionConfig mentionConfig,
 		String localPlayerName,
+		PlayerChatLayoutMode playerChatLayoutMode,
+		double splitMessageMaxWidthRatio,
 		double vanillaBackgroundOpacity
 ) {
 	public int right() {

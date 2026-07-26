@@ -35,6 +35,33 @@ class DefaultMessageClassifierTest {
 	}
 
 	@Test
+	void uuidMismatchNeverFallsBackToMatchingLocalName() {
+		PlayerChatIdentity spoofedName =
+				new PlayerChatIdentity(remoteUuid, "Steve", true);
+		ClassifiedMessage classified = classifier.classify(
+				Text.literal("<Steve> not local"),
+				context(MessageIngress.CHAT, spoofedName, List.of(spoofedName)));
+		assertFalse(classified.selfMessage());
+		assertEquals(ChatCanvasMessageSource.PLAYER, classified.source());
+	}
+
+	@Test
+	void inferredLocalIdentityRequiresOneUniqueRosterMatch() {
+		PlayerChatIdentity inferred =
+				new PlayerChatIdentity(localUuid, "Steve", false);
+		assertTrue(classifier.classify(
+				Text.literal("Steve: local echo"),
+				context(MessageIngress.CHAT, inferred, List.of(inferred)))
+				.selfMessage());
+		PlayerChatIdentity duplicate =
+				new PlayerChatIdentity(UUID.randomUUID(), "steve", false);
+		assertFalse(classifier.classify(
+				Text.literal("Steve: ambiguous"),
+				context(MessageIngress.CHAT, inferred, List.of(inferred, duplicate)))
+				.selfMessage());
+	}
+
+	@Test
 	void pluginChatRequiresUniqueOnlinePlayerAndHeaderDelimiter() {
 		PlayerChatIdentity alex = new PlayerChatIdentity(remoteUuid, "Alex", true);
 		MessageContext game = context(MessageIngress.GAME, null, List.of(alex));
