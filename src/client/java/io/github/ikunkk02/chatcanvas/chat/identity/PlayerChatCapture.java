@@ -2,8 +2,12 @@ package io.github.ikunkk02.chatcanvas.chat.identity;
 
 import com.mojang.authlib.GameProfile;
 import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerNameDoubleClickHandler;
+import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessageIngress;
+import io.github.ikunkk02.chatcanvas.chat.render.DualChatHudRenderer;
+import io.github.ikunkk02.chatcanvas.chat.message.MessageIngress;
 import io.github.ikunkk02.chatcanvas.chat.notification.MentionNotificationController;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.network.message.MessageSignatureData;
 import net.minecraft.network.message.SignedMessage;
@@ -25,11 +29,13 @@ public final class PlayerChatCapture {
 					message, signedMessage, sender, params.name());
 			metadata.ifPresent(value -> ChatMessageMetadataRegistry.instance()
 					.registerIncoming(message, signatureOf(signedMessage), value));
-			MentionNotificationController.instance().receive(
+			ChatCanvasMessageIngress.instance().registerIncoming(
 					message,
 					signatureOf(signedMessage),
-					metadata.map(ChatMessageMetadata::sender),
-					timestamp == null ? System.currentTimeMillis() : timestamp.toEpochMilli());
+					MessageIngress.CHAT,
+					metadata.map(ChatMessageMetadata::sender).orElse(null),
+					params.name(),
+					false);
 		});
 		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
 			if (overlay) return;
@@ -37,11 +43,16 @@ public final class PlayerChatCapture {
 					PluginChatFallbackResolver.resolve(message, PlayerRosterTracker.onlinePlayers());
 			metadata.ifPresent(value -> ChatMessageMetadataRegistry.instance()
 					.registerIncoming(message, null, value));
-			MentionNotificationController.instance().receive(
-					message, null, metadata.map(ChatMessageMetadata::sender),
-					System.currentTimeMillis());
+			ChatCanvasMessageIngress.instance().registerIncoming(
+					message, null, MessageIngress.GAME,
+					metadata.map(ChatMessageMetadata::sender).orElse(null),
+					null, false);
 		});
+		ClientSendMessageEvents.COMMAND.register(
+				command -> ChatCanvasMessageIngress.instance().acceptCommand(command));
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+			ChatCanvasMessageIngress.instance().clearWorld();
+			DualChatHudRenderer.instance().resetWorld();
 			MentionNotificationController.instance().clearSession();
 			PlayerRosterTracker.refresh(handler);
 		});
@@ -50,6 +61,8 @@ public final class PlayerChatCapture {
 			ChatMessageMetadataRegistry.instance().clearAll();
 			PlayerNameHitboxRegistry.clear();
 			PlayerNameDoubleClickHandler.instance().reset();
+			ChatCanvasMessageIngress.instance().clearWorld();
+			DualChatHudRenderer.instance().resetWorld();
 			MentionNotificationController.instance().clearSession();
 		});
 	}

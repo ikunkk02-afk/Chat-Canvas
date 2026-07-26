@@ -4,12 +4,15 @@ import io.github.ikunkk02.chatcanvas.chat.layout.ChatHudTransform;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatLayoutRuntime;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatBackgroundMetrics;
 import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
+import io.github.ikunkk02.chatcanvas.chat.render.DualChatHudRenderer;
 import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerNameDoubleClickHandler;
 import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerQuickActionMenu;
 import io.github.ikunkk02.chatcanvas.chat.command.ui.CommandClipboardPanel;
 import io.github.ikunkk02.chatcanvas.chat.text.ChatCanvasTextFieldRegistry;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
+import io.github.ikunkk02.chatcanvas.config.PixelLayout;
+import io.github.ikunkk02.chatcanvas.chat.layout.RuntimeChatBounds;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.gui.DrawContext;
@@ -32,6 +35,8 @@ public abstract class ChatScreenMixin {
 	@Unique
 	private final CommandClipboardPanel chat_canvas$commandClipboard =
 			new CommandClipboardPanel();
+	@Unique
+	private boolean chat_canvas$commandInput;
 
 	@Shadow
 	protected TextFieldWidget chatField;
@@ -41,19 +46,30 @@ public abstract class ChatScreenMixin {
 
 	@Inject(method = "init", at = @At("RETURN"))
 	private void chat_canvas$positionChatField(CallbackInfo ci) {
-		ChatHudTransform transform = ChatLayoutRuntime.currentTransform();
-		chatField.setX(transform.bounds().left());
-		chatField.setY(transform.bounds().inputTop());
-		chatField.setWidth(Math.max(1, transform.bounds().messageWidth()));
-		chatInputSuggestor.refresh();
+		chat_canvas$commandInput = chat_canvas$isCommandInput();
+		chat_canvas$applyInputPlacement();
 		ChatCanvasTextFieldRegistry.register(chatField);
 		chat_canvas$commandClipboard.init((ChatScreen) (Object) this, chatField);
+	}
+
+	@Inject(method = "render", at = @At("HEAD"))
+	private void chat_canvas$updateInputChannel(
+			DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+		boolean commandInput = chat_canvas$isCommandInput();
+		if (commandInput != chat_canvas$commandInput) {
+			chat_canvas$commandInput = commandInput;
+			chat_canvas$applyInputPlacement();
+		}
 	}
 
 	@Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$handlePlayerNameDoubleClick(
 			double mouseX, double mouseY, int button,
 			CallbackInfoReturnable<Boolean> cir) {
+		if (button == 1 && DualChatHudRenderer.instance().copyCommandAt(mouseX, mouseY)) {
+			cir.setReturnValue(true);
+			return;
+		}
 		if (chat_canvas$commandClipboard.mouseClicked(
 				(ChatScreen) (Object) this, chatField, chatInputSuggestor,
 				mouseX, mouseY, button)) {
@@ -79,6 +95,10 @@ public abstract class ChatScreenMixin {
 			CallbackInfoReturnable<Boolean> cir) {
 		PlayerNameDoubleClickHandler.instance().reset();
 		if (chat_canvas$commandClipboard.mouseScrolled(verticalAmount)) {
+			cir.setReturnValue(true);
+			return;
+		}
+		if (DualChatHudRenderer.instance().scroll(mouseX, mouseY, verticalAmount)) {
 			cir.setReturnValue(true);
 		}
 	}
@@ -134,12 +154,14 @@ public abstract class ChatScreenMixin {
 	private void chat_canvas$drawConfiguredChatFieldBackground(
 			DrawContext context, int x1, int y1, int x2, int y2, int color,
 			Operation<Void> original) {
-		ChatHudTransform transform = ChatLayoutRuntime.currentTransform();
-		ChatBackgroundConfig background = ChatCanvasConfig.instance().background();
-		int left = transform.bounds().left();
-		int top = transform.bounds().inputTop();
-		int right = transform.bounds().right();
-		int bottom = transform.bounds().inputBottom();
+		RuntimeChatBounds bounds = chat_canvas$inputBounds();
+		ChatBackgroundConfig background = chat_canvas$commandInput
+				? ChatCanvasConfig.instance().commandSystem().background()
+				: ChatCanvasConfig.instance().background();
+		int left = bounds.left();
+		int top = bounds.inputTop();
+		int right = bounds.right();
+		int bottom = bounds.inputBottom();
 		int backgroundColor = ChatBackgroundMetrics.composeBackgroundColor(
 				background.inputColor(), background.inputOpacity(), 1.0);
 		if (backgroundColor >>> 24 != 0) {
@@ -151,5 +173,35 @@ public abstract class ChatScreenMixin {
 			ChatBackgroundDraw.drawRectBorder(
 					context, left, top, right, bottom, borderColor);
 		}
+	}
+
+	@Unique
+	private boolean chat_canvas$isCommandInput() {
+		return chatField != null && chatField.getText().startsWith("/");
+	}
+
+	@Unique
+	private void chat_canvas$applyInputPlacement() {
+		RuntimeChatBounds bounds = chat_canvas$inputBounds();
+		chatField.setX(bounds.left());
+		chatField.setY(bounds.inputTop());
+		chatField.setWidth(Math.max(1, bounds.messageWidth()));
+		chatInputSuggestor.refresh();
+	}
+
+	@Unique
+	private RuntimeChatBounds chat_canvas$inputBounds() {
+		if (!chat_canvas$commandInput) {
+			return ChatLayoutRuntime.currentTransform().bounds();
+		}
+		var client = net.minecraft.client.MinecraftClient.getInstance();
+		PixelLayout layout = ChatCanvasConfig.instance().commandSystem().layout().toPixels(
+				client.getWindow().getScaledWidth(), client.getWindow().getScaledHeight());
+		int minimumMessageHeight = Math.max(1, (int) Math.ceil(
+				client.textRenderer.fontHeight
+						* ChatCanvasConfig.instance().commandSystem().text().fontScale()));
+		return RuntimeChatBounds.calculate(
+				layout, true, chatField == null ? 12 : chatField.getHeight(),
+				RuntimeChatBounds.DEFAULT_INPUT_GAP, minimumMessageHeight);
 	}
 }

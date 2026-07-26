@@ -13,7 +13,9 @@ import io.github.ikunkk02.chatcanvas.chat.layout.ChatLayoutRuntime;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatTextLayout;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatTextLayoutEngine;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatVerticalMetrics;
+import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessageIngress;
 import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
+import io.github.ikunkk02.chatcanvas.chat.render.DualChatHudRenderer;
 import io.github.ikunkk02.chatcanvas.chat.style.OrderedTextStyleOverlay;
 import io.github.ikunkk02.chatcanvas.chat.style.StyledRangePipeline;
 import io.github.ikunkk02.chatcanvas.chat.style.TextRange;
@@ -95,10 +97,15 @@ public abstract class ChatHudMixin {
 	@Unique
 	private final StyledRangePipeline chat_canvas$stylePipeline = new StyledRangePipeline();
 
-	@Inject(method = "render", at = @At("HEAD"))
+	@Inject(method = "render", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$pushLayoutTransform(DrawContext context, int currentTick,
 												 int mouseX, int mouseY, boolean focused,
 												 CallbackInfo ci) {
+		if (DualChatHudRenderer.instance().render(context, mouseX, mouseY, focused)) {
+			ci.cancel();
+			return;
+		}
+		if (!ChatCanvasConfig.instance().enabled()) return;
 		ChatHudTransform transform = ChatLayoutRuntime.currentTransform();
 		PlayerNameHitboxRegistry.beginFrame();
 		chat_canvas$frameBackground = ChatCanvasConfig.instance().background();
@@ -317,6 +324,10 @@ public abstract class ChatHudMixin {
 	@Inject(method = "getTextStyleAt", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$getAlignedTextStyle(double x, double y,
 												 CallbackInfoReturnable<Style> cir) {
+		if (DualChatHudRenderer.instance().active()) {
+			cir.setReturnValue(DualChatHudRenderer.instance().styleAt(x, y));
+			return;
+		}
 		double chatLineX = toChatLineX(x);
 		double chatLineY = toChatLineY(y);
 		int lineIndex = getMessageLineIndex(chatLineX, chatLineY);
@@ -370,6 +381,16 @@ public abstract class ChatHudMixin {
 		ChatTextLayoutEngine.instance().clearWorld();
 		ChatMessageMetadataRegistry.instance().clearAll();
 		PlayerNameHitboxRegistry.clear();
+	}
+
+	@Inject(
+			method = "addMessage(Lnet/minecraft/text/Text;Lnet/minecraft/network/message/MessageSignatureData;Lnet/minecraft/client/gui/hud/MessageIndicator;)V",
+			at = @At("HEAD")
+	)
+	private void chat_canvas$captureMessage(
+			Text message, net.minecraft.network.message.MessageSignatureData signature,
+			MessageIndicator indicator, CallbackInfo ci) {
+		ChatCanvasMessageIngress.instance().acceptFromChatHud(message, signature);
 	}
 
 	@Inject(

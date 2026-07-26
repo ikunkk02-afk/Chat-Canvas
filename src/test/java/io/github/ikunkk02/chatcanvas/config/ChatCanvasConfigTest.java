@@ -175,4 +175,24 @@ class ChatCanvasConfigTest {
 		assertEquals(MentionConfig.DEFAULT, config.mention());
 		assertEquals(java.util.List.of(0x123456, 0xFFFFFF), config.recentColors());
 	}
+
+	@Test
+	void commandSystemRoundTripsWithoutChangingLegacyPlayerLayout() {
+		Path path = temporaryDirectory.resolve("chat_canvas.json");
+		ChatCanvasConfig config = new ChatCanvasConfig(path);
+		CommandSystemConfig command = new CommandSystemConfig(
+				false, new LayoutConfig(.55, .08, .32, .25),
+				new ChatTextConfig(1.4, 1.2, .8, ChatTextAlignment.LEFT, false, .5),
+				ChatBackgroundConfig.DEFAULT, 0xAABBCC, 777, 24, 4, 31);
+		ChatCanvasSettings defaults = ChatCanvasSettings.DEFAULT;
+		assertTrue(config.save(new ChatCanvasSettings(
+				defaults.layout(), defaults.text(), defaults.background(),
+				defaults.playerColors(), defaults.mention(), defaults.commandClipboard(),
+				defaults.recentColors(), defaults.editorUiStyle(),
+				true, true, command)));
+		ChatCanvasConfig reloaded = new ChatCanvasConfig(path);
+		reloaded.load();
+		assertEquals(LayoutConfig.DEFAULT, reloaded.layout());
+		assertEquals(command.sanitized(), reloaded.commandSystem());
+	}
 }

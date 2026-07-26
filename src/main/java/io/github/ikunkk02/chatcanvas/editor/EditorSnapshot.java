@@ -7,6 +7,7 @@ import io.github.ikunkk02.chatcanvas.config.CommandClipboardConfig;
 import io.github.ikunkk02.chatcanvas.config.LayoutConfig;
 import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
+import io.github.ikunkk02.chatcanvas.config.CommandSystemConfig;
 
 public record EditorSnapshot(
 		LayoutConfig layout,
@@ -14,27 +15,29 @@ public record EditorSnapshot(
 		ChatBackgroundConfig background,
 		PlayerColorConfig playerColors,
 		MentionConfig mention,
-		CommandClipboardConfig commandClipboard
+		CommandClipboardConfig commandClipboard,
+		CommandSystemConfig commandSystem
 ) {
 	public EditorSnapshot(LayoutConfig layout, ChatTextConfig text) {
 		this(layout, text, ChatBackgroundConfig.DEFAULT, PlayerColorConfig.DEFAULT,
-				MentionConfig.DEFAULT, CommandClipboardConfig.DEFAULT);
+				MentionConfig.DEFAULT, CommandClipboardConfig.DEFAULT, CommandSystemConfig.DEFAULT);
 	}
 
 	public EditorSnapshot(LayoutConfig layout, ChatTextConfig text, ChatBackgroundConfig background) {
 		this(layout, text, background, PlayerColorConfig.DEFAULT, MentionConfig.DEFAULT,
-				CommandClipboardConfig.DEFAULT);
+				CommandClipboardConfig.DEFAULT, CommandSystemConfig.DEFAULT);
 	}
 
 	public EditorSnapshot(LayoutConfig layout, ChatTextConfig text, ChatBackgroundConfig background,
 						  PlayerColorConfig playerColors) {
 		this(layout, text, background, playerColors, MentionConfig.DEFAULT,
-				CommandClipboardConfig.DEFAULT);
+				CommandClipboardConfig.DEFAULT, CommandSystemConfig.DEFAULT);
 	}
 
 	public EditorSnapshot(LayoutConfig layout, ChatTextConfig text, ChatBackgroundConfig background,
 						  PlayerColorConfig playerColors, MentionConfig mention) {
-		this(layout, text, background, playerColors, mention, CommandClipboardConfig.DEFAULT);
+		this(layout, text, background, playerColors, mention, CommandClipboardConfig.DEFAULT,
+				CommandSystemConfig.DEFAULT);
 	}
 
 	public EditorSnapshot {
@@ -45,11 +48,13 @@ public record EditorSnapshot(
 		mention = mention == null ? MentionConfig.DEFAULT : mention.sanitized();
 		commandClipboard = commandClipboard == null
 				? CommandClipboardConfig.DEFAULT : commandClipboard.sanitized();
+		commandSystem = commandSystem == null ? CommandSystemConfig.DEFAULT : commandSystem.sanitized();
 	}
 
 	public ChatCanvasSettings settings() {
 		return new ChatCanvasSettings(
 				layout, text, background, playerColors, mention, commandClipboard,
-				java.util.List.of());
+				java.util.List.of(), io.github.ikunkk02.chatcanvas.editor.EditorUiStyle.CHAT_CANVAS,
+				true, true, commandSystem);
 	}
 }

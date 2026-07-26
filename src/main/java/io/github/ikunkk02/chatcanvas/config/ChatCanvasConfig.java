@@ -85,6 +85,18 @@ public final class ChatCanvasConfig {
 		return settings.editorUiStyle();
 	}
 
+	public synchronized boolean enabled() {
+		return settings.enabled();
+	}
+
+	public synchronized boolean playerChatEnabled() {
+		return settings.playerChatEnabled();
+	}
+
+	public synchronized CommandSystemConfig commandSystem() {
+		return settings.commandSystem();
+	}
+
 	public synchronized ChatCanvasSettings settings() {
 		return settings;
 	}
@@ -113,7 +125,9 @@ public final class ChatCanvasConfig {
 	public synchronized boolean save(LayoutConfig value) {
 		return save(new ChatCanvasSettings(
 				value, settings.text(), settings.background(), settings.playerColors(),
-				settings.mention(), settings.commandClipboard(), settings.recentColors()));
+				settings.mention(), settings.commandClipboard(), settings.recentColors(),
+				settings.editorUiStyle(), settings.enabled(), settings.playerChatEnabled(),
+				settings.commandSystem()));
 	}
 
 	public synchronized boolean save(ChatCanvasSettings value) {
@@ -254,12 +268,59 @@ public final class ChatCanvasConfig {
 				parsedMention,
 				parsedCommandClipboard,
 				recentColorsOr(root, "recentColors"),
-				editorUiStyleOr(root, "editorUiStyle", EditorUiStyle.CHAT_CANVAS)
+				editorUiStyleOr(root, "editorUiStyle", EditorUiStyle.CHAT_CANVAS),
+				booleanOr(root, "enabled", true),
+				booleanOr(root, "playerChatEnabled", true),
+				parseCommandSystem(objectOr(root, "commandSystem", null))
 		);
+	}
+
+	private static CommandSystemConfig parseCommandSystem(JsonObject object) {
+		CommandSystemConfig defaults = CommandSystemConfig.DEFAULT;
+		if (object == null) return defaults;
+		JsonObject layoutObject = objectOr(object, "layout", null);
+		LayoutConfig layout = layoutObject == null ? defaults.layout() : new LayoutConfig(
+				doubleOr(layoutObject, "chatXRatio", defaults.layout().chatXRatio()),
+				doubleOr(layoutObject, "chatYRatio", defaults.layout().chatYRatio()),
+				doubleOr(layoutObject, "chatWidthRatio", defaults.layout().chatWidthRatio()),
+				doubleOr(layoutObject, "chatHeightRatio", defaults.layout().chatHeightRatio())
+		).sanitized();
+		JsonObject textObject = objectOr(object, "text", null);
+		ChatTextConfig text = textObject == null ? defaults.text() : new ChatTextConfig(
+				doubleOr(textObject, "fontScale", defaults.text().fontScale()),
+				doubleOr(textObject, "lineSpacing", defaults.text().lineSpacing()),
+				doubleOr(textObject, "textOpacity", defaults.text().textOpacity()),
+				alignmentOr(textObject, "alignment", defaults.text().alignment()),
+				booleanOr(textObject, "shadow", defaults.text().shadow()),
+				doubleOr(textObject, "characterSpacing", defaults.text().characterSpacing())
+		).sanitized();
+		JsonObject backgroundObject = objectOr(object, "background", null);
+		ChatBackgroundConfig background = backgroundObject == null ? defaults.background()
+				: new ChatBackgroundConfig(
+				backgroundModeOr(backgroundObject, "messageMode", defaults.background().messageMode()),
+				intOr(backgroundObject, "messageColor", defaults.background().messageColor()),
+				doubleOr(backgroundObject, "messageOpacity", defaults.background().messageOpacity()),
+				intOr(backgroundObject, "horizontalPadding", defaults.background().horizontalPadding()),
+				intOr(backgroundObject, "verticalPadding", defaults.background().verticalPadding()),
+				defaults.background().inputColor(), defaults.background().inputOpacity(),
+				defaults.background().inputBorderEnabled(), defaults.background().inputBorderColor(),
+				defaults.background().inputBorderOpacity()).sanitized();
+		return new CommandSystemConfig(
+				booleanOr(object, "enabled", defaults.enabled()), layout, text, background,
+				intOr(object, "textColor", defaults.textColor()),
+				intOr(object, "maximumMessages", defaults.maximumMessages()),
+				intOr(object, "fadeSeconds", defaults.fadeSeconds()),
+				doubleOr(object, "messageSpacing", defaults.messageSpacing()),
+				doubleOr(object, "scrollSpeed", defaults.scrollSpeed()),
+				booleanOr(object, "outline", defaults.outline()),
+				intOr(object, "outlineColor", defaults.outlineColor()),
+				doubleOr(object, "outlineOpacity", defaults.outlineOpacity())).sanitized();
 	}
 
 	private static JsonObject toJson(ChatCanvasSettings value) {
 		JsonObject root = new JsonObject();
+		root.addProperty("enabled", value.enabled());
+		root.addProperty("playerChatEnabled", value.playerChatEnabled());
 		LayoutConfig layout = value.layout();
 		root.addProperty("chatXRatio", layout.chatXRatio());
 		root.addProperty("chatYRatio", layout.chatYRatio());
@@ -347,6 +408,42 @@ public final class ChatCanvasConfig {
 		}
 		root.add("recentColors", recentColors);
 		root.addProperty("editorUiStyle", value.editorUiStyle().name());
+		root.add("commandSystem", commandSystemToJson(value.commandSystem()));
+		return root;
+	}
+
+	private static JsonObject commandSystemToJson(CommandSystemConfig value) {
+		JsonObject root = new JsonObject();
+		root.addProperty("enabled", value.enabled());
+		JsonObject layout = new JsonObject();
+		layout.addProperty("chatXRatio", value.layout().chatXRatio());
+		layout.addProperty("chatYRatio", value.layout().chatYRatio());
+		layout.addProperty("chatWidthRatio", value.layout().chatWidthRatio());
+		layout.addProperty("chatHeightRatio", value.layout().chatHeightRatio());
+		root.add("layout", layout);
+		JsonObject text = new JsonObject();
+		text.addProperty("fontScale", value.text().fontScale());
+		text.addProperty("lineSpacing", value.text().lineSpacing());
+		text.addProperty("textOpacity", value.text().textOpacity());
+		text.addProperty("alignment", value.text().alignment().name());
+		text.addProperty("shadow", value.text().shadow());
+		text.addProperty("characterSpacing", value.text().characterSpacing());
+		root.add("text", text);
+		JsonObject background = new JsonObject();
+		background.addProperty("messageMode", value.background().messageMode().name());
+		background.addProperty("messageColor", value.background().messageColor());
+		background.addProperty("messageOpacity", value.background().messageOpacity());
+		background.addProperty("horizontalPadding", value.background().horizontalPadding());
+		background.addProperty("verticalPadding", value.background().verticalPadding());
+		root.add("background", background);
+		root.addProperty("textColor", value.textColor());
+		root.addProperty("maximumMessages", value.maximumMessages());
+		root.addProperty("fadeSeconds", value.fadeSeconds());
+		root.addProperty("messageSpacing", value.messageSpacing());
+		root.addProperty("scrollSpeed", value.scrollSpeed());
+		root.addProperty("outline", value.outline());
+		root.addProperty("outlineColor", value.outlineColor());
+		root.addProperty("outlineOpacity", value.outlineOpacity());
 		return root;
 	}
 

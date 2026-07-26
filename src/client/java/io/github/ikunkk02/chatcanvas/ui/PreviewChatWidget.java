@@ -7,6 +7,7 @@ import io.github.ikunkk02.chatcanvas.chat.render.PreviewChatState;
 import io.github.ikunkk02.chatcanvas.config.PixelLayout;
 import io.github.ikunkk02.chatcanvas.editor.EditorPointerTarget;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
+import io.github.ikunkk02.chatcanvas.editor.EditorChannel;
 import io.github.ikunkk02.chatcanvas.editor.LayoutEditorMath;
 import io.wispforest.owo.ui.base.BaseComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
@@ -30,6 +31,7 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 	private static final int HANDLE_SIZE = 4;
 
 	private final EditorSession session;
+	private final EditorChannel channel;
 	private final Runnable changedCallback;
 	private final Runnable committedCallback;
 	private final ChatRenderEngine renderEngine = new ChatRenderEngine();
@@ -47,19 +49,27 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 
 	public PreviewChatWidget(EditorSession session, int screenWidth, int screenHeight,
 							 Runnable changedCallback, Runnable committedCallback) {
+		this(session, EditorChannel.PLAYER_CHAT, screenWidth, screenHeight,
+				changedCallback, committedCallback);
+	}
+
+	public PreviewChatWidget(EditorSession session, EditorChannel channel,
+							 int screenWidth, int screenHeight,
+							 Runnable changedCallback, Runnable committedCallback) {
 		this.session = session;
+		this.channel = channel;
 		this.screenWidth = screenWidth;
 		this.screenHeight = screenHeight;
 		this.changedCallback = changedCallback;
 		this.committedCallback = committedCallback;
 		this.renderEngine.messages(previewMessages());
-		PixelLayout layout = session.layout();
+		PixelLayout layout = session.layout(channel);
 		this.sizing(Sizing.fixed(layout.width()), Sizing.fixed(layout.height()));
 		this.positioning(Positioning.absolute(layout.x(), layout.y()));
 	}
 
 	public void syncFromSession() {
-		PixelLayout layout = session.layout();
+		PixelLayout layout = session.layout(channel);
 		if (this.width() == layout.width() && this.height() == layout.height()
 				&& this.x() == layout.x() && this.y() == layout.y()) return;
 		this.<PreviewChatWidget>configure(component -> {
@@ -79,22 +89,22 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 		super.update(delta, mouseX, mouseY);
 		hoveredHandle = activeHandle != ResizeHandle.NONE
 				? activeHandle
-				: ResizeHandle.hitTest(session.layout(), mouseX, mouseY, HANDLE_THICKNESS);
+				: ResizeHandle.hitTest(session.layout(channel), mouseX, mouseY, HANDLE_THICKNESS);
 		this.cursorStyle(cursorFor(hoveredHandle));
 	}
 
 	public boolean containsInteraction(double mouseX, double mouseY) {
-		return ResizeHandle.hitTest(session.layout(), mouseX, mouseY, HANDLE_THICKNESS) != ResizeHandle.NONE;
+		return ResizeHandle.hitTest(session.layout(channel), mouseX, mouseY, HANDLE_THICKNESS) != ResizeHandle.NONE;
 	}
 
 	@Override
 	public boolean beginPointerInteraction(double mouseX, double mouseY, int button,
 										   boolean shiftDown, boolean controlDown) {
 		if (button != 0) return false;
-		ResizeHandle handle = ResizeHandle.hitTest(session.layout(), mouseX, mouseY, HANDLE_THICKNESS);
+		ResizeHandle handle = ResizeHandle.hitTest(session.layout(channel), mouseX, mouseY, HANDLE_THICKNESS);
 		if (handle == ResizeHandle.NONE) return false;
 		activeHandle = handle;
-		dragStartLayout = session.layout();
+		dragStartLayout = session.layout(channel);
 		dragStartMouseX = mouseX;
 		dragStartMouseY = mouseY;
 		geometryChanged = false;
@@ -118,8 +128,8 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 		PixelLayout next = result.layout();
 		snappedX = result.snappedX();
 		snappedY = result.snappedY();
-		if (!next.equals(session.layout())) {
-			session.setLayout(next);
+		if (!next.equals(session.layout(channel))) {
+			session.setLayout(channel, next);
 			syncFromSession();
 			geometryChanged = true;
 			changedCallback.run();
@@ -144,7 +154,7 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 	public void cancelPointerInteraction() {
 		if (activeHandle == ResizeHandle.NONE) return;
 		if (geometryChanged && dragStartLayout != null) {
-			session.setLayout(dragStartLayout);
+			session.setLayout(channel, dragStartLayout);
 			syncFromSession();
 			changedCallback.run();
 		}
@@ -161,7 +171,7 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 
 	@Override
 	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
-		PixelLayout layout = session.layout();
+		PixelLayout layout = session.layout(channel);
 		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
 		renderEngine.render(new ChatRenderContext(
 				context,
@@ -173,8 +183,8 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 				1.0f,
 				renderEngine.state() == PreviewChatState.OPEN ? 1.0f : 0.0f,
 				Text.translatable("chat_canvas.preview.input_placeholder"),
-				session.text(),
-				session.background(),
+				session.text(channel),
+				session.background(channel),
 				session.playerColors(),
 				session.mention(),
 				Text.translatable("chat_canvas.preview.shouyun_name").getString(),

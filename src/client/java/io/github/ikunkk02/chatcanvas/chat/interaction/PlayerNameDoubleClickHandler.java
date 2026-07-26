@@ -5,6 +5,7 @@ import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameHitboxRegistry;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
+import io.github.ikunkk02.chatcanvas.chat.notification.MentionDebugPolicy;
 import io.github.ikunkk02.chatcanvas.mixin.client.ChatInputSuggestorAccessor;
 import io.github.ikunkk02.chatcanvas.mixin.client.SuggestionWindowAccessor;
 import io.github.ikunkk02.chatcanvas.mixin.client.TextFieldWidgetAccessor;
@@ -66,7 +67,8 @@ public final class PlayerNameDoubleClickHandler {
 				config.doubleClickIntervalMs(), screen)) {
 			return false;
 		}
-		if (isLocalPlayer(hitbox.get())) {
+		if (isLocalPlayer(hitbox.get())
+				&& !MentionDebugPolicy.allowsSelfMention(MinecraftClient.getInstance())) {
 			showFeedback("chat_canvas.mention.cannot_mention_self", now);
 			return true;
 		}

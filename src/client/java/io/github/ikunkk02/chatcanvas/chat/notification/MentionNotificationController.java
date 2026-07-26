@@ -1,15 +1,16 @@
 package io.github.ikunkk02.chatcanvas.chat.notification;
 
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatIdentity;
+import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasChannel;
+import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessage;
 import io.github.ikunkk02.chatcanvas.chat.mention.MentionMatcher;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
+import io.github.ikunkk02.chatcanvas.ChatCanvas;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.network.message.MessageSignatureData;
 import net.minecraft.text.Text;
 
-import java.util.Optional;
 import java.util.UUID;
 
 public final class MentionNotificationController {
@@ -17,8 +18,6 @@ public final class MentionNotificationController {
 			new MentionNotificationController();
 	private final MentionNotificationDeduplicator deduplicator =
 			new MentionNotificationDeduplicator();
-	private final MentionMessageIdRegistry<Text> unsignedIds =
-			new MentionMessageIdRegistry<>();
 	private final MentionSoundPlayer soundPlayer = new MentionSoundPlayer();
 	private final MentionToastManager toastManager = new MentionToastManager();
 	private final MentionFlashOverlay flashOverlay = new MentionFlashOverlay();
@@ -37,23 +36,36 @@ public final class MentionNotificationController {
 		flashOverlay.register();
 	}
 
-	public void receive(Text message, MessageSignatureData signature,
-						Optional<PlayerChatIdentity> sender, long receivedAtMs) {
+	public void receive(ChatCanvasMessage message) {
 		MinecraftClient client = MinecraftClient.getInstance();
-		if (client.player == null || message == null) return;
+		boolean debugSelfMention = MentionDebugPolicy.allowsSelfMention(client);
+		if (client.player == null || message == null
+				|| message.channel() != ChatCanvasChannel.PLAYER_CHAT
+				|| (message.selfMessage() && !debugSelfMention)
+				|| !message.mentionedCurrentPlayer()) return;
 		MentionConfig config = ChatCanvasConfig.instance().mention().sanitized();
-		String localName = client.player.getGameProfile().getName();
-		String plain = message.getString();
-		if (MentionMatcher.findMentions(plain, localName, config.requireAtSymbol()).isEmpty()) return;
-		PlayerChatIdentity identity = sender == null ? null : sender.orElse(null);
-		if (config.ignoreOwnMessages() && isOwn(identity, localName, client.player.getUuid())) return;
-		UUID messageId = messageId(message, signature);
-		if (!deduplicator.accept(messageId, receivedAtMs)) return;
+		PlayerChatIdentity identity = message.senderName() == null ? null
+				: new PlayerChatIdentity(
+						message.senderUuid(), message.senderName().getString(), true);
+		if (!debugSelfMention && config.ignoreOwnMessages() && isOwn(
+				identity, client.player.getGameProfile().getName(), client.player.getUuid())) return;
+		if (!deduplicator.accept(message.messageId(), message.receivedAt())) {
+			ChatCanvas.LOGGER.debug("Mention notification suppressed as duplicate: id={}",
+					message.messageId());
+			return;
+		}
 		MentionNotificationEvent event = new MentionNotificationEvent(
-				messageId, identity, message, plain, receivedAtMs);
+				message.messageId(), identity, message.content(),
+				message.content().getString(), message.receivedAt());
 		soundPlayer.playConfigured(config);
 		toastManager.show(event, config);
 		flashOverlay.trigger(config);
+		ChatCanvas.LOGGER.debug(
+				"Mention notification delivered: id={} sender={} sound={} toast={} flash={} debugSelf={}",
+				message.messageId(),
+				identity == null ? "<unknown>" : identity.playerName(),
+				config.soundEnabled(), config.toastEnabled(), config.flashEnabled(),
+				debugSelfMention);
 	}
 
 	public void testSound(MentionConfig config) {
@@ -62,13 +74,7 @@ public final class MentionNotificationController {
 
 	public void clearSession() {
 		deduplicator.clear();
-		unsignedIds.clear();
 		flashOverlay.clear();
-	}
-
-	private synchronized UUID messageId(Text message, MessageSignatureData signature) {
-		if (signature != null) return UUID.nameUUIDFromBytes(signature.data());
-		return unsignedIds.idFor(message);
 	}
 
 	private static boolean isOwn(PlayerChatIdentity sender, String localName, UUID localUuid) {

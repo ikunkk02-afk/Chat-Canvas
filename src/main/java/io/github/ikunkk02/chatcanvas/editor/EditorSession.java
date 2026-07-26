@@ -9,6 +9,7 @@ import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import io.github.ikunkk02.chatcanvas.config.PixelLayout;
 import io.github.ikunkk02.chatcanvas.config.RecentColorStore;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
+import io.github.ikunkk02.chatcanvas.config.CommandSystemConfig;
 
 public final class EditorSession {
 	private final EditorSnapshot original;
@@ -20,6 +21,12 @@ public final class EditorSession {
 	private PlayerColorConfig playerColors;
 	private MentionConfig mention;
 	private CommandClipboardConfig commandClipboard;
+	private PixelLayout commandLayout;
+	private CommandSystemConfig commandSystem;
+	private EditorChannel selectedChannel = EditorChannel.PLAYER_CHAT;
+	private final boolean enabled;
+	private final boolean playerChatEnabled;
+	private final EditorUiStyle editorUiStyle;
 	private int screenWidth;
 	private int screenHeight;
 
@@ -31,7 +38,7 @@ public final class EditorSession {
 		ChatCanvasSettings safe = original.sanitized();
 		this.original = new EditorSnapshot(
 				safe.layout(), safe.text(), safe.background(), safe.playerColors(), safe.mention(),
-				safe.commandClipboard());
+				safe.commandClipboard(), safe.commandSystem());
 		this.screenWidth = Math.max(1, screenWidth);
 		this.screenHeight = Math.max(1, screenHeight);
 		this.layout = this.original.layout().toPixels(this.screenWidth, this.screenHeight);
@@ -40,20 +47,37 @@ public final class EditorSession {
 		this.playerColors = this.original.playerColors();
 		this.mention = this.original.mention();
 		this.commandClipboard = this.original.commandClipboard();
+		this.commandSystem = this.original.commandSystem();
+		this.commandLayout = commandSystem.layout().toPixels(this.screenWidth, this.screenHeight);
+		this.enabled = safe.enabled();
+		this.playerChatEnabled = safe.playerChatEnabled();
+		this.editorUiStyle = safe.editorUiStyle();
 		this.recentColors = new RecentColorStore(safe.recentColors());
 		this.history = new EditorHistory(snapshot());
 	}
 
 	public PixelLayout layout() {
-		return layout;
+		return layout(selectedChannel);
+	}
+
+	public PixelLayout layout(EditorChannel channel) {
+		return channel == EditorChannel.PLAYER_CHAT ? layout : commandLayout;
 	}
 
 	public ChatTextConfig text() {
-		return text;
+		return text(selectedChannel);
+	}
+
+	public ChatTextConfig text(EditorChannel channel) {
+		return channel == EditorChannel.PLAYER_CHAT ? text : commandSystem.text();
 	}
 
 	public ChatBackgroundConfig background() {
-		return background;
+		return background(selectedChannel);
+	}
+
+	public ChatBackgroundConfig background(EditorChannel channel) {
+		return channel == EditorChannel.PLAYER_CHAT ? background : commandSystem.background();
 	}
 
 	public PlayerColorConfig playerColors() {
@@ -77,13 +101,16 @@ public final class EditorSession {
 	}
 
 	public EditorSnapshot snapshot() {
+		CommandSystemConfig commandSnapshot = withCommandLayout(
+				LayoutConfig.fromPixels(commandLayout, screenWidth, screenHeight));
 		return new EditorSnapshot(
 				LayoutConfig.fromPixels(layout, screenWidth, screenHeight),
 				text,
 				background,
 				playerColors,
 				mention,
-				commandClipboard
+				commandClipboard,
+				commandSnapshot
 		);
 	}
 
@@ -96,24 +123,50 @@ public final class EditorSession {
 				snapshot.playerColors(),
 				snapshot.mention(),
 				snapshot.commandClipboard(),
-				recentColors.colors()
+				recentColors.colors(),
+				editorUiStyle,
+				enabled,
+				playerChatEnabled,
+				snapshot.commandSystem()
 		);
 	}
 
 	public void setLayout(PixelLayout value) {
-		layout = value.constrained(screenWidth, screenHeight);
+		setLayout(selectedChannel, value);
+	}
+
+	public void setLayout(EditorChannel channel, PixelLayout value) {
+		if (channel == EditorChannel.PLAYER_CHAT) layout = value.constrained(screenWidth, screenHeight);
+		else commandLayout = value.constrained(screenWidth, screenHeight);
 	}
 
 	public void apply(LayoutConfig value) {
-		layout = value.toPixels(screenWidth, screenHeight);
+		if (selectedChannel == EditorChannel.PLAYER_CHAT) {
+			layout = value.toPixels(screenWidth, screenHeight);
+		} else {
+			commandLayout = value.toPixels(screenWidth, screenHeight);
+		}
 	}
 
 	public void setText(ChatTextConfig value) {
-		text = value.sanitized();
+		if (selectedChannel == EditorChannel.PLAYER_CHAT) text = value.sanitized();
+		else commandSystem = new CommandSystemConfig(
+				commandSystem.enabled(), commandSystem.layout(), value.sanitized(),
+				commandSystem.background(), commandSystem.textColor(),
+				commandSystem.maximumMessages(), commandSystem.fadeSeconds(),
+				commandSystem.messageSpacing(), commandSystem.scrollSpeed(),
+				commandSystem.outline(), commandSystem.outlineColor(),
+				commandSystem.outlineOpacity()).sanitized();
 	}
 
 	public void setBackground(ChatBackgroundConfig value) {
-		background = value.sanitized();
+		if (selectedChannel == EditorChannel.PLAYER_CHAT) background = value.sanitized();
+		else commandSystem = new CommandSystemConfig(
+				commandSystem.enabled(), commandSystem.layout(), commandSystem.text(),
+				value.sanitized(), commandSystem.textColor(), commandSystem.maximumMessages(),
+				commandSystem.fadeSeconds(), commandSystem.messageSpacing(),
+				commandSystem.scrollSpeed(), commandSystem.outline(),
+				commandSystem.outlineColor(), commandSystem.outlineOpacity()).sanitized();
 	}
 
 	public void setPlayerColors(PlayerColorConfig value) {
@@ -135,18 +188,40 @@ public final class EditorSession {
 		playerColors = value.playerColors();
 		mention = value.mention();
 		commandClipboard = value.commandClipboard();
+		commandSystem = value.commandSystem();
+		commandLayout = commandSystem.layout().toPixels(screenWidth, screenHeight);
 	}
 
 	public void resizeViewport(int width, int height) {
 		LayoutConfig ratios = snapshot().layout();
+		LayoutConfig commandRatios = LayoutConfig.fromPixels(commandLayout, screenWidth, screenHeight);
 		screenWidth = Math.max(1, width);
 		screenHeight = Math.max(1, height);
 		layout = ratios.toPixels(screenWidth, screenHeight);
+		commandLayout = commandRatios.toPixels(screenWidth, screenHeight);
 	}
 
 	public void restoreLayoutDefaults() {
-		apply(LayoutConfig.DEFAULT);
+		if (selectedChannel == EditorChannel.PLAYER_CHAT) apply(LayoutConfig.DEFAULT);
+		else commandLayout = CommandSystemConfig.DEFAULT.layout().toPixels(screenWidth, screenHeight);
 		commit();
+	}
+
+	public EditorChannel selectedChannel() {
+		return selectedChannel;
+	}
+
+	public void select(EditorChannel channel) {
+		selectedChannel = channel == null ? EditorChannel.PLAYER_CHAT : channel;
+	}
+
+	private CommandSystemConfig withCommandLayout(LayoutConfig value) {
+		return new CommandSystemConfig(
+				commandSystem.enabled(), value, commandSystem.text(), commandSystem.background(),
+				commandSystem.textColor(), commandSystem.maximumMessages(),
+				commandSystem.fadeSeconds(), commandSystem.messageSpacing(),
+				commandSystem.scrollSpeed(), commandSystem.outline(),
+				commandSystem.outlineColor(), commandSystem.outlineOpacity()).sanitized();
 	}
 
 	public void restoreTextDefaults() {

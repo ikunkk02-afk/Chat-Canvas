@@ -39,6 +39,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 	private EditorSession session;
 	private PreviewChatWidget preview;
+	private PreviewChatWidget commandPreview;
 	private AnimatedSettingsPanel settingsPanel;
 	private FlowLayout toolbar;
 	private ButtonComponent undoButton;
@@ -69,6 +70,10 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 				this::onGeometryChanged, this::commitCurrent);
 		preview.zIndex(10);
 		root.child(preview);
+		commandPreview = new PreviewChatWidget(session, EditorChannel.COMMAND_SYSTEM,
+				width, height, this::onGeometryChanged, this::commitCurrent);
+		commandPreview.zIndex(11);
+		root.child(commandPreview);
 
 		settingsPanel = new AnimatedSettingsPanel(session, width, height,
 				this::onGeometryChanged, this::refreshHistoryButtons,
@@ -83,8 +88,8 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	}
 
 	private FlowLayout buildToolbar() {
-		FlowLayout bar = Containers.horizontalFlow(Sizing.fixed(460), Sizing.fixed(32));
-		bar.positioning(Positioning.absolute(Math.max(8, (width - 460) / 2), 10));
+		FlowLayout bar = Containers.horizontalFlow(Sizing.fixed(620), Sizing.fixed(32));
+		bar.positioning(Positioning.absolute(Math.max(8, (width - 620) / 2), 10));
 		bar.padding(Insets.of(5).withLeft(16));
 		bar.gap(6);
 		bar.surface(ModernUiTheme.PANEL_SURFACE);
@@ -96,6 +101,14 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 				.formatted(Formatting.WHITE, Formatting.BOLD));
 		title.horizontalSizing(Sizing.fill(28));
 		bar.child(title);
+		ButtonComponent playerButton = ModernUiTheme.button(
+				Text.literal("玩家栏"), button -> selectChannel(EditorChannel.PLAYER_CHAT));
+		playerButton.sizing(Sizing.fixed(64), Sizing.fixed(22));
+		ButtonComponent commandButton = ModernUiTheme.button(
+				Text.literal("命令栏"), button -> selectChannel(EditorChannel.COMMAND_SYSTEM));
+		commandButton.sizing(Sizing.fixed(64), Sizing.fixed(22));
+		bar.child(playerButton);
+		bar.child(commandButton);
 
 		ButtonComponent styleButton = ModernUiTheme.button(
 				Text.translatable("chat_canvas.ui_theme").append(Text.literal(": "))
@@ -124,7 +137,8 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		ChatCanvasConfig.instance().save(new ChatCanvasSettings(
 				cur.layout(), cur.text(), cur.background(),
 				cur.playerColors(), cur.mention(), cur.commandClipboard(),
-				cur.recentColors(), next));
+				cur.recentColors(), next, cur.enabled(), cur.playerChatEnabled(),
+				cur.commandSystem()));
 		// Update the theme button text to reflect the new theme.
 		if (themeButton != null) {
 			themeButton.setMessage(
@@ -145,9 +159,11 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		if (preview != null) {
 			preview.syncFromSession();
 		}
+		if (commandPreview != null) commandPreview.syncFromSession();
 		renderBackground(context, mouseX, mouseY, delta);
-		if (preview != null) {
-			AlignmentGuideRenderer.render(context, width, height, session.layout(), preview);
+		PreviewChatWidget selectedPreview = selectedPreview();
+		if (selectedPreview != null) {
+			AlignmentGuideRenderer.render(context, width, height, session.layout(), selectedPreview);
 		}
 		super.render(context, mouseX, mouseY, delta);
 	}
@@ -204,7 +220,13 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 			}
 		}
 
+		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && commandPreviewCanReceive(mouseX, mouseY)) {
+			selectChannel(EditorChannel.COMMAND_SYSTEM);
+			return pointerCapture.begin(commandPreview, mouseX, mouseY, button,
+					Screen.hasShiftDown(), Screen.hasControlDown());
+		}
 		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && previewCanReceive(mouseX, mouseY)) {
+			selectChannel(EditorChannel.PLAYER_CHAT);
 			return pointerCapture.begin(preview, mouseX, mouseY, button,
 					Screen.hasShiftDown(), Screen.hasControlDown());
 		}
@@ -265,6 +287,14 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		return top == preview || top == uiAdapter.rootComponent;
 	}
 
+	private boolean commandPreviewCanReceive(double mouseX, double mouseY) {
+		if (commandPreview == null || uiAdapter == null
+				|| !commandPreview.containsInteraction(mouseX, mouseY)) return false;
+		Component top = uiAdapter.rootComponent.childAt(
+				(int) Math.floor(mouseX), (int) Math.floor(mouseY));
+		return top == commandPreview || top == uiAdapter.rootComponent;
+	}
+
 	@Override
 	public void resize(MinecraftClient client, int width, int height) {
 		pointerCapture.cancel();
@@ -278,6 +308,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		if (preview != null) {
 			preview.resizeViewport(width, height);
 		}
+		if (commandPreview != null) commandPreview.resizeViewport(width, height);
 		if (settingsPanel != null) {
 			settingsPanel.resizeViewport(width, height);
 		}
@@ -306,12 +337,27 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		if (preview != null) {
 			preview.dispose();
 		}
+		if (commandPreview != null) commandPreview.dispose();
 		super.removed();
 	}
 
 	private void onGeometryChanged() {
 		if (preview != null) preview.syncFromSession();
+		if (commandPreview != null) commandPreview.syncFromSession();
 		if (settingsPanel != null) settingsPanel.syncFromSession();
+	}
+
+	private void selectChannel(EditorChannel channel) {
+		session.select(channel);
+		if (preview != null) preview.zIndex(channel == EditorChannel.PLAYER_CHAT ? 12 : 10);
+		if (commandPreview != null) commandPreview.zIndex(
+				channel == EditorChannel.COMMAND_SYSTEM ? 12 : 11);
+		onGeometryChanged();
+	}
+
+	private PreviewChatWidget selectedPreview() {
+		return session.selectedChannel() == EditorChannel.COMMAND_SYSTEM
+				? commandPreview : preview;
 	}
 
 	private void commitCurrent() {
