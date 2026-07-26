@@ -6,12 +6,11 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class MentionNotificationDeduplicator {
-	public static final int DEFAULT_CAPACITY = 2_048;
+	public static final int DEFAULT_CAPACITY = 512;
 	public static final long DEFAULT_TTL_MS = 10 * 60 * 1_000L;
 	private final int capacity;
 	private final long ttlMs;
 	private final LinkedHashMap<UUID, Long> ids = new LinkedHashMap<>();
-	private final LinkedHashMap<String, Long> fingerprints = new LinkedHashMap<>();
 
 	public MentionNotificationDeduplicator() {
 		this(DEFAULT_CAPACITY, DEFAULT_TTL_MS);
@@ -22,28 +21,21 @@ public final class MentionNotificationDeduplicator {
 		this.ttlMs = Math.max(1L, ttlMs);
 	}
 
-	public synchronized boolean accept(UUID id, String fingerprint, long nowMs) {
+	public synchronized boolean accept(UUID id, long nowMs) {
+		if (id == null) return false;
 		prune(nowMs);
 		if (ids.containsKey(id)) return false;
-		if (fingerprint != null && !fingerprint.isBlank()) {
-			Long previous = fingerprints.get(fingerprint);
-			if (previous != null && nowMs - previous <= 250L) return false;
-		}
 		ids.put(id, nowMs);
-		if (fingerprint != null && !fingerprint.isBlank()) fingerprints.put(fingerprint, nowMs);
 		trim(ids);
-		trim(fingerprints);
 		return true;
 	}
 
 	public synchronized void clear() {
 		ids.clear();
-		fingerprints.clear();
 	}
 
 	private void prune(long nowMs) {
 		ids.entrySet().removeIf(entry -> nowMs - entry.getValue() > ttlMs);
-		fingerprints.entrySet().removeIf(entry -> nowMs - entry.getValue() > ttlMs);
 	}
 
 	private <K> void trim(LinkedHashMap<K, Long> map) {

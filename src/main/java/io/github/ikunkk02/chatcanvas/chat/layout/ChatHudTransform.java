@@ -71,10 +71,10 @@ public record ChatHudTransform(PixelLayout layout, int scaledWindowHeight,
 	}
 
 	public int configuredInternalHeight() {
-		return Math.max(1, (int) Math.floor(bounds.messageHeight() / effectiveChatScale()));
+		return Math.max(1, (int) Math.floor(bounds.messageHeight() / vanillaChatScale));
 	}
 
 	public int internalWrapWidth() {
-		return Math.max(1, (int) Math.floor(layout.width() / effectiveChatScale()));
+		return Math.max(1, (int) Math.floor(layout.width() / vanillaChatScale));
 	}
 }

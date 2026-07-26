@@ -9,20 +9,20 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.message.MessageSignatureData;
 import net.minecraft.text.Text;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.WeakHashMap;
 
 public final class MentionNotificationController {
 	private static final MentionNotificationController INSTANCE =
 			new MentionNotificationController();
 	private final MentionNotificationDeduplicator deduplicator =
 			new MentionNotificationDeduplicator();
-	private final WeakHashMap<Text, UUID> unsignedIds = new WeakHashMap<>();
+	private final MentionMessageIdRegistry<Text> unsignedIds =
+			new MentionMessageIdRegistry<>();
 	private final MentionSoundPlayer soundPlayer = new MentionSoundPlayer();
 	private final MentionToastManager toastManager = new MentionToastManager();
 	private final MentionFlashOverlay flashOverlay = new MentionFlashOverlay();
+	private boolean registered;
 
 	private MentionNotificationController() {
 	}
@@ -31,7 +31,9 @@ public final class MentionNotificationController {
 		return INSTANCE;
 	}
 
-	public void register() {
+	public synchronized void register() {
+		if (registered) return;
+		registered = true;
 		flashOverlay.register();
 	}
 
@@ -46,8 +48,7 @@ public final class MentionNotificationController {
 		PlayerChatIdentity identity = sender == null ? null : sender.orElse(null);
 		if (config.ignoreOwnMessages() && isOwn(identity, localName, client.player.getUuid())) return;
 		UUID messageId = messageId(message, signature);
-		String fingerprint = fingerprint(message, identity, receivedAtMs);
-		if (!deduplicator.accept(messageId, fingerprint, receivedAtMs)) return;
+		if (!deduplicator.accept(messageId, receivedAtMs)) return;
 		MentionNotificationEvent event = new MentionNotificationEvent(
 				messageId, identity, message, plain, receivedAtMs);
 		soundPlayer.playConfigured(config);
@@ -67,17 +68,7 @@ public final class MentionNotificationController {
 
 	private synchronized UUID messageId(Text message, MessageSignatureData signature) {
 		if (signature != null) return UUID.nameUUIDFromBytes(signature.data());
-		return unsignedIds.computeIfAbsent(message, ignored -> UUID.randomUUID());
-	}
-
-	private static String fingerprint(Text message, PlayerChatIdentity sender, long receivedAtMs) {
-		String senderKey = sender == null ? "?"
-				: sender.uuid() != null ? sender.uuid().toString()
-				: PlayerColorConfig.normalizeName(sender.playerName());
-		String structure = message.getClass().getName() + ":" + message.hashCode();
-		byte[] bytes = (senderKey + '\n' + structure + '\n' + message.getString())
-				.getBytes(StandardCharsets.UTF_8);
-		return UUID.nameUUIDFromBytes(bytes).toString();
+		return unsignedIds.idFor(message);
 	}
 
 	private static boolean isOwn(PlayerChatIdentity sender, String localName, UUID localUuid) {

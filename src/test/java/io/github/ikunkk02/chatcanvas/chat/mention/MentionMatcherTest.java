@@ -20,12 +20,19 @@ class MentionMatcherTest {
 
 	@Test
 	void codePointRangesRemainCorrectAfterChineseAndEmoji() {
-		String text = "中文 😀 @Player，再来 @PLAYER";
+		String text = "中文 😀 @Player，再来 @PLAYER!";
 		List<TextRange> ranges = MentionMatcher.findMentions(text, "Player", true);
 		assertEquals(2, ranges.size());
 		assertEquals("@Player", slice(text, ranges.get(0)));
 		assertEquals(text.codePointCount(0, text.indexOf('@')),
 				ranges.getFirst().startCodePoint());
+	}
+
+	@Test
+	void rejectsNamesThatOnlyShareTheTargetPrefix() {
+		assertTrue(MentionMatcher.findMentions("@Steve123", "Steve", true).isEmpty());
+		assertTrue(MentionMatcher.findMentions("@Steve_Alt", "Steve", true).isEmpty());
+		assertEquals(1, MentionMatcher.findMentions("你好，@Steve！", "Steve", true).size());
 	}
 
 	@Test

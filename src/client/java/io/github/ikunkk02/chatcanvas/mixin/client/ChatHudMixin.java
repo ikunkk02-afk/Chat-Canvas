@@ -11,6 +11,7 @@ import io.github.ikunkk02.chatcanvas.chat.layout.ChatLineWidthCache;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatHudTransform;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatLayoutRuntime;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatTextLayout;
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatTextLayoutEngine;
 import io.github.ikunkk02.chatcanvas.chat.layout.ChatVerticalMetrics;
 import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
 import io.github.ikunkk02.chatcanvas.chat.style.OrderedTextStyleOverlay;
@@ -19,7 +20,6 @@ import io.github.ikunkk02.chatcanvas.chat.style.TextRange;
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextHitTester;
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextMetrics;
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextRenderer;
-import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextWrapper;
 import io.github.ikunkk02.chatcanvas.chat.text.ChatHeadsCompat;
 import io.github.ikunkk02.chatcanvas.chat.identity.ChatMessageMetadataRegistry;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerColorRuntime;
@@ -139,20 +139,11 @@ public abstract class ChatHudMixin {
 		return ChatLayoutRuntime.currentTransform().configuredInternalHeight();
 	}
 
-	@ModifyReturnValue(method = "getChatScale", at = @At("RETURN"))
-	private double chat_canvas$useConfiguredFontScale(double vanillaScale) {
-		return ChatTextLayout.effectiveScale(
-				vanillaScale, ChatCanvasConfig.instance().text().fontScale());
-	}
-
 	@ModifyReturnValue(method = "getLineHeight", at = @At("RETURN"))
 	private int chat_canvas$useConfiguredLineSpacing(int vanillaLineHeight) {
-		return (int) Math.round(ChatTextLayout.verticalMetrics(
-				client.textRenderer.fontHeight,
-				vanillaLineHeight,
-				1.0,
-				ChatCanvasConfig.instance().text().lineSpacing()
-		).lineAdvance());
+		ChatTextConfig config = ChatCanvasConfig.instance().text();
+		return ChatTextLayout.internalLineHeight(
+				vanillaLineHeight, config.fontScale(), config.lineSpacing());
 	}
 
 	@WrapOperation(
@@ -230,11 +221,13 @@ public abstract class ChatHudMixin {
 			index = 1
 	)
 	private int chat_canvas$reserveBackgroundPaddingForWrapping(int originalWidth) {
-		return ChatBackgroundMetrics.wrapWidth(
-				originalWidth,
+		ChatTextConfig text = ChatCanvasConfig.instance().text();
+		return ChatTextLayout.glyphWrapWidth(
+				getWidth(),
 				ChatCanvasConfig.instance().background().horizontalPadding(),
-				getChatScale()
-		);
+				chat_canvas$glyphSafetyPixels(),
+				getChatScale(),
+				text.fontScale());
 	}
 
 	@WrapOperation(
@@ -248,14 +241,10 @@ public abstract class ChatHudMixin {
 			StringVisitable text, int width, TextRenderer renderer,
 			Operation<List<OrderedText>> original,
 			@Local(argsOnly = true) ChatHudLine message) {
-		double spacing = ChatCanvasConfig.instance().text().characterSpacing();
-		List<OrderedText> lines;
-		if (Math.abs(spacing) < 0.00001) {
-			lines = original.call(text, width, renderer);
-		} else {
-			List<OrderedText> logicalLines = original.call(text, Integer.MAX_VALUE / 4, renderer);
-			lines = SpacedTextWrapper.wrap(renderer, logicalLines, width, spacing);
-		}
+		ChatTextConfig config = ChatCanvasConfig.instance().text();
+		List<OrderedText> lines = ChatTextLayoutEngine.instance().wrap(
+				message, renderer, width, config.characterSpacing(), config.fontScale(),
+				() -> original.call(text, Integer.MAX_VALUE / 4, renderer));
 		ChatMessageMetadataRegistry.instance().registerVisibleLines(message, lines);
 		return lines;
 	}
@@ -272,7 +261,7 @@ public abstract class ChatHudMixin {
 												  Operation<Integer> original) {
 		ChatTextConfig config = ChatCanvasConfig.instance().text();
 		ChatLineMetrics metrics = chat_canvas$metrics(text);
-		int drawX = (int) Math.round(metrics.drawX());
+		double drawX = metrics.drawX();
 		int configuredColor = ChatTextLayout.multiplyAlpha(color, config.textOpacity());
 		OrderedText renderedText = text;
 		ChatMessageMetadataRegistry.VisibleMetadata metadata =
@@ -288,16 +277,14 @@ public abstract class ChatHudMixin {
 					metadata.mentionRanges(),
 					ChatCanvasConfig.instance().mention());
 		}
-		int result;
-		if (Math.abs(config.characterSpacing()) >= 0.00001) {
-			result = SpacedTextRenderer.draw(
-					context, renderer, renderedText, drawX, y, configuredColor,
-					config.shadow(), config.characterSpacing());
-		} else if (config.shadow()) {
-			result = original.call(context, renderer, renderedText, drawX, y, configuredColor);
-		} else {
-			result = context.drawText(renderer, renderedText, drawX, y, configuredColor, false);
-		}
+		context.getMatrices().push();
+		context.getMatrices().translate((float) drawX, y, 0.0f);
+		float fontScale = (float) config.fontScale();
+		context.getMatrices().scale(fontScale, fontScale, 1.0f);
+		int result = SpacedTextRenderer.draw(
+				context, renderer, renderedText, 0.0, 0, configuredColor,
+				config.shadow(), config.characterSpacing());
+		context.getMatrices().pop();
 		if (metadata != null && metadata.sender() != null && metadata.playerNameRange() != null) {
 			chat_canvas$recordPlayerNameHitbox(context, renderer, text, metadata, drawX, y);
 		}
@@ -316,15 +303,15 @@ public abstract class ChatHudMixin {
 													Operation<Integer> original) {
 		ChatTextConfig config = ChatCanvasConfig.instance().text();
 		int configuredColor = ChatTextLayout.multiplyAlpha(color, config.textOpacity());
-		if (Math.abs(config.characterSpacing()) >= 0.00001) {
-			return SpacedTextRenderer.draw(
-					context, renderer, text.asOrderedText(), x, y, configuredColor,
-					config.shadow(), config.characterSpacing());
-		}
-		if (config.shadow()) {
-			return original.call(context, renderer, text, x, y, configuredColor);
-		}
-		return context.drawText(renderer, text, x, y, configuredColor, false);
+		context.getMatrices().push();
+		context.getMatrices().translate(x, y, 0.0f);
+		float fontScale = (float) config.fontScale();
+		context.getMatrices().scale(fontScale, fontScale, 1.0f);
+		int result = SpacedTextRenderer.draw(
+				context, renderer, text.asOrderedText(), 0.0, 0, configuredColor,
+				config.shadow(), config.characterSpacing());
+		context.getMatrices().pop();
+		return result;
 	}
 
 	@Inject(method = "getTextStyleAt", at = @At("HEAD"), cancellable = true)
@@ -340,7 +327,8 @@ public abstract class ChatHudMixin {
 
 		ChatHudLine.Visible line = visibleMessages.get(lineIndex);
 		ChatLineMetrics metrics = chat_canvas$metrics(line);
-		double visualLocalX = metrics.localX(chatLineX);
+		double visualLocalX = metrics.localX(chatLineX)
+				/ ChatCanvasConfig.instance().text().fontScale();
 		double spacing = ChatCanvasConfig.instance().text().characterSpacing();
 		double adjustedX = ChatHeadsCompat.textXAt(
 				client.textRenderer, line.content(), spacing, line, visualLocalX);
@@ -379,6 +367,7 @@ public abstract class ChatHudMixin {
 	private void chat_canvas$clearMessageMetadata(boolean clearHistory, CallbackInfo ci) {
 		chat_canvas$lineLookup.clear();
 		ChatLineWidthCache.clear();
+		ChatTextLayoutEngine.instance().clearWorld();
 		ChatMessageMetadataRegistry.instance().clearAll();
 		PlayerNameHitboxRegistry.clear();
 	}
@@ -429,8 +418,7 @@ public abstract class ChatHudMixin {
 		if (line == null) {
 			return ChatTextLayout.metricsWithin(
 					-1,
-					ChatLineWidthCache.width(client.textRenderer, text,
-							ChatCanvasConfig.instance().text().characterSpacing()),
+					chat_canvas$visualWidth(text),
 					chat_canvas$contentLeft(),
 					chat_canvas$contentRight(),
 					0,
@@ -451,9 +439,8 @@ public abstract class ChatHudMixin {
 		}
 		return ChatTextLayout.metricsWithin(
 				-1,
-				ChatLineWidthCache.width(client.textRenderer, line.content(),
-						ChatCanvasConfig.instance().text().characterSpacing())
-						+ ChatHeadsCompat.extraWidth(line),
+				chat_canvas$visualWidth(line.content())
+						+ chat_canvas$scaled(ChatHeadsCompat.extraWidth(line)),
 				chat_canvas$contentLeft(),
 				chat_canvas$contentRight(),
 				indicatorReservation,
@@ -466,7 +453,8 @@ public abstract class ChatHudMixin {
 	@Unique
 	private double chat_canvas$contentLeft() {
 		double scale = Math.max(0.0001, getChatScale());
-		return chat_canvas$background().horizontalPadding() / scale
+		return (chat_canvas$background().horizontalPadding()
+				+ chat_canvas$glyphSafetyPixels()) / scale
 				- chat_canvas$VANILLA_TEXT_ORIGIN_X;
 	}
 
@@ -474,18 +462,20 @@ public abstract class ChatHudMixin {
 	private double chat_canvas$contentRight() {
 		double scale = Math.max(0.0001, getChatScale());
 		double internalMessageWidth = getWidth() / scale;
-		double internalPadding = chat_canvas$background().horizontalPadding() / scale;
+		double internalPadding = (chat_canvas$background().horizontalPadding()
+				+ chat_canvas$glyphSafetyPixels()) / scale;
 		return Math.max(chat_canvas$contentLeft(),
 				internalMessageWidth - internalPadding - chat_canvas$VANILLA_TEXT_ORIGIN_X);
 	}
 
 	@Unique
 	private ChatVerticalMetrics chat_canvas$verticalMetrics() {
+		ChatTextConfig config = ChatCanvasConfig.instance().text();
 		return ChatTextLayout.verticalMetrics(
 				client.textRenderer.fontHeight,
 				client.textRenderer.fontHeight,
-				1.0,
-				ChatCanvasConfig.instance().text().lineSpacing()
+				config.fontScale(),
+				config.lineSpacing()
 		);
 	}
 
@@ -505,7 +495,7 @@ public abstract class ChatHudMixin {
 	@Unique
 	private void chat_canvas$recordPlayerNameHitbox(
 			DrawContext context, TextRenderer renderer, OrderedText text,
-			ChatMessageMetadataRegistry.VisibleMetadata player, int drawX, int y) {
+			ChatMessageMetadataRegistry.VisibleMetadata player, double drawX, int y) {
 		TextRange nameRange = player.playerNameRange();
 		double spacing = ChatCanvasConfig.instance().text().characterSpacing();
 		int prefixWidth;
@@ -530,10 +520,12 @@ public abstract class ChatHudMixin {
 		}
 
 		Matrix4f matrix = context.getMatrices().peek().getPositionMatrix();
-		Vector4f topLeft = new Vector4f(drawX + prefixWidth, y, 0.0f, 1.0f).mul(matrix);
+		double fontScale = ChatCanvasConfig.instance().text().fontScale();
+		Vector4f topLeft = new Vector4f(
+				(float) (drawX + prefixWidth * fontScale), y, 0.0f, 1.0f).mul(matrix);
 		Vector4f bottomRight = new Vector4f(
-				drawX + prefixWidth + nameWidth,
-				y + renderer.fontHeight,
+				(float) (drawX + (prefixWidth + nameWidth) * fontScale),
+				(float) (y + renderer.fontHeight * fontScale),
 				0.0f,
 				1.0f
 		).mul(matrix);
@@ -548,8 +540,28 @@ public abstract class ChatHudMixin {
 				Math.max(topLeft.y, bottomRight.y)
 		));
 		if (ChatCanvasConfig.instance().playerColors().showNameHitboxes()) {
-			context.drawBorder(drawX + prefixWidth, y, nameWidth,
-					renderer.fontHeight, 0xFFE66B6B);
+			context.drawBorder(
+					(int) Math.floor(drawX + prefixWidth * fontScale), y,
+					(int) Math.ceil(nameWidth * fontScale),
+					(int) Math.ceil(renderer.fontHeight * fontScale), 0xFFE66B6B);
 		}
+	}
+
+	@Unique
+	private int chat_canvas$visualWidth(OrderedText text) {
+		return chat_canvas$scaled(ChatLineWidthCache.width(
+				client.textRenderer, text,
+				ChatCanvasConfig.instance().text().characterSpacing()));
+	}
+
+	@Unique
+	private int chat_canvas$scaled(int baseWidth) {
+		return (int) Math.ceil(Math.max(0, baseWidth)
+				* ChatCanvasConfig.instance().text().fontScale());
+	}
+
+	@Unique
+	private int chat_canvas$glyphSafetyPixels() {
+		return ChatCanvasConfig.instance().text().shadow() ? 2 : 1;
 	}
 }

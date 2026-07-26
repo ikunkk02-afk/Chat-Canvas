@@ -23,6 +23,34 @@ public final class ChatTextLayout {
 		return Math.max(MIN_INTERNAL_LINE_HEIGHT, (int) Math.round(safeVanilla * safeSpacing));
 	}
 
+	public static int internalLineHeight(
+			int vanillaLineHeight, double fontScale, double configuredLineSpacing) {
+		double safeFontScale = safeScale(fontScale);
+		int glyphHeight = (int) Math.ceil(Math.max(1, vanillaLineHeight) * safeFontScale);
+		int configured = (int) Math.ceil(internalLineHeight(
+				vanillaLineHeight, configuredLineSpacing) * safeFontScale);
+		return Math.max(glyphHeight, configured);
+	}
+
+	/**
+	 * Converts the final chat content width back into unscaled glyph units.
+	 * Vanilla chat scale remains the outer HUD scale; Chat Canvas font scale is
+	 * applied only around each final line anchor.
+	 */
+	public static int glyphWrapWidth(
+			int configuredScreenWidth,
+			int horizontalPadding,
+			int glyphSafetyPixels,
+			double vanillaChatScale,
+			double fontScale) {
+		double vanilla = safeScale(vanillaChatScale);
+		double font = safeScale(fontScale);
+		int reservedScreen = Math.max(0, horizontalPadding) * 2
+				+ Math.max(0, glyphSafetyPixels) * 2;
+		double availableScreen = Math.max(1.0, configuredScreenWidth - reservedScreen);
+		return Math.max(1, (int) Math.floor(availableScreen / vanilla / font));
+	}
+
 	public static ChatVerticalMetrics verticalMetrics(int fontHeight, int baseLineHeight,
 													  double scale, double configuredLineSpacing) {
 		int safeFontHeight = Math.max(1, fontHeight);
@@ -30,7 +58,8 @@ public final class ChatTextLayout {
 		double glyphHeight = safeFontHeight * safeScale;
 		double backgroundTopOffset = VERTICAL_BACKGROUND_PADDING * 0.5 * safeScale;
 		double backgroundHeight = (safeFontHeight + VERTICAL_BACKGROUND_PADDING) * safeScale;
-		double lineAdvance = internalLineHeight(baseLineHeight, configuredLineSpacing) * safeScale;
+		double lineAdvance = Math.max(glyphHeight,
+				internalLineHeight(baseLineHeight, configuredLineSpacing) * safeScale);
 		return new ChatVerticalMetrics(
 				glyphHeight,
 				backgroundTopOffset,
@@ -84,5 +113,9 @@ public final class ChatTextLayout {
 		int alpha = argb >>> 24;
 		int multiplied = (int) Math.round(alpha * safeOpacity);
 		return argb & 0x00FFFFFF | multiplied << 24;
+	}
+
+	private static double safeScale(double value) {
+		return Double.isFinite(value) && value > 0.0 ? value : 1.0;
 	}
 }

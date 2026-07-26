@@ -28,9 +28,27 @@ class ChatTextLayoutTest {
 		assertEquals(9.0, compact.glyphHeight(), 0.00001);
 		assertEquals(11.0, compact.backgroundHeight(), 0.00001);
 		assertEquals(11.0, expanded.backgroundHeight(), 0.00001);
-		assertEquals(6.0, compact.lineAdvance(), 0.00001);
+		assertEquals(9.0, compact.lineAdvance(), 0.00001);
 		assertEquals(9.0, normal.lineAdvance(), 0.00001);
 		assertEquals(18.0, expanded.lineAdvance(), 0.00001);
+	}
+
+	@Test
+	void enlargedGlyphsCannotOverlapWhenConfiguredSpacingIsCompact() {
+		assertEquals(18, ChatTextLayout.internalLineHeight(9, 2.0, 0.5));
+		ChatVerticalMetrics metrics = ChatTextLayout.verticalMetrics(9, 9, 2.0, 0.5);
+		assertEquals(18.0, metrics.glyphHeight(), 0.00001);
+		assertEquals(18.0, metrics.lineAdvance(), 0.00001);
+	}
+
+	@Test
+	void wrapWidthIsCalculatedFromFinalPixelsBeforeGlyphLayout() {
+		assertEquals(174, ChatTextLayout.glyphWrapWidth(
+				360, 4, 2, 1.0, 2.0));
+		assertEquals(290, ChatTextLayout.glyphWrapWidth(
+				360, 4, 2, 0.6, 2.0));
+		assertEquals(348, ChatTextLayout.glyphWrapWidth(
+				360, 4, 2, 1.0, 1.0));
 	}
 
 	@Test

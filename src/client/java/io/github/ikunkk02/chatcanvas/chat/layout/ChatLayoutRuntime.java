@@ -25,7 +25,6 @@ public final class ChatLayoutRuntime {
 		PixelLayout layout = ChatCanvasConfig.instance().layout().toPixels(width, height);
 		double vanillaScale = client.options.getChatScale().getValue();
 		double configuredScale = ChatCanvasConfig.instance().text().fontScale();
-		double effectiveScale = ChatTextLayout.effectiveScale(vanillaScale, configuredScale);
 		boolean chatOpen = client.currentScreen instanceof ChatScreen;
 		int inputHeight = 0;
 		if (chatOpen) {
@@ -38,8 +37,10 @@ public final class ChatLayoutRuntime {
 		int vanillaLineHeight = Math.max(1,
 				(int) (client.textRenderer.fontHeight * (vanillaLineSpacing + 1.0)));
 		int internalLineHeight = ChatTextLayout.internalLineHeight(
-				vanillaLineHeight, ChatCanvasConfig.instance().text().lineSpacing());
-		int minimumMessageHeight = Math.max(1, (int) Math.ceil(internalLineHeight * effectiveScale));
+				vanillaLineHeight, configuredScale,
+				ChatCanvasConfig.instance().text().lineSpacing());
+		int minimumMessageHeight = Math.max(1,
+				(int) Math.ceil(internalLineHeight * vanillaScale));
 		RuntimeChatBounds bounds = RuntimeChatBounds.calculate(
 				layout,
 				chatOpen,
@@ -57,6 +58,7 @@ public final class ChatLayoutRuntime {
 		if (lastRefreshSignature == null) {
 			lastRefreshSignature = signature;
 		} else if (!lastRefreshSignature.equals(signature)) {
+			ChatTextLayoutEngine.instance().invalidateLayout();
 			refresh(client.inGameHud.getChatHud());
 			lastRefreshSignature = signature;
 		}
@@ -68,6 +70,7 @@ public final class ChatLayoutRuntime {
 		ChatHudTransform transform = currentTransform(client);
 		RefreshSignature signature = RefreshSignature.from(transform);
 		if (lastRefreshSignature == null || !lastRefreshSignature.equals(signature)) {
+			ChatTextLayoutEngine.instance().invalidateLayout();
 			refresh(client.inGameHud.getChatHud());
 		}
 		lastRefreshSignature = signature;
@@ -79,6 +82,7 @@ public final class ChatLayoutRuntime {
 
 	public static void onFontResourcesReloaded() {
 		lastRefreshSignature = null;
+		ChatTextLayoutEngine.instance().invalidateLayout();
 		MinecraftClient client = MinecraftClient.getInstance();
 		if (client.inGameHud != null) {
 			refresh(client.inGameHud.getChatHud());
@@ -92,6 +96,7 @@ public final class ChatLayoutRuntime {
 
 	private record RefreshSignature(int internalWrapWidth, int horizontalPadding,
 									long effectiveScaleBits, long characterSpacingBits,
+									long lineSpacingBits,
 									String localPlayerName,
 									boolean requireAtSymbol) {
 		private static RefreshSignature from(ChatHudTransform transform) {
@@ -101,18 +106,25 @@ public final class ChatLayoutRuntime {
 					? ""
 					: client.player.getGameProfile().getName().toLowerCase(java.util.Locale.ROOT);
 			return new RefreshSignature(
-					ChatBackgroundMetrics.wrapWidth(
-							transform.internalWrapWidth(),
+					ChatTextLayout.glyphWrapWidth(
+							transform.configuredWidth(),
 							horizontalPadding,
-							transform.effectiveChatScale()
-					),
+							glyphSafetyPixels(),
+							transform.vanillaChatScale(),
+							transform.configuredFontScale()),
 					horizontalPadding,
 					Double.doubleToLongBits(transform.effectiveChatScale()),
 					Double.doubleToLongBits(
 							ChatCanvasConfig.instance().text().characterSpacing()),
+					Double.doubleToLongBits(
+							ChatCanvasConfig.instance().text().lineSpacing()),
 					localPlayerName,
 					ChatCanvasConfig.instance().mention().requireAtSymbol()
 			);
+		}
+
+		private static int glyphSafetyPixels() {
+			return ChatCanvasConfig.instance().text().shadow() ? 2 : 1;
 		}
 	}
 }

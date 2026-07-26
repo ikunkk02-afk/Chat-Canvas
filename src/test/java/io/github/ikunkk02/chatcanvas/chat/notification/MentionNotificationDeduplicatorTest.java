@@ -9,14 +9,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MentionNotificationDeduplicatorTest {
 	@Test
-	void rejectsRepeatedIdsAndShortWindowFingerprints() {
+	void rejectsOnlyTheSameMessageId() {
 		MentionNotificationDeduplicator deduplicator =
 				new MentionNotificationDeduplicator(4, 1_000);
 		UUID first = UUID.randomUUID();
-		assertTrue(deduplicator.accept(first, "same-event", 1_000));
-		assertFalse(deduplicator.accept(first, "different", 1_001));
-		assertFalse(deduplicator.accept(UUID.randomUUID(), "same-event", 1_200));
-		assertTrue(deduplicator.accept(UUID.randomUUID(), "same-event", 1_251));
+		assertTrue(deduplicator.accept(first, 1_000));
+		assertFalse(deduplicator.accept(first, 1_001));
+		assertTrue(deduplicator.accept(UUID.randomUUID(), 1_001));
+		assertTrue(deduplicator.accept(UUID.randomUUID(), 1_001));
 	}
 
 	@Test
@@ -24,7 +24,18 @@ class MentionNotificationDeduplicatorTest {
 		MentionNotificationDeduplicator deduplicator =
 				new MentionNotificationDeduplicator(4, 100);
 		UUID id = UUID.randomUUID();
-		assertTrue(deduplicator.accept(id, "value", 10));
-		assertTrue(deduplicator.accept(id, "value", 111));
+		assertTrue(deduplicator.accept(id, 10));
+		assertTrue(deduplicator.accept(id, 111));
+	}
+
+	@Test
+	void evictsOldestIdsAtCapacity() {
+		MentionNotificationDeduplicator deduplicator =
+				new MentionNotificationDeduplicator(2, 10_000);
+		UUID first = UUID.randomUUID();
+		assertTrue(deduplicator.accept(first, 1));
+		assertTrue(deduplicator.accept(UUID.randomUUID(), 2));
+		assertTrue(deduplicator.accept(UUID.randomUUID(), 3));
+		assertTrue(deduplicator.accept(first, 4));
 	}
 }

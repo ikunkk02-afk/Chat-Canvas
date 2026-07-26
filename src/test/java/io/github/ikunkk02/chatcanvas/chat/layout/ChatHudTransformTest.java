@@ -39,13 +39,13 @@ class ChatHudTransformTest {
 	}
 
 	@Test
-	void configuredFontScaleParticipatesInAllInternalDimensions() {
+	void configuredFontScaleDoesNotResizeTheWholeVanillaHudCoordinateSpace() {
 		ChatHudTransform transform = new ChatHudTransform(
 				new PixelLayout(40, 400, 360, 180), 720, 0.8, 1.25);
 
 		assertEquals(1.0, transform.effectiveChatScale(), 0.00001);
-		assertEquals(360, transform.internalWrapWidth());
-		assertEquals(180, transform.configuredInternalHeight());
+		assertEquals(450, transform.internalWrapWidth());
+		assertEquals(225, transform.configuredInternalHeight());
 	}
 
 	@Test

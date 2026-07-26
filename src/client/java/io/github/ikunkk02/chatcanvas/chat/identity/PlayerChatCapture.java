@@ -12,10 +12,14 @@ import net.minecraft.text.Text;
 import java.util.Optional;
 
 public final class PlayerChatCapture {
+	private static boolean registered;
+
 	private PlayerChatCapture() {
 	}
 
-	public static void register() {
+	public static synchronized void register() {
+		if (registered) return;
+		registered = true;
 		ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, params, timestamp) -> {
 			Optional<ChatMessageMetadata> metadata = standardMetadata(
 					message, signedMessage, sender, params.name());
@@ -37,8 +41,10 @@ public final class PlayerChatCapture {
 					message, null, metadata.map(ChatMessageMetadata::sender),
 					System.currentTimeMillis());
 		});
-		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
-				PlayerRosterTracker.refresh(handler));
+		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+			MentionNotificationController.instance().clearSession();
+			PlayerRosterTracker.refresh(handler);
+		});
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
 			PlayerRosterTracker.clear();
 			ChatMessageMetadataRegistry.instance().clearAll();
