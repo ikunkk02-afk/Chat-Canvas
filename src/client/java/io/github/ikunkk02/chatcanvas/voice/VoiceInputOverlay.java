@@ -64,7 +64,13 @@ public final class VoiceInputOverlay {
 			installPrompt = true;
 			return;
 		}
-		keyboardHolding = manager.begin(resultConsumer);
+		if (manager.isBusy()) {
+			manager.cancel();
+		}
+		boolean started = manager.begin(resultConsumer);
+		if (started) {
+			keyboardHolding = true;
+		}
 	}
 
 	public void tick() {
