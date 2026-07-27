@@ -36,6 +36,7 @@ import net.minecraft.client.gui.screen.ChatInputSuggestor;
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.option.KeyBinding;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
@@ -80,6 +81,8 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 	private char chat_canvas$pendingHighSurrogate;
 	@Unique
 	private boolean chat_canvas$suppressNextVoiceCharacter;
+	@Unique
+	private long chat_canvas$suppressVoiceCharacterUntil;
 
 	@Shadow
 	protected TextFieldWidget chatField;
@@ -276,6 +279,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 			chat_canvas$emojiPicker.close();
 			chat_canvas$voiceOverlay.keyboardPressed();
 			chat_canvas$suppressNextVoiceCharacter = true;
+			chat_canvas$suppressVoiceCharacterUntil = System.currentTimeMillis() + 300;
 			cir.setReturnValue(true);
 			return;
 		}
@@ -322,6 +326,21 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 		}
 		if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
 			chat_canvas$submitActiveInput(screen);
+			cir.setReturnValue(true);
+		}
+	}
+
+	@Inject(method = "keyReleased", at = @At("HEAD"), cancellable = true)
+	private void chat_canvas$routeVoiceKeyReleased(
+			int keyCode, int scanCode, int modifiers,
+			CallbackInfoReturnable<Boolean> cir) {
+		if (!chat_canvas$inputHealthy
+				|| chat_canvas$inputMode != ChatCanvasInputMode.PLAYER_CHAT) {
+			return;
+		}
+		KeyBinding voiceKey = io.github.ikunkk02.chatcanvas.ChatCanvasClient.voiceInputKey();
+		if (voiceKey != null && voiceKey.matchesKey(keyCode, scanCode)) {
+			chat_canvas$voiceOverlay.keyboardReleased();
 			cir.setReturnValue(true);
 		}
 	}
@@ -459,7 +478,8 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 	@Override
 	public boolean chat_canvas$dispatchUnicodeChar(char character, int modifiers) {
 		if (!chat_canvas$inputHealthy) return false;
-		if (chat_canvas$suppressNextVoiceCharacter) {
+		if (chat_canvas$suppressNextVoiceCharacter
+				|| System.currentTimeMillis() < chat_canvas$suppressVoiceCharacterUntil) {
 			chat_canvas$suppressNextVoiceCharacter = false;
 			return true;
 		}

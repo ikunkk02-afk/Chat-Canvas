@@ -85,10 +85,18 @@ public final class VoiceInputOverlay {
 			mouseHolding = false;
 			manager.finish();
 		}
-		if (keyboardHolding
-				&& !io.github.ikunkk02.chatcanvas.ChatCanvasClient.voiceInputKey()
-				.isPressed()) {
-			keyboardHolding = false;
+		if (keyboardHolding && !MinecraftClient.getInstance().isWindowFocused()) {
+			cancel();
+		}
+	}
+
+	public void keyboardReleased() {
+		if (!keyboardHolding) {
+			return;
+		}
+		keyboardHolding = false;
+		var st = manager.state();
+		if (st == VoiceInputState.LISTENING || st == VoiceInputState.MODEL_LOADING) {
 			manager.finish();
 		}
 	}
