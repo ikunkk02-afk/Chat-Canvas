@@ -104,6 +104,7 @@ public final class ChatCanvasMessageIngress {
 		if (result.channel() == ChatCanvasChannel.PLAYER_CHAT) {
 			MentionNotificationController.instance().receive(result);
 		}
+		io.github.ikunkk02.chatcanvas.chat.history.LocalChatLogService.instance().record(result);
 		return true;
 	}
 

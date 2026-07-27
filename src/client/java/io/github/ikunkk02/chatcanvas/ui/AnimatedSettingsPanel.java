@@ -17,6 +17,12 @@ import io.github.ikunkk02.chatcanvas.config.MentionSound;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorMode;
 import io.github.ikunkk02.chatcanvas.config.PlayerChatLayoutMode;
+import io.github.ikunkk02.chatcanvas.voice.VoiceInputManager;
+import io.github.ikunkk02.chatcanvas.voice.VoiceInputState;
+import io.github.ikunkk02.chatcanvas.voice.VoiceSettings;
+import io.github.ikunkk02.chatcanvas.chat.history.ChatLogConfigStorage;
+import io.github.ikunkk02.chatcanvas.chat.history.LocalChatLogService;
+import io.github.ikunkk02.chatcanvas.config.ChatLogConfig;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatIdentity;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameColorProvider;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerRosterTracker;
@@ -111,6 +117,23 @@ public final class AnimatedSettingsPanel {
 	private ButtonComponent commandRecordRecentButton;
 	private ButtonComponent commandClearRecentOnDisconnectButton;
 	private ButtonComponent commandMaxRecentButton;
+	private ButtonComponent voiceEnabledButton;
+	private ButtonComponent voiceDeviceButton;
+	private ButtonComponent voiceTestButton;
+	private ButtonComponent voiceDurationButton;
+	private ButtonComponent voiceLevelButton;
+	private ButtonComponent voiceThresholdButton;
+	private ButtonComponent voicePartialButton;
+	private ButtonComponent voicePunctuationButton;
+	private ButtonComponent voiceModelButton;
+	private ButtonComponent chatLogEnabledButton;
+	private ButtonComponent chatLogSelfButton;
+	private ButtonComponent chatLogOthersButton;
+	private ButtonComponent chatLogCommandButton;
+	private ButtonComponent chatLogRetentionButton;
+	private ButtonComponent chatLogMaxSizeButton;
+	private ButtonComponent chatLogOpenDirButton;
+	private ButtonComponent chatLogFlushButton;
 	private FlowLayout playerListBody;
 	private String playerSearch = "";
 	private long rosterRevision = Long.MIN_VALUE;
@@ -192,24 +215,32 @@ public final class AnimatedSettingsPanel {
 		CategoryPage playerColorsPage = buildPage(buildPlayerColorsBody());
 		CategoryPage mentionPage = buildPage(buildMentionBody());
 		CategoryPage commandPage = buildPage(buildCommandBody());
+		CategoryPage voicePage = buildPage(buildVoiceBody());
+		CategoryPage chatLogPage = buildPage(buildChatLogBody());
 		pages.put(Category.LAYOUT, layoutPage);
 		pages.put(Category.TEXT, textPage);
 		pages.put(Category.BACKGROUND, backgroundPage);
 		pages.put(Category.PLAYER_COLORS, playerColorsPage);
 		pages.put(Category.MENTION, mentionPage);
 		pages.put(Category.COMMAND, commandPage);
+		pages.put(Category.VOICE, voicePage);
+		pages.put(Category.CHAT_LOG, chatLogPage);
 		layoutPage.stack.positioning(Positioning.absolute(0, 0));
 		textPage.stack.positioning(Positioning.absolute(pageWidth(), 0));
 		backgroundPage.stack.positioning(Positioning.absolute(pageWidth() * 2, 0));
 		playerColorsPage.stack.positioning(Positioning.absolute(pageWidth() * 3, 0));
 		mentionPage.stack.positioning(Positioning.absolute(pageWidth() * 4, 0));
 		commandPage.stack.positioning(Positioning.absolute(pageWidth() * 5, 0));
+		voicePage.stack.positioning(Positioning.absolute(pageWidth() * 6, 0));
+		chatLogPage.stack.positioning(Positioning.absolute(pageWidth() * 7, 0));
 		pageHost.addPage(layoutPage.stack);
 		pageHost.addPage(textPage.stack);
 		pageHost.addPage(backgroundPage.stack);
 		pageHost.addPage(playerColorsPage.stack);
 		pageHost.addPage(mentionPage.stack);
 		pageHost.addPage(commandPage.stack);
+		pageHost.addPage(voicePage.stack);
+		pageHost.addPage(chatLogPage.stack);
 		panel.child(pageHost);
 		pageHost.setActivePage(Category.LAYOUT.ordinal());
 
@@ -627,6 +658,216 @@ public final class AnimatedSettingsPanel {
 		button.sizing(Sizing.fill(100), Sizing.fixed(22));
 		registerPageButton(Category.COMMAND, button);
 		return button;
+	}
+
+	private FlowLayout buildVoiceBody() {
+		FlowLayout body = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		body.padding(Insets.bottom(8));
+		body.gap(7);
+		body.child(sectionLabel("chat_canvas.category.voice"));
+		body.child(Components.label(Text.translatable("chat_canvas.voice.settings_hint")
+				.formatted(Formatting.GRAY)));
+		voiceEnabledButton = voiceButton(clicked -> updateVoice(settings ->
+				new VoiceSettings(!settings.enabled(), settings.microphoneId(),
+						settings.maximumSeconds(), settings.showInputLevel(),
+						settings.noiseThreshold(), settings.showPartialResults(),
+						settings.addFinalPunctuation())));
+		voiceDeviceButton = voiceButton(clicked -> {
+			var manager = VoiceInputManager.instance();
+			var devices = manager.devices();
+			VoiceSettings settings = manager.settings();
+			if (devices.isEmpty()) return;
+			int current = -1;
+			for (int i = 0; i < devices.size(); i++) {
+				if (devices.get(i).id().equals(settings.microphoneId())) current = i;
+			}
+			String next = devices.get((current + 1) % devices.size()).id();
+			updateVoice(value -> new VoiceSettings(
+					value.enabled(), next, value.maximumSeconds(), value.showInputLevel(),
+					value.noiseThreshold(), value.showPartialResults(),
+					value.addFinalPunctuation()));
+		});
+		voiceTestButton = voiceButton(clicked ->
+				VoiceInputManager.instance().toggleMicrophoneTest());
+		voiceDurationButton = voiceButton(clicked -> updateVoice(settings -> {
+			int next = settings.maximumSeconds() >= 60 ? 5 : settings.maximumSeconds() + 5;
+			return new VoiceSettings(settings.enabled(), settings.microphoneId(),
+					next, settings.showInputLevel(), settings.noiseThreshold(),
+					settings.showPartialResults(), settings.addFinalPunctuation());
+		}));
+		voiceLevelButton = voiceButton(clicked -> updateVoice(settings ->
+				new VoiceSettings(settings.enabled(), settings.microphoneId(),
+						settings.maximumSeconds(), !settings.showInputLevel(),
+						settings.noiseThreshold(), settings.showPartialResults(),
+						settings.addFinalPunctuation())));
+		voiceThresholdButton = voiceButton(clicked -> updateVoice(settings -> {
+			double next = settings.noiseThreshold() >= 0.05
+					? 0.005 : settings.noiseThreshold() + 0.005;
+			return new VoiceSettings(settings.enabled(), settings.microphoneId(),
+					settings.maximumSeconds(), settings.showInputLevel(), next,
+					settings.showPartialResults(), settings.addFinalPunctuation());
+		}));
+		voicePartialButton = voiceButton(clicked -> updateVoice(settings ->
+				new VoiceSettings(settings.enabled(), settings.microphoneId(),
+						settings.maximumSeconds(), settings.showInputLevel(),
+						settings.noiseThreshold(), !settings.showPartialResults(),
+						settings.addFinalPunctuation())));
+		voicePunctuationButton = voiceButton(clicked -> updateVoice(settings ->
+				new VoiceSettings(settings.enabled(), settings.microphoneId(),
+						settings.maximumSeconds(), settings.showInputLevel(),
+						settings.noiseThreshold(), settings.showPartialResults(),
+						!settings.addFinalPunctuation())));
+		ButtonComponent binding = voiceButton(clicked -> {});
+		binding.active(false);
+		binding.setMessage(Text.translatable("chat_canvas.voice.keybinding"));
+		ButtonComponent insertMode = voiceButton(clicked -> {});
+		insertMode.active(false);
+		insertMode.setMessage(Text.translatable("chat_canvas.voice.insert_mode"));
+		voiceModelButton = voiceButton(clicked -> {
+			VoiceInputManager manager = VoiceInputManager.instance();
+			if (manager.state() == VoiceInputState.MODEL_MISSING
+					|| manager.state() == VoiceInputState.ERROR) manager.installModel();
+			else if (manager.state() == VoiceInputState.MODEL_DOWNLOADING
+					|| manager.state() == VoiceInputState.MODEL_VERIFYING
+					|| manager.state() == VoiceInputState.MODEL_EXTRACTING) {
+				manager.cancelModelInstall();
+			}
+		});
+		ButtonComponent openModel = voiceButton(clicked ->
+				VoiceInputManager.instance().openModelsDirectory());
+		openModel.setMessage(Text.translatable("chat_canvas.voice.open_model_directory"));
+		ButtonComponent releaseModel = voiceButton(clicked ->
+				VoiceInputManager.instance().releaseModel());
+		releaseModel.setMessage(Text.translatable("chat_canvas.voice.release_model"));
+		body.child(voiceEnabledButton);
+		body.child(voiceDeviceButton);
+		body.child(voiceTestButton);
+		body.child(binding);
+		body.child(voiceDurationButton);
+		body.child(voiceLevelButton);
+		body.child(voiceThresholdButton);
+		body.child(voicePartialButton);
+		body.child(insertMode);
+		body.child(voicePunctuationButton);
+		body.child(voiceModelButton);
+		body.child(openModel);
+		body.child(releaseModel);
+		body.child(Components.label(Text.translatable("chat_canvas.voice.privacy")
+				.formatted(Formatting.GRAY)));
+		return body;
+	}
+
+	private FlowLayout buildChatLogBody() {
+		FlowLayout body = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		body.padding(Insets.bottom(8));
+		body.gap(7);
+		body.child(sectionLabel("chat_canvas.category.chat_log"));
+		body.child(Components.label(Text.translatable("chat_canvas.chat_log.settings_hint")
+				.formatted(Formatting.GRAY)));
+		chatLogEnabledButton = chatLogToggle("chat_canvas.chat_log.enabled",
+				config -> config.withEnabled(!config.enabled()));
+		chatLogSelfButton = chatLogToggle("chat_canvas.chat_log.save_self",
+				config -> config.withSaveSelfMessages(!config.saveSelfMessages()));
+		chatLogOthersButton = chatLogToggle("chat_canvas.chat_log.save_others",
+				config -> config.withSaveOtherPlayersMessages(!config.saveOtherPlayersMessages()));
+		chatLogCommandButton = chatLogToggle("chat_canvas.chat_log.save_command",
+				config -> config.withSaveCommandSystemMessages(!config.saveCommandSystemMessages()));
+		chatLogRetentionButton = ModernUiTheme.button(Text.empty(), clicked -> {
+			ChatLogConfig config = LocalChatLogService.instance().config();
+			int next = config.retentionDays() >= 365 ? 0
+					: config.retentionDays() >= 90 ? 365
+					: config.retentionDays() >= 30 ? 90
+					: config.retentionDays() >= 7 ? 30
+					: config.retentionDays() > 0 ? 0 : 7;
+			updateChatLog(config.withRetentionDays(next));
+		});
+		chatLogRetentionButton.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.CHAT_LOG, chatLogRetentionButton);
+		chatLogMaxSizeButton = ModernUiTheme.button(Text.empty(), clicked -> {
+			ChatLogConfig config = LocalChatLogService.instance().config();
+			long next = config.maxFileSizeBytes() >= 100L * 1024 * 1024L
+					? ChatLogConfig.MIN_FILE_SIZE_BYTES
+					: config.maxFileSizeBytes() >= 50L * 1024 * 1024L
+					? 100L * 1024 * 1024L
+					: config.maxFileSizeBytes() >= 20L * 1024 * 1024L
+					? 50L * 1024 * 1024L
+					: config.maxFileSizeBytes() >= 10L * 1024 * 1024L
+					? 20L * 1024 * 1024L
+					: 10L * 1024 * 1024L;
+			updateChatLog(config.withMaxFileSizeBytes(next));
+		});
+		chatLogMaxSizeButton.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.CHAT_LOG, chatLogMaxSizeButton);
+		chatLogOpenDirButton = ModernUiTheme.button(
+				Text.translatable("chat_canvas.chat_log.open_dir"),
+				clicked -> LocalChatLogService.instance().openLogsDirectory());
+		chatLogOpenDirButton.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.CHAT_LOG, chatLogOpenDirButton);
+		chatLogFlushButton = ModernUiTheme.button(
+				Text.translatable("chat_canvas.chat_log.flush"),
+				clicked -> LocalChatLogService.instance().flush());
+		chatLogFlushButton.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.CHAT_LOG, chatLogFlushButton);
+		body.child(chatLogEnabledButton);
+		body.child(chatLogSelfButton);
+		body.child(chatLogOthersButton);
+		body.child(chatLogCommandButton);
+		body.child(chatLogRetentionButton);
+		body.child(chatLogMaxSizeButton);
+		body.child(chatLogOpenDirButton);
+		body.child(chatLogFlushButton);
+		body.child(Components.label(Text.translatable("chat_canvas.chat_log.privacy")
+				.formatted(Formatting.GRAY)));
+		return body;
+	}
+
+	private ButtonComponent chatLogToggle(
+			String key, java.util.function.UnaryOperator<ChatLogConfig> toggle) {
+		ButtonComponent button = ModernUiTheme.button(Text.empty(), clicked -> {
+			ChatLogConfig before = LocalChatLogService.instance().config();
+			updateChatLog(toggle.apply(before));
+		});
+		button.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.CHAT_LOG, button);
+		return button;
+	}
+
+	private void updateChatLog(ChatLogConfig value) {
+		LocalChatLogService.instance().updateConfig(value);
+		new ChatLogConfigStorage().save(value);
+		syncChatLogButtons();
+	}
+
+	private void syncChatLogButtons() {
+		ChatLogConfig config = LocalChatLogService.instance().config();
+		setToggleMessage(chatLogEnabledButton, "chat_canvas.chat_log.enabled", config.enabled());
+		setToggleMessage(chatLogSelfButton, "chat_canvas.chat_log.save_self", config.saveSelfMessages());
+		setToggleMessage(chatLogOthersButton, "chat_canvas.chat_log.save_others", config.saveOtherPlayersMessages());
+		setToggleMessage(chatLogCommandButton, "chat_canvas.chat_log.save_command", config.saveCommandSystemMessages());
+		if (chatLogRetentionButton != null) {
+			chatLogRetentionButton.setMessage(
+				Text.translatable("chat_canvas.chat_log.retention_days")
+					.append(Text.literal("  " + (config.retentionDays() == 0 ? "∞" : String.valueOf(config.retentionDays())))));
+		}
+		if (chatLogMaxSizeButton != null) {
+			long mb = config.maxFileSizeBytes() / (1024 * 1024);
+			chatLogMaxSizeButton.setMessage(
+				Text.translatable("chat_canvas.chat_log.max_size_mb")
+					.append(Text.literal("  " + mb + " MB")));
+		}
+	}
+
+	private ButtonComponent voiceButton(Consumer<ButtonComponent> action) {
+		ButtonComponent button = ModernUiTheme.button(Text.empty(), action);
+		button.sizing(Sizing.fill(100), Sizing.fixed(22));
+		registerPageButton(Category.VOICE, button);
+		return button;
+	}
+
+	private void updateVoice(java.util.function.UnaryOperator<VoiceSettings> operation) {
+		VoiceInputManager manager = VoiceInputManager.instance();
+		manager.updateSettings(operation.apply(manager.settings()));
+		syncVoiceButtons();
 	}
 
 	private MentionNumericScrubberComponent mentionScrubber(
@@ -1259,6 +1500,8 @@ public final class AnimatedSettingsPanel {
 		syncPlayerColorButtons();
 		syncMentionButtons();
 		syncCommandButtons();
+		syncVoiceButtons();
+		syncChatLogButtons();
 		if (lastPlayerColors == null || !lastPlayerColors.equals(session.playerColors())
 				|| rosterRevision != PlayerRosterTracker.revision()) {
 			rebuildPlayerRows();
@@ -1309,6 +1552,47 @@ public final class AnimatedSettingsPanel {
 									== CommandInsertMode.REPLACE_INPUT
 									? "chat_canvas.command.insert_replace"
 									: "chat_canvas.command.insert_cursor")));
+		}
+	}
+
+	private void syncVoiceButtons() {
+		VoiceInputManager manager = VoiceInputManager.instance();
+		VoiceSettings settings = manager.settings();
+		setToggleMessage(voiceEnabledButton, "chat_canvas.voice.enabled", settings.enabled());
+		setToggleMessage(voiceLevelButton, "chat_canvas.voice.show_level",
+				settings.showInputLevel());
+		setToggleMessage(voicePartialButton, "chat_canvas.voice.show_partial",
+				settings.showPartialResults());
+		setToggleMessage(voicePunctuationButton, "chat_canvas.voice.add_punctuation",
+				settings.addFinalPunctuation());
+		if (voiceDurationButton != null) voiceDurationButton.setMessage(
+				Text.translatable("chat_canvas.voice.maximum_seconds")
+						.append(Text.literal("  " + settings.maximumSeconds())));
+		if (voiceThresholdButton != null) voiceThresholdButton.setMessage(
+				Text.translatable("chat_canvas.voice.noise_threshold")
+						.append(Text.literal(String.format(Locale.ROOT, "  %.3f",
+								settings.noiseThreshold()))));
+		if (voiceDeviceButton != null) {
+			String name = manager.devices().stream()
+					.filter(device -> device.id().equals(settings.microphoneId()))
+					.map(device -> device.displayName()).findFirst()
+					.orElse(Text.translatable("chat_canvas.voice.device.default").getString());
+			voiceDeviceButton.setMessage(Text.translatable("chat_canvas.voice.device")
+					.append(Text.literal("  " + name)));
+		}
+		if (voiceTestButton != null) {
+			String suffix = manager.isMicrophoneTesting()
+					? String.format(Locale.ROOT, "  %.0f%%",
+							Math.min(100.0, manager.microphoneTestLevel() * 800.0))
+					: "";
+			voiceTestButton.setMessage(Text.translatable(
+					manager.isMicrophoneTesting()
+							? "chat_canvas.voice.test.stop"
+							: "chat_canvas.voice.test.start").append(Text.literal(suffix)));
+		}
+		if (voiceModelButton != null) {
+			voiceModelButton.setMessage(Text.translatable("chat_canvas.voice.model.status")
+					.append(Text.literal("  " + manager.state().name())));
 		}
 	}
 
@@ -1585,7 +1869,9 @@ public final class AnimatedSettingsPanel {
 		BACKGROUND("chat_canvas.category.background"),
 		PLAYER_COLORS("chat_canvas.category.player_colors"),
 		MENTION("chat_canvas.category.mention"),
-		COMMAND("chat_canvas.category.command");
+		COMMAND("chat_canvas.category.command"),
+		VOICE("chat_canvas.category.voice"),
+		CHAT_LOG("chat_canvas.category.chat_log");
 
 		private final String translationKey;
 

@@ -331,6 +331,8 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 	@Override
 	public void removed() {
+		io.github.ikunkk02.chatcanvas.voice.VoiceInputManager.instance()
+				.stopMicrophoneTest();
 		pointerCapture.cancel();
 		if (colorPickerPopup != null) {
 			colorPickerPopup.cancel();

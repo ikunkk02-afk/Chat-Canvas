@@ -34,6 +34,12 @@ dependencies {
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 	modImplementation "io.wispforest:owo-lib:${project.owo_version}"
+	implementation("com.alphacephei:vosk:0.3.45") {
+		exclude group: "net.java.dev.jna", module: "jna"
+	}
+	include("com.alphacephei:vosk:0.3.45") {
+		transitive = false
+	}
 
 	modCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
 	if (providers.gradleProperty("withModMenu").map(String::toBoolean).getOrElse(false)) {
@@ -79,6 +85,7 @@ jar {
 	from("LICENSE") {
 		rename { "${it}_$projectName"}
 	}
+	from("THIRD_PARTY_LICENSES.md")
 }
 
 publishing {

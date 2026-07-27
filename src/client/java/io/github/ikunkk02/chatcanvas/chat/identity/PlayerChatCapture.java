@@ -8,6 +8,7 @@ import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessageIngress;
 import io.github.ikunkk02.chatcanvas.chat.render.DualChatHudRenderer;
 import io.github.ikunkk02.chatcanvas.chat.message.MessageIngress;
 import io.github.ikunkk02.chatcanvas.chat.notification.MentionNotificationController;
+import io.github.ikunkk02.chatcanvas.voice.VoiceInputManager;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -65,8 +66,11 @@ public final class PlayerChatCapture {
 			DualChatHudRenderer.instance().resetWorld();
 			MentionNotificationController.instance().clearSession();
 			PlayerRosterTracker.refresh(handler);
+			io.github.ikunkk02.chatcanvas.chat.history.LocalChatLogService.instance()
+					.switchContext(io.github.ikunkk02.chatcanvas.chat.history.ChatLogContexts.current(client));
 		});
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+			VoiceInputManager.instance().cancel();
 			CommandToolRuntime.endSession();
 			ChatCanvasInputController.instance().clearSession();
 			PlayerRosterTracker.clear();
@@ -76,6 +80,7 @@ public final class PlayerChatCapture {
 			ChatCanvasMessageIngress.instance().clearWorld();
 			DualChatHudRenderer.instance().resetWorld();
 			MentionNotificationController.instance().clearSession();
+			io.github.ikunkk02.chatcanvas.chat.history.LocalChatLogService.instance().switchContext(null);
 		});
 	}
 

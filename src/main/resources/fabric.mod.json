@@ -16,6 +16,9 @@
 	"icon": "assets/chat_canvas/icon.png",
 	"environment": "client",
 	"entrypoints": {
+		"preLaunch": [
+			"io.github.ikunkk02.chatcanvas.ChatCanvasPreLaunch"
+		],
 		"main": [
 			"io.github.ikunkk02.chatcanvas.ChatCanvas"
 		],

@@ -13,4 +13,6 @@ public interface ChatCanvasInputScreenBridge {
 	void chat_canvas$openPlayerInput();
 
 	boolean chat_canvas$dispatchUnicodeChar(char character, int modifiers);
+
+	void chat_canvas$voiceTick();
 }
