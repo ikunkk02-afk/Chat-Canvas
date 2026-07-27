@@ -94,7 +94,8 @@ public final class VoiceInputManager {
 	}
 
 	private void startSession(long token) {
-		captureExecutor.execute(() -> {
+		try {
+			captureExecutor.execute(() -> {
 			try {
 				MicrophoneManager.Lease lease = microphones.acquire(settings.microphoneId());
 				RecognitionSession recognizer = backend.createSession(16_000.0f);
@@ -125,6 +126,9 @@ public final class VoiceInputManager {
 				fail("chat_canvas.voice.error.microphone", throwable);
 			}
 		});
+		} catch (java.util.concurrent.RejectedExecutionException e) {
+			fail("chat_canvas.voice.error.microphone", e);
+		}
 	}
 
 	public synchronized void finish() {
@@ -294,7 +298,7 @@ public final class VoiceInputManager {
 					Thread thread = new Thread(runnable, name);
 					thread.setDaemon(true);
 					return thread;
-				}, new ThreadPoolExecutor.AbortPolicy());
+				}, new ThreadPoolExecutor.DiscardOldestPolicy());
 	}
 
 	private static void onClient(Runnable runnable) {
