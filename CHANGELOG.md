@@ -2,6 +2,29 @@
 
 All notable changes to Chat Canvas will be documented in this file.
 
+## [1.2.0] - 2026-07-27
+
+### Added
+
+- **Local chat log saving**: automatically save player chat messages to `.minecraft/chatcanvas/chat-logs/` in UTF-8 JSONL format, isolated per world/server.
+- Chat log settings page in editor (enable/disable, toggle self/others, command system channel, retention days, max file size, open directory).
+- Asynchronous single-threaded log writer with bounded queue, daily file rotation, and size-based rotation.
+- Chat log retention manager: automatically deletes log files older than configured days.
+- Sensitive command exclusion for chat logs (reuses existing `SensitiveCommandDetector`).
+- Session context switching (JOIN/DISCONNECT) for correct per-world/server log directories.
+- Stable directory hashing (SHA-256) with sanitised display names to prevent path traversal.
+
+### Changed
+
+- Updated `README.md` and `README_EN.md` for all v1.2.0 features: dual channels, emoji, voice input, command tools, chat log, split layout, updated category count and data file paths.
+- Bumped version to 1.2.0.
+
+### Fixed
+
+- Voice input crash: replaced `ThreadPoolExecutor.AbortPolicy` with `DiscardOldestPolicy` to prevent `RejectedExecutionException` when microphone test or previous session occupied the capture thread.
+- Keyboard voice recognition slowness: key repeat no longer overwrites `keyboardHolding` flag, so `finish()` is correctly called on key release instead of recording until timeout.
+- Keyboard voice unresponsiveness when previous session was still in RECOGNIZING state: now cancels stale session before starting a new one on V press.
+
 ## [1.1.1] - 2026-07-24
 
 ### Fixed

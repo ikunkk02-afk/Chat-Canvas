@@ -10,12 +10,12 @@
 ![Loader](https://img.shields.io/badge/Loader-Fabric-lightyellow)
 ![Side](https://img.shields.io/badge/Side-Client--only-blue)
 ![Java](https://img.shields.io/badge/Java-21%2B-orange)
-![Version](https://img.shields.io/badge/Version-1.1.0-informational)
+![Version](https://img.shields.io/badge/Version-1.2.0-informational)
 ![License](https://img.shields.io/badge/License-MIT-brightgreen)
 
-Chat Canvas is a **client-side only** chat HUD customisation mod for **Minecraft 1.21.1 Fabric**.
+Chat Canvas is a **client-side only** chat enhancement mod for **Minecraft 1.21.1 Fabric**.
 
-Drag, resize and preview your chat overlay directly in-game while customising text styles, backgrounds, player name colours, @‑mention alerts and command input features — all in real time.
+Drag, resize and preview your chat overlay directly in-game while customising text styles, backgrounds, player name colours, @‑mention alerts, Emoji, command tools, voice input, and chat log saving — all in real time.
 
 Chat Canvas ships with **two selectable editor visual themes** that share the same layout, features and configuration — only the UI controls change their appearance.
 
@@ -29,13 +29,17 @@ Chat Canvas ships with **two selectable editor visual themes** that share the sa
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Visual Editor](#visual-editor)
+- [Dual Chat Channels](#dual-chat-channels)
 - [Layout Settings](#layout-settings)
 - [Text Settings](#text-settings)
 - [Background Settings](#background-settings)
 - [Player Name Colours](#player-name-colours)
 - [Mentions &amp; Notifications](#mentions--notifications)
 - [Player Quick Actions](#player-quick-actions)
-- [Command Clipboard](#command-clipboard)
+- [Command Tools](#command-tools)
+- [Emoji Picker](#emoji-picker)
+- [Voice Input](#voice-input)
+- [Chat Log Saving](#chat-log-saving)
 - [Configuration &amp; Data Files](#configuration--data-files)
 - [Compatibility](#compatibility)
 - [Security Notice](#security-notice)
@@ -56,12 +60,17 @@ Chat Canvas ships with **two selectable editor visual themes** that share the sa
 - ✅ Eight-direction resizing with edge &amp; centre snapping
 - ✅ Settings panel auto‑avoids the chat preview
 - ✅ **Two switchable editor visual themes** (Chat Canvas &amp; Minecraft‑style)
+- ✅ **Dual chat channels**: player chat + command &amp; system messages, independently positioned and styled
 - ✅ Text size, character spacing, line spacing, opacity, shadow &amp; alignment
 - ✅ Message background colour, opacity and display mode
+- ✅ **Player chat layout modes**: classic / split alignment
 - ✅ Automatic per‑player name colours + manual overrides
 - ✅ Double‑click @‑mentions + sound / toast / full‑screen flash
 - ✅ Right‑click player name quick menu
-- ✅ Persistent command clipboard (search / category / favourites / presets)
+- ✅ **Command tools**: recent / favourites / clipboard, search, sort, sensitive command exclusion
+- ✅ **Emoji picker**: categories, search, recent history
+- ✅ **Local offline Chinese speech‑to‑text** (hold V to speak, powered by Vosk)
+- ✅ **Chat log saving**: per‑world/server directories, UTF‑8 JSONL, automatic rotation &amp; retention
 - ✅ Compatible with Chat Heads, More Chat History, ChatAnimation &amp; Smooth Scrolling
 - ✅ Ctrl+Z / Ctrl+Y undo &amp; redo
 - ✅ Theme preference persisted across sessions
@@ -129,7 +138,7 @@ Chat Canvas registers a configuration entry in Mod Menu automatically.
 1. Press **K** (default keybind) to open the editor
 2. Drag the chat overlay to your desired position
 3. Drag the corners to resize the chat area
-4. Use the six category tabs in the settings panel for detailed customisations
+4. Use the category tabs in the settings panel for detailed customisations
 5. Click **Save** to apply
 
 > While the editor is open you can see a live preview of your chat HUD on the left.
@@ -143,9 +152,27 @@ Chat Canvas registers a configuration entry in Mod Menu automatically.
 - **Eight‑direction resize**: Drag the edges and corners to adjust width and height
 - **Snapping**: Snaps to screen edges, corners and centre
 - **Settings panel**: A floating panel on the right that auto‑switches sides to avoid the preview
-- **Category tabs**: Layout, Text, Background, Player Colours, Mentions, Command Input — 6 tabs with horizontal sliding
+- **Category tabs**: Layout, Text, Background, Player Colours, Mentions, Command Input, Voice, Chat Log — **8 tabs** with horizontal sliding
 - **Undo / Redo**: Ctrl+Z / Ctrl+Y, or the toolbar buttons
 - **Save / Cancel**: Fixed footer bar
+- **Channel switch**: Toolbar buttons to edit player chat or command/system message channel
+
+---
+
+## Dual Chat Channels
+
+Chat Canvas separates chat into two independent channels:
+
+| Channel | Description |
+|---|---|
+| **Player Chat** | Normal player messages, mentions, whispers, etc. |
+| **Command &amp; System** | Command results, system notifications, join/leave, death messages, etc. |
+
+Both channels:
+- Have independent position, size, text style and background settings
+- Scroll independently
+- Can be edited separately in the editor
+- The command system channel supports text outline and customisable fade time
 
 ---
 
@@ -156,6 +183,8 @@ Chat Canvas registers a configuration entry in Mod Menu automatically.
 - Width (pixels)
 - Height (pixels)
 - Chat open / closed preview state toggle
+- **Message layout**: Classic / Split Alignment
+- **Split message max width ratio**
 - Values adapt to your resolution and GUI Scale
 
 ---
@@ -239,39 +268,89 @@ All text settings support Chinese, English, Unicode and emoji.
 
 ---
 
-## Command Clipboard
+## Command Tools
 
-A "Commands" button appears next to the chat input field. Click it to open the clipboard panel:
+A "Commands" button appears next to the chat input field (or press Ctrl+F). Click it to open the command tools panel:
 
-- The **launcher button hides automatically** while the panel is open and reappears when closed
-- **My Commands**: your saved command list
-- **Presets**: built‑in game commands (difficulty, time, weather, etc.)
-- **Search** by title, command text or category
-- **Category filter**: filter by custom categories
-- **Favourites**: star your frequent commands
-- **Recent**: sort by recently used
-- **Save current input**: save the text currently in the chat field
-- **Edit / Delete / Reorder**
+- **Recent**: executed commands sorted by time
+- **Favorites**: saved frequently‑used commands, drag to reorder
+- **Clipboard**: command candidates from system clipboard
+- **Search** by name or command text
+- **Edit / Delete / Reorder** favorites
 - Insert at **cursor position** or **replace the entire input**
 - Shift‑click to temporarily invert the insert mode
+- **Sensitive command exclusion**: automatically filters `/login`, `/register`, `/password`, etc.
 - Confirmation dialogs prevent accidental deletion or clearing
 - Data persists across worlds, servers and restarts
 - **Commands are never executed automatically**
 
 ---
 
+## Emoji Picker
+
+An "Emoji" button appears next to the chat input field. Click it to open the emoji panel:
+
+- **10 categories**: Faces, People, Animals, Food, Activities, Travel, Objects, Symbols, Hearts, Recent
+- **Search** by name
+- **Recent history** persists across sessions
+- Click an emoji to insert at cursor position
+- Displays grapheme cluster count and input length limit
+- Compatible with Chinese, English and Unicode
+
+---
+
+## Voice Input
+
+Hold **V** (default keybind) for voice input, powered by local offline Vosk Chinese speech recognition:
+
+- **Fully local** — no internet required
+- Chinese voice model (vosk‑model‑small‑cn‑0.22, ~42 MB)
+- Model download, installation and release
+- Microphone selection and testing
+- Configurable max recording seconds and noise threshold
+- Input level meter and partial recognition display
+- Auto‑append final punctuation
+- Results inserted at cursor position
+- Privacy: audio is never uploaded or saved
+
+> Note: You need to download the Chinese voice model on first use. The microphone is only active while the key is held.
+
+---
+
+## Chat Log Saving
+
+Automatically saves player chat messages to local files:
+
+- Save location: `.minecraft/chatcanvas/chat-logs/`
+- **Isolated per world/server** directories
+- Directory names include stable hashes to prevent path traversal
+- File format: UTF‑8 JSON Lines (`.jsonl`), one message per line
+- Automatic daily file rotation with size‑based rotation
+- **Asynchronous writing** — no game lag
+- Player chat saved by default; self / others can be toggled independently
+- Command &amp; system messages default to off, can be enabled separately
+- Sensitive commands (e.g. `/login`, `/register`) are always excluded
+- Configurable retention days (0 = keep forever)
+- One‑click open chat logs directory
+
+---
+
 ## Configuration &amp; Data Files
 
-Settings are stored locally on your client (not per‑world):
+Settings are stored locally on your client:
 
 | File | Path |
 |---|---|
 | Main config | `.minecraft/config/chat_canvas.json` |
-| Command clipboard | `.minecraft/config/chat_canvas/command_clipboard.json` |
+| Command tools | `.minecraft/config/chat_canvas/commands.json` |
+| Emoji recent | `.minecraft/config/chat_canvas/emoji.json` |
+| Voice settings | `.minecraft/config/chatcanvas/voice.json` |
+| Voice model | `.minecraft/config/chatcanvas/voice-models/` |
+| Chat logs | `.minecraft/chatcanvas/chat-logs/` |
+| Chat log settings | `.minecraft/config/chatcanvas/chatlog.json` |
 
 - Switching worlds or servers does not lose your settings
 - Delete the main config file to reset all settings
-- Deleting the clipboard file removes all saved commands
 - Back up before modifying
 - Manual editing during play is not recommended
 - Corrupted configs are backed up and replaced with defaults automatically
@@ -303,13 +382,14 @@ Chat Canvas does not implement scroll animation — Smooth Scrolling provides it
 ## Security Notice
 
 > [!WARNING]
-> The command clipboard stores commands as **local plain‑text JSON**. **Do not save passwords, tokens or private information** on shared or untrusted computers — for example, `/login`, `/register`, `/password`.
+> Command tools and chat logs store data as **local plain‑text JSON**. **Do not save passwords, tokens or private information** on shared or untrusted computers — for example, `/login`, `/register`, `/password`.
 
-- Chat Canvas **never uploads** your commands
-- Commands are never sent to the author or third parties
+- Chat Canvas **never uploads** your commands or chat logs
+- Data is never sent to the author or third parties
 - Clicking a command **only fills the input field** — it never executes automatically
 - Commands are only processed after you press Enter
 - A plain‑text storage warning is shown when saving commands containing sensitive keywords
+- Voice recognition runs entirely locally; audio is never uploaded
 - You are responsible for what you choose to save
 
 ---
@@ -327,7 +407,8 @@ Chat Canvas does not implement scroll animation — Smooth Scrolling provides it
 9. Specialised chat‑format mods may require additional compatibility work
 10. Whisper commands are server‑dependent — `/msg` may not be available
 11. Command permissions are determined by the server — Chat Canvas cannot bypass them
-12. The command clipboard uses local plain‑text JSON storage
+12. Voice recognition supports Chinese only and requires a separate model download
+13. Hold‑to‑talk via V key may be unstable in some environments; use mouse click on the mic button as a fallback
 
 ---
 
@@ -359,15 +440,23 @@ Ensure "Double‑click mention" is enabled in the Mentions settings, and that yo
 
 ### Why does the command button disappear when the panel opens?
 
-This is by design. The launcher button hides while the clipboard panel is open so it does not obstruct the panel. It reappears when you close the panel.
+This is by design. The launcher button hides while the tools panel is open so it does not obstruct the panel. It reappears when you close the panel.
 
 ### Why doesn't clicking a command execute it immediately?
 
 Chat Canvas only fills the input field. You must press Enter to send — this keeps you in control.
 
-### Where are commands saved?
+### How do I use voice input?
 
-`.minecraft/config/chat_canvas/command_clipboard.json` (local plain‑text JSON).
+Hold the **V** key while speaking, then release. On first use, download the Chinese voice model from the Voice settings page. You can also click the microphone icon next to the chat field.
+
+### Where are chat logs saved?
+
+`.minecraft/chatcanvas/chat-logs/`, organised by world/server in JSONL format.
+
+### Why aren't commands in my chat log?
+
+Command and system messages are not saved by default. Enable "Save Command & System Messages" in the Chat Log settings category.
 
 ### Does Chat Canvas need to be installed on the server?
 
@@ -384,7 +473,7 @@ The current version supports Fabric 1.21.1 only.
 1. Verify Minecraft version is 1.21.1
 2. Verify Fabric Loader is installed
 3. Verify Fabric API and owo‑lib are installed
-4. Back up `config/chat_canvas.json` and `config/chat_canvas/`
+4. Back up `config/chat_canvas.json` and related config directories
 5. Temporarily rename config files to test for corruption
 6. Test with only Chat Canvas and its required dependencies
 7. Re‑enable other mods in batches to isolate conflicts
