@@ -34,6 +34,13 @@ run/
 logs/
 crash-reports/
 
+# runtime data
+
+chat-logs/
+voice-models/
+*.part
+*.tmp
+
 # java
 
 hs_err_*.log

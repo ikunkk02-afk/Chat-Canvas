@@ -95,7 +95,7 @@ public final class VoiceInputManager {
 
 	private void startSession(long token) {
 		try {
-			captureExecutor.execute(() -> {
+				captureExecutor.execute(() -> {
 			try {
 				MicrophoneManager.Lease lease = microphones.acquire(settings.microphoneId());
 				RecognitionSession recognizer = backend.createSession(16_000.0f);
@@ -122,8 +122,17 @@ public final class VoiceInputManager {
 					partial = "";
 				}
 				created.startCapture();
+			} catch (IllegalStateException ise) {
+				// Lease already closed or occupied concurrently; not a microphone permission issue
+				ChatCanvas.LOGGER.warn("Voice session resource unavailable: {}", ise.getMessage());
+				cleanupAfterAbort();
 			} catch (Throwable throwable) {
-				fail("chat_canvas.voice.error.microphone", throwable);
+				if (isMicrophoneAccessIssue(throwable)) {
+					fail("chat_canvas.voice.error.microphone", throwable);
+				} else {
+					ChatCanvas.LOGGER.error("Voice session resource release failed", throwable);
+					cleanupAfterAbort();
+				}
 			}
 		});
 		} catch (java.util.concurrent.RejectedExecutionException e) {
@@ -199,7 +208,7 @@ public final class VoiceInputManager {
 			try {
 				MicrophoneManager.Lease lease = microphones.acquire(settings.microphoneId());
 				microphoneTestLease = lease;
-				var opened = lease.opened();
+				var opened = lease.openedOrThrow();
 				var line = opened.line();
 				var format = opened.format();
 				var resampler = new Pcm16MonoResampler(
@@ -290,6 +299,35 @@ public final class VoiceInputManager {
 				refreshAvailability();
 			}
 		});
+	}
+
+	private void cleanupAfterAbort() {
+		onClient(() -> {
+			synchronized (this) {
+				pendingHold = false;
+				if (session != null) {
+					session = null;
+				}
+				if (state == VoiceInputState.LISTENING || state == VoiceInputState.MODEL_LOADING) {
+					state = VoiceInputState.IDLE;
+				}
+			}
+		});
+	}
+
+	private static boolean isMicrophoneAccessIssue(Throwable throwable) {
+		return throwable instanceof javax.sound.sampled.LineUnavailableException
+				|| throwable instanceof SecurityException
+				|| containsLineUnavailable(throwable);
+	}
+
+	private static boolean containsLineUnavailable(Throwable throwable) {
+		Throwable cause = throwable.getCause();
+		while (cause != null) {
+			if (cause instanceof javax.sound.sampled.LineUnavailableException) return true;
+			cause = cause.getCause();
+		}
+		return false;
 	}
 
 	private static ThreadPoolExecutor executor(String name) {

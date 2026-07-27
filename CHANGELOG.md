@@ -21,9 +21,26 @@ All notable changes to Chat Canvas will be documented in this file.
 
 ### Fixed
 
+- **Voice key release Mixin crash**: Removed invalid `@Inject(method = "keyReleased")` from `ChatScreenMixin` — `ChatScreen` does not declare this method in Minecraft 1.21.1. Replaced with `KeyboardMixin` listening on GLFW `Keyboard.onKey` for a true GLFW_RELEASE event.
+- **Microphone Lease concurrency** NPE (`this.opened is null`): Rewrote `MicrophoneManager.Lease.close()` using `AtomicReference<OpenedMicrophone>` with atomic `getAndSet(null)` to guarantee exactly-once close across concurrent capture, finish, cancel, and recognition threads.
+- **Voice session cleanup**: Unified `VoiceInputSession` cleanup in a single `finally` block; made `finish()`/`cancel()` use CAS for safe one-shot signalling; made END marker enqueue idempotent via `endEnqueued` guard.
+- **Error classification**: `IllegalStateException` from an already-closed lease no longer shows the misleading "microphone access" error.
 - Voice input crash: replaced `ThreadPoolExecutor.AbortPolicy` with `DiscardOldestPolicy` to prevent `RejectedExecutionException` when microphone test or previous session occupied the capture thread.
 - Keyboard voice recognition slowness: key repeat no longer overwrites `keyboardHolding` flag, so `finish()` is correctly called on key release instead of recording until timeout.
 - Keyboard voice unresponsiveness when previous session was still in RECOGNIZING state: now cancels stale session before starting a new one on V press.
+
+### Compatibility
+
+- Chat Heads
+- More Chat History
+- ChatAnimation
+- Smooth Scrolling
+
+### Privacy
+
+- Voice recognition runs entirely offline on the local machine.
+- Audio is never uploaded or persisted to disk.
+- Local chat log saving can be disabled per category in the editor.
 
 ## [1.1.1] - 2026-07-24
 

@@ -12,6 +12,7 @@
     "ChatScreenAccessor",
     "ChatScreenMixin",
     "ClientPlayNetworkHandlerMixin",
+    "KeyboardMixin",
     "ScreenAccessor",
     "SuggestionWindowAccessor",
     "TextFieldWidgetAccessor",

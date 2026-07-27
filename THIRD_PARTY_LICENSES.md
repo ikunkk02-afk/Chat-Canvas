@@ -23,3 +23,47 @@ provided by Minecraft.
 
 The model is not included in the Chat Canvas JAR. It is downloaded only after
 the player explicitly confirms installation.
+
+## owo-lib
+
+- Component: `io.wispforest:owo-lib`
+- Version: 0.12.15.4+1.21
+- Copyright: WispForest contributors
+- License: MIT
+- Source: https://github.com/wisp-forest/owo-lib
+
+owo-lib is a required runtime dependency. It is not bundled in the Chat Canvas
+JAR — players must install it separately.
+
+## Fabric API
+
+- Component: `net.fabricmc.fabric-api:fabric-api`
+- Version: 0.116.14+1.21.1
+- Copyright: FabricMC contributors
+- License: Apache License 2.0
+- Source: https://github.com/FabricMC/fabric
+
+Fabric API is a required runtime dependency. It is not bundled in the Chat
+Canvas JAR — players must install it separately.
+
+## Fabric Loader
+
+- Component: `net.fabricmc:fabric-loader`
+- Version: 0.19.3
+- Copyright: FabricMC contributors
+- License: Apache License 2.0
+- Source: https://github.com/FabricMC/fabric-loader
+
+Fabric Loader is a required runtime dependency. It is not bundled in the Chat
+Canvas JAR.
+
+## Mod Menu (optional)
+
+- Component: `com.terraformersmc:modmenu`
+- Version: 11.0.4
+- Copyright: TerraformersMC contributors
+- License: MIT
+- Source: https://github.com/TerraformersMC/ModMenu
+
+Mod Menu is an optional dependency providing an in-game mod list and
+configuration entry point. It is not bundled in the Chat Canvas JAR.

@@ -25,8 +25,10 @@ public final class VoiceInputSession {
 	private final Runnable automaticLimitReached;
 	private final AtomicBoolean cancelled = new AtomicBoolean();
 	private final AtomicBoolean finishing = new AtomicBoolean();
+	private final AtomicBoolean endEnqueued = new AtomicBoolean();
 	private volatile double level;
 	private volatile Future<?> recognitionFuture;
+	private volatile TargetDataLine captureLine;
 	private final long startedAt = System.currentTimeMillis();
 
 	public VoiceInputSession(long token, MicrophoneManager.Lease microphone,
@@ -50,8 +52,10 @@ public final class VoiceInputSession {
 
 	public void startCapture() {
 		recognitionFuture = recognitionExecutor.submit(this::recognize);
-		TargetDataLine line = microphone.opened().line();
-		AudioFormat format = microphone.opened().format();
+		AudioDeviceManager.OpenedMicrophone opened = microphone.openedOrThrow();
+		TargetDataLine line = opened.line();
+		AudioFormat format = opened.format();
+		captureLine = line;
 		Pcm16MonoResampler resampler =
 				new Pcm16MonoResampler(format.getSampleRate(), format.getChannels());
 		byte[] source = new byte[Math.max(2048, format.getFrameSize() * 2048)];
@@ -79,8 +83,9 @@ public final class VoiceInputSession {
 			if (!cancelled.get() && !finishing.get()) failure.accept(throwable);
 			cancelled.set(true);
 		} finally {
+			captureLine = null;
 			microphone.close();
-			enqueueEnd();
+			enqueueEndOnce();
 		}
 	}
 
@@ -108,28 +113,47 @@ public final class VoiceInputSession {
 	}
 
 	public void finish() {
-		if (finishing.compareAndSet(false, true)) {
-			TargetDataLine line = microphone.opened().line();
-			line.stop();
-			line.close();
+		if (!finishing.compareAndSet(false, true)) {
+			return;
 		}
+		stopCaptureLine();
 	}
 
 	public void cancel() {
-		cancelled.set(true);
+		if (!cancelled.compareAndSet(false, true)) {
+			return;
+		}
 		finishing.set(true);
+		stopCaptureLine();
 		queue.clear();
 		queue.offer(END);
-		microphone.close();
 		Future<?> future = recognitionFuture;
 		if (future != null) future.cancel(true);
+	}
+
+	private void stopCaptureLine() {
+		TargetDataLine line = captureLine;
+		if (line == null) return;
+		try {
+			if (line.isRunning()) {
+				line.stop();
+			}
+		} catch (RuntimeException ignored) {
+		}
+		try {
+			line.close();
+		} catch (RuntimeException ignored) {
+		}
 	}
 
 	public long token() { return token; }
 	public double level() { return level; }
 	public boolean finishing() { return finishing.get(); }
 
-	private void enqueueEnd() {
+	private void enqueueEndOnce() {
+		if (!endEnqueued.compareAndSet(false, true)) {
+			return;
+		}
 		while (true) {
 			try {
 				if (queue.offer(END, 500L, TimeUnit.MILLISECONDS)) return;

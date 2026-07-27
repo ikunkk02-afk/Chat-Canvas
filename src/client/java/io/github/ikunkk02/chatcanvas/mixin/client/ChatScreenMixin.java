@@ -23,6 +23,7 @@ import io.github.ikunkk02.chatcanvas.chat.text.UnicodeTextNavigator;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.config.PixelLayout;
+import io.github.ikunkk02.chatcanvas.voice.ChatCanvasVoiceShortcutHost;
 import io.github.ikunkk02.chatcanvas.voice.VoiceInputManager;
 import io.github.ikunkk02.chatcanvas.voice.VoiceInputOverlay;
 import io.github.ikunkk02.chatcanvas.voice.VoiceRecognitionResult;
@@ -48,7 +49,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ChatScreen.class)
-public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
+public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, ChatCanvasVoiceShortcutHost {
 	@Unique
 	private final PlayerQuickActionMenu chat_canvas$quickActionMenu =
 			new PlayerQuickActionMenu();
@@ -81,6 +82,8 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 	private char chat_canvas$pendingHighSurrogate;
 	@Unique
 	private boolean chat_canvas$suppressNextVoiceCharacter;
+	@Unique
+	private int chat_canvas$suppressedVoiceKeyCode;
 	@Unique
 	private long chat_canvas$suppressVoiceCharacterUntil;
 
@@ -279,6 +282,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 			chat_canvas$emojiPicker.close();
 			chat_canvas$voiceOverlay.keyboardPressed();
 			chat_canvas$suppressNextVoiceCharacter = true;
+			chat_canvas$suppressedVoiceKeyCode = keyCode;
 			chat_canvas$suppressVoiceCharacterUntil = System.currentTimeMillis() + 300;
 			cir.setReturnValue(true);
 			return;
@@ -330,21 +334,6 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 		}
 	}
 
-	@Inject(method = "keyReleased", at = @At("HEAD"), cancellable = true)
-	private void chat_canvas$routeVoiceKeyReleased(
-			int keyCode, int scanCode, int modifiers,
-			CallbackInfoReturnable<Boolean> cir) {
-		if (!chat_canvas$inputHealthy
-				|| chat_canvas$inputMode != ChatCanvasInputMode.PLAYER_CHAT) {
-			return;
-		}
-		KeyBinding voiceKey = io.github.ikunkk02.chatcanvas.ChatCanvasClient.voiceInputKey();
-		if (voiceKey != null && voiceKey.matchesKey(keyCode, scanCode)) {
-			chat_canvas$voiceOverlay.keyboardReleased();
-			cir.setReturnValue(true);
-		}
-	}
-
 	@Inject(method = "insertText", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$insertIntoActiveField(
 			String text, boolean override, CallbackInfo ci) {
@@ -368,6 +357,27 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 			return;
 		}
 		chat_canvas$voiceOverlay.tick();
+	}
+
+	@Override
+	public void chat_canvas$onVoiceShortcutReleased(int keyCode, int scanCode) {
+		if (!chat_canvas$inputHealthy) {
+			return;
+		}
+		if (chat_canvas$inputMode != ChatCanvasInputMode.PLAYER_CHAT) {
+			return;
+		}
+		if (chat_canvas$voiceOverlay == null) {
+			return;
+		}
+		KeyBinding voiceKey = io.github.ikunkk02.chatcanvas.ChatCanvasClient.voiceInputKey();
+		if (voiceKey == null) {
+			return;
+		}
+		if (!voiceKey.matchesKey(keyCode, scanCode)) {
+			return;
+		}
+		chat_canvas$voiceOverlay.keyboardReleased();
 	}
 
 	@Inject(method = "render", at = @At("RETURN"))
@@ -479,9 +489,19 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge {
 	public boolean chat_canvas$dispatchUnicodeChar(char character, int modifiers) {
 		if (!chat_canvas$inputHealthy) return false;
 		if (chat_canvas$suppressNextVoiceCharacter
-				|| System.currentTimeMillis() < chat_canvas$suppressVoiceCharacterUntil) {
+				&& System.currentTimeMillis() < chat_canvas$suppressVoiceCharacterUntil) {
+			// Only suppress the character corresponding to the currently bound voice key
+			int keyCodeForChar = chat_canvas$suppressedVoiceKeyCode;
+			char expectedChar = 0;
+			if (keyCodeForChar >= GLFW.GLFW_KEY_A && keyCodeForChar <= GLFW.GLFW_KEY_Z) {
+				expectedChar = (char) ('a' + (keyCodeForChar - GLFW.GLFW_KEY_A));
+				if (Character.toLowerCase(character) == expectedChar) {
+					chat_canvas$suppressNextVoiceCharacter = false;
+					return true;
+				}
+			}
+			// If the character doesn't match, clear suppression so normal typing works
 			chat_canvas$suppressNextVoiceCharacter = false;
-			return true;
 		}
 		if (Character.isHighSurrogate(character)) {
 			chat_canvas$pendingHighSurrogate = character;
