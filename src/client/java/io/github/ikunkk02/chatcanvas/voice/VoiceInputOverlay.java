@@ -67,6 +67,9 @@ public final class VoiceInputOverlay {
 		if (keyboardHolding) {
 			return;
 		}
+		if (manager.state() == VoiceInputState.RECOGNIZING) {
+			manager.cancel();
+		}
 		boolean started = manager.begin(resultConsumer);
 		if (started) {
 			keyboardHolding = true;
