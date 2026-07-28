@@ -33,11 +33,11 @@ public final class PendingMessageContextRegistry {
 			signatures.put(signature, pending);
 			trimSignatures();
 		}
-		identities.computeIfAbsent(message, ignored -> new ArrayDeque<>()).add(pending);
-		order.add(message);
+		identities.computeIfAbsent(message, ignored -> new ArrayDeque<>()).addLast(pending);
+		order.addLast(message);
 		if (signature == null) {
-			unsignedOrder.add(pending);
-			while (unsignedOrder.size() > CAPACITY) unsignedOrder.remove(0);
+			unsignedOrder.addLast(pending);
+			while (unsignedOrder.size() > CAPACITY) unsignedOrder.removeFirst();
 		}
 		while (order.size() > CAPACITY) removeOldest();
 		return pending;
@@ -104,7 +104,7 @@ public final class PendingMessageContextRegistry {
 	private PendingMessage consumeUnsigned(String plainText, long nowMs) {
 		while (!unsignedOrder.isEmpty()
 				&& nowMs - unsignedOrder.peekFirst().registeredAtMs() > UNSIGNED_TTL_MS) {
-			unsignedOrder.remove(0);
+			unsignedOrder.removeFirst();
 		}
 		for (Iterator<PendingMessage> iterator = unsignedOrder.iterator(); iterator.hasNext();) {
 			PendingMessage candidate = iterator.next();
