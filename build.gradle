@@ -48,12 +48,22 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 repositories {
     mavenCentral()
     maven { url 'https://cursemaven.com' }
+    maven { url 'https://maven.triennal.com/releases' }   // vosk
+}
+
+configurations {
+    vosk { transitive = false }
 }
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
     implementation fg.deobf('curse.maven:creativecore-257814:7649757')
+
+    // Vosk speech recognition (jar-in-jar)
+    vosk 'com.alphacephei:vosk:0.3.45'
+    configurations.implementation.extendsFrom(configurations.vosk)
+    jarJar(group: 'com.alphacephei', name: 'vosk', version: '[0.3,0.4)')
 }
 
 tasks.named('processResources', ProcessResources).configure {
