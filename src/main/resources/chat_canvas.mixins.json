@@ -5,7 +5,9 @@
   "compatibilityLevel": "JAVA_17",
   "refmap": "chat_canvas.refmap.json",
   "client": [
-    "ChatComponentAccessor"
+    "ChatComponentAccessor",
+    "KeyboardHandlerMixin",
+    "ClientPacketListenerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
