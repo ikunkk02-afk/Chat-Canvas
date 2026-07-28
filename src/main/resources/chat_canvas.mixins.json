@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "io.github.ikunkk02.chatcanvas.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "chat_canvas.refmap.json",
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
