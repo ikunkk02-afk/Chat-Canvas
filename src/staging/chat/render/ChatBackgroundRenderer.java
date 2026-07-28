@@ -14,7 +14,7 @@ public final class ChatBackgroundRenderer {
 				background.messageOpacity(),
 				vanillaOpacity
 		);
-		ChatBackgroundDraw.fill(context.drawContext(), bounds, color);
+		ChatBackgroundDraw.fill(context.graphics(), bounds, color);
 	}
 
 	public void drawInputBackground(ChatRenderContext context, int y, int height) {
@@ -25,7 +25,7 @@ public final class ChatBackgroundRenderer {
 				context.inputProgress()
 		);
 		if (color >>> 24 != 0) {
-			context.drawContext().fill(context.x(), y, context.right(), y + height, color);
+			context.graphics().fill(context.x(), y, context.right(), y + height, color);
 		}
 		if (background.inputBorderEnabled()) {
 			int borderColor = ChatBackgroundMetrics.composeBackgroundColor(
@@ -34,7 +34,7 @@ public final class ChatBackgroundRenderer {
 					context.inputProgress()
 			);
 			ChatBackgroundDraw.drawRectBorder(
-					context.drawContext(), context.x(), y, context.right(), y + height, borderColor);
+					context.graphics(), context.x(), y, context.right(), y + height, borderColor);
 		}
 	}
 }
