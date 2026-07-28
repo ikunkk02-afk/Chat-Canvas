@@ -6,6 +6,7 @@
   "refmap": "chat_canvas.refmap.json",
   "client": [
     "ChatComponentAccessor",
+    "ChatComponentMixin",
     "KeyboardHandlerMixin",
     "ClientPacketListenerMixin"
   ],
