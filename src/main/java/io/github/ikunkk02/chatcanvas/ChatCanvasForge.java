@@ -23,7 +23,7 @@ public final class ChatCanvasForge {
 
     public ChatCanvasForge() {
         if (FMLEnvironment.dist == Dist.CLIENT) {
-            IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
+            IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus(); // OK for 1.20.1
             bus.addListener(this::clientSetup);
             MinecraftForge.EVENT_BUS.register(this);
         }
