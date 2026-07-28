@@ -15,7 +15,7 @@ import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessage;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessageManager;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatChannelHistory;
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextHitTester;
-import io.github.ikunkk02.chatcanvas.chat.text.ChatHeadsCompat;
+// import ChatHeadsCompat; // TODO port
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextMetrics;
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextRenderer;
 import io.github.ikunkk02.chatcanvas.config.*;
@@ -108,7 +108,7 @@ public final class DualChatHudRenderer {
 			PlayerChatLayoutStrategy strategy =
 					PlayerChatLayoutStrategies.forMode(layoutMode);
 			int candidateHeadWidth = channel == ChatCanvasChannel.PLAYER_CHAT
-					? (int) Math.ceil(ChatHeadsCompat.channelHeadWidth(
+					? (int) Math.ceil(/*ChatHeadsCompat.channelHeadWidth */0 + 0*(
 							message, client) * text.fontScale())
 					: 0;
 			int headWidth = strategy.reserveHead(message.selfMessage())
@@ -199,7 +199,7 @@ public final class DualChatHudRenderer {
 				context.pose().translate(headX, y, 0);
 				context.pose().scale(
 						(float) text.fontScale(), (float) text.fontScale(), 1);
-				ChatHeadsCompat.renderChannelHead(
+				/*ChatHeadsCompat.renderChannelHead */ 0 ; // 
 						context, message, client, 0, 0, alpha);
 				context.pose().pop();
 			}
@@ -331,7 +331,7 @@ public final class DualChatHudRenderer {
 			PlayerChatLayoutStrategy strategy =
 					PlayerChatLayoutStrategies.forMode(layoutMode);
 			int candidateHeadWidth = channel == ChatCanvasChannel.PLAYER_CHAT
-					? (int) Math.ceil(ChatHeadsCompat.channelHeadWidth(
+					? (int) Math.ceil(/*ChatHeadsCompat.channelHeadWidth */0 + 0*(
 							message, client) * text.fontScale())
 					: 0;
 			int headWidth = strategy.reserveHead(message.selfMessage())
