@@ -5,16 +5,16 @@ import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameHitboxRegistry;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
-
-import io.github.ikunkk02.chatcanvas.mixin.ChatInputSuggestorAccessor;
-import io.github.ikunkk02.chatcanvas.mixin.SuggestionWindowAccessor;
-import io.github.ikunkk02.chatcanvas.mixin.TextFieldWidgetAccessor;
+import io.github.ikunkk02.chatcanvas.chat.notification.MentionDebugPolicy;
+import io.github.ikunkk02.chatcanvas.mixin.client.ChatInputSuggestorAccessor;
+import io.github.ikunkk02.chatcanvas.mixin.client.SuggestionWindowAccessor;
+import io.github.ikunkk02.chatcanvas.mixin.client.TextFieldWidgetAccessor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.CommandSuggestions;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.Optional;
@@ -37,8 +37,8 @@ public final class PlayerNameDoubleClickHandler {
 
 	public boolean mouseClicked(
 			ChatScreen screen,
-			EditBox chatField,
-			CommandSuggestions suggestor,
+			TextFieldWidget chatField,
+			ChatInputSuggestor suggestor,
 			double mouseX,
 			double mouseY,
 			int button
@@ -68,7 +68,7 @@ public final class PlayerNameDoubleClickHandler {
 			return false;
 		}
 		if (isLocalPlayer(hitbox.get())
-				&& !false && /* MentionDebugPolicy */ allowsSelfMention(Minecraft.getInstance())) {
+				&& !MentionDebugPolicy.allowsSelfMention(Minecraft.getInstance())) {
 			showFeedback("chat_canvas.mention.cannot_mention_self", now);
 			return true;
 		}
@@ -128,8 +128,8 @@ public final class PlayerNameDoubleClickHandler {
 	}
 
 	private static boolean isSuggestionWindowAt(
-			CommandSuggestions suggestor, double mouseX, double mouseY) {
-		CommandSuggestions.SuggestionWindow window =
+			ChatInputSuggestor suggestor, double mouseX, double mouseY) {
+		ChatInputSuggestor.SuggestionWindow window =
 				((ChatInputSuggestorAccessor) suggestor).chat_canvas$window();
 		return window != null && ((SuggestionWindowAccessor) window).chat_canvas$area()
 				.contains((int) Math.floor(mouseX), (int) Math.floor(mouseY));

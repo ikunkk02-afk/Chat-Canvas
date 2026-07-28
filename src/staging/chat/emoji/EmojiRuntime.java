@@ -1,15 +1,13 @@
 package io.github.ikunkk02.chatcanvas.chat.emoji;
-
 import io.github.ikunkk02.chatcanvas.ChatCanvasForge;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessageIngress;
 import net.minecraftforge.fml.ModList;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-
 import java.nio.file.Path;
 
 public final class EmojiRuntime {
-	private static final Path DATA_PATH = ModList.getInstance()
+	private static final Path DATA_PATH = ModList.get()
 			.getConfigDir().resolve("chat_canvas").resolve("emoji.json");
 	private static EmojiRecentManager recent;
 	private static boolean pendingCorruptNotice;
@@ -44,7 +42,7 @@ public final class EmojiRuntime {
 				|| client.player == null || client.gui == null) return;
 		pendingCorruptNotice = false;
 		ChatCanvasMessageIngress.instance().reportError(
-				Text.translatable("chat_canvas.emoji.recent_corrupt"), null);
+				Component.translatable("chat_canvas.emoji.recent_corrupt"), null);
 	}
 
 	public static void flush() {
