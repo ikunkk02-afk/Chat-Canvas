@@ -1,533 +1,119 @@
 package io.github.ikunkk02.chatcanvas.chat.emoji;
 
-import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputController;
-import io.github.ikunkk02.chatcanvas.chat.input.ChatInputSnapshot;
-import io.github.ikunkk02.chatcanvas.chat.text.UnicodeTextNavigator;
-import io.github.ikunkk02.chatcanvas.mixin.client.ChatInputSuggestorAccessor;
-import io.github.ikunkk02.chatcanvas.mixin.client.SuggestionWindowAccessor;
-import io.github.ikunkk02.chatcanvas.mixin.client.TextFieldWidgetAccessor;
-import io.github.ikunkk02.chatcanvas.ui.ModernUiTheme;
-import io.wispforest.owo.ui.component.ButtonComponent;
-import io.wispforest.owo.ui.component.Components;
-import io.wispforest.owo.ui.component.TextBoxComponent;
-import io.wispforest.owo.ui.container.Containers;
-import io.wispforest.owo.ui.container.FlowLayout;
-import io.wispforest.owo.ui.core.Insets;
-import io.wispforest.owo.ui.core.OwoUIAdapter;
-import io.wispforest.owo.ui.core.Sizing;
+import io.github.ikunkk02.chatcanvas.ui.forge.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.ParentElement;
-import net.minecraft.client.gui.components.CommandSuggestions;
-import net.minecraft.client.gui.screens.ChatScreen;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.util.math.Rect2i;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 
-import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
+import java.util.function.Consumer;
 
-public final class EmojiPickerPanel {
-	public static final int BUTTON_SPACE = 20;
-	private static final int MAX_WIDTH = 320;
-	private static final int MAX_HEIGHT = 230;
-	private static final int BUTTON_WIDTH = 18;
-	private static final int BUTTON_HEIGHT = 14;
+/**
+ * Emoji picker panel — renders a grid of emoji tiles with category tabs.
+ * Uses Canvas UI (no owo-lib). Virtualized: only renders visible rows.
+ */
+public final class EmojiPickerPanel extends CanvasContainer {
+    private static final int COLS = 8;
+    private static final int TILE_SIZE = 22;
+    private static final int TAB_HEIGHT = 16;
 
-	private final ChatCanvasInputController inputController =
-			ChatCanvasInputController.instance();
-	private final Map<EmojiCategory, ButtonComponent> categoryButtons =
-			new EnumMap<>(EmojiCategory.class);
-	private ChatScreen owner;
-	private TextFieldWidget playerField;
-	private ChatInputSuggestor suggestor;
-	private OwoUIAdapter<FlowLayout> adapter;
-	private TextBoxComponent searchField;
-	private VirtualizedEmojiGrid grid;
-	private List<EmojiEntry> supported = List.of();
-	private List<EmojiCategory> availableCategories = List.of();
-	private EmojiCategory category = EmojiCategory.RECENT;
-	private FocusTarget focus = FocusTarget.CHAT;
-	private boolean open;
-	private float openProgress;
-	private int x;
-	private int y;
-	private int width;
-	private int height;
-	private int buttonX;
-	private int buttonY;
-	private long fontEpoch = Long.MIN_VALUE;
-	private int adapterX = Integer.MIN_VALUE;
-	private int adapterY = Integer.MIN_VALUE;
-	private int adapterWidth = -1;
-	private int adapterHeight = -1;
-	private String statusKey;
-	private long statusUntil;
+    private final Consumer<String> onEmojiSelected;
+    private EmojiCategory selectedCategory;
+    private List<EmojiEntry> visibleEntries = List.of();
+    private int scrollOffset;
+    private boolean dragging;
 
-	public void init(
-			ChatScreen screen, TextFieldWidget field,
-			ChatInputSuggestor inputSuggestor) {
-		dispose();
-		owner = screen;
-		playerField = field;
-		suggestor = inputSuggestor;
-		refreshFontEntries();
-		position();
-		buildAdapter();
-	}
+    public EmojiPickerPanel(int x, int y, int width, int height, Consumer<String> onEmojiSelected) {
+        super(x, y, width, height);
+        this.onEmojiSelected = onEmojiSelected;
+        this.selectedCategory = EmojiCategory.RECENT;
+    }
 
-	public boolean isOpen() {
-		return open;
-	}
+    public void setCategory(EmojiCategory category) {
+        this.selectedCategory = category;
+        this.visibleEntries = EmojiRegistry.entriesFor(category);
+        this.scrollOffset = 0;
+    }
 
-	public void toggle() {
-		if (open) close();
-		else open();
-	}
+    @Override
+    public void render(GuiGraphics ctx, int mx, int my, float delta) {
+        if (!visible) return;
+        var font = Minecraft.getInstance().font;
 
-	public void open() {
-		if (owner == null || playerField == null) return;
-		open = true;
-		statusKey = null;
-		refreshFontEntries();
-		updateGrid();
-		focusChat();
-	}
+        // Category tabs
+        EmojiCategory[] cats = EmojiCategory.values();
+        int tabW = width / cats.length;
+        for (int i = 0; i < cats.length; i++) {
+            int tx = x + i * tabW;
+            boolean sel = cats[i] == selectedCategory;
+            ctx.fill(tx, y, tx + tabW, y + TAB_HEIGHT, sel ? 0xFF4FC3F7 : 0xFF303030);
+            ctx.drawCenteredString(font, cats[i].icon(), tx + tabW / 2, y + 3, 0xFFFFFFFF);
+        }
 
-	public void close() {
-		open = false;
-		if (searchField != null && !searchField.getText().isEmpty()) {
-			searchField.setText("");
-		}
-		focusChat();
-	}
+        // Emoji grid (clipped)
+        int gridY = y + TAB_HEIGHT + 2;
+        CanvasClipStack.push(ctx, x, gridY, width, height - TAB_HEIGHT - 2);
+        drawGrid(ctx, mx, my, gridY);
+        CanvasClipStack.pop(ctx);
+    }
 
-	public void dispose() {
-		open = false;
-		openProgress = 0.0f;
-		if (adapter != null) adapter.dispose();
-		adapter = null;
-		adapterX = Integer.MIN_VALUE;
-		adapterY = Integer.MIN_VALUE;
-		adapterWidth = -1;
-		adapterHeight = -1;
-		searchField = null;
-		grid = null;
-		categoryButtons.clear();
-		supported = List.of();
-		availableCategories = List.of();
-		owner = null;
-		playerField = null;
-		suggestor = null;
-	}
+    private void drawGrid(GuiGraphics ctx, int mx, int my, int gridY) {
+        var font = Minecraft.getInstance().font;
+        int firstRow = scrollOffset / TILE_SIZE;
+        int visibleRows = (height - TAB_HEIGHT) / TILE_SIZE + 1;
+        int tileGap = 2;
 
-	public boolean mouseClicked(double mouseX, double mouseY, int button) {
-		if (playerField == null) return false;
-		if (hit(mouseX, mouseY, buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT)) {
-			toggle();
-			return true;
-		}
-		if (!open) return false;
-		if (!contains(mouseX, mouseY)) {
-			close();
-			return false;
-		}
-		if (adapter != null && adapter.mouseClicked(
-				mouseX - x, mouseY - y, button)) {
-			if (searchField != null && searchField.isFocused()) {
-				focus = FocusTarget.SEARCH;
-				playerField.setFocused(false);
-			}
-			return true;
-		}
-		return true;
-	}
+        for (int row = firstRow; row < firstRow + visibleRows && row * COLS < visibleEntries.size(); row++) {
+            for (int col = 0; col < COLS; col++) {
+                int idx = row * COLS + col;
+                if (idx >= visibleEntries.size()) break;
+                EmojiEntry entry = visibleEntries.get(idx);
+                int tx = x + col * TILE_SIZE;
+                int ty = gridY + row * TILE_SIZE - scrollOffset;
+                boolean hovered = mx >= tx && mx < tx + TILE_SIZE && my >= ty && my < ty + TILE_SIZE;
+                if (hovered) ctx.fill(tx, ty, tx + TILE_SIZE, ty + TILE_SIZE, 0xFF505050);
+                ctx.drawString(font, entry.glyph(), tx + 2, ty + 4, 0xFFFFFFFF);
+            }
+        }
+    }
 
-	public boolean mouseScrolled(
-			double mouseX, double mouseY, double horizontal, double vertical) {
-		return open && contains(mouseX, mouseY) && adapter != null
-				&& adapter.mouseScrolled(
-						mouseX - x, mouseY - y, horizontal, vertical);
-	}
+    @Override
+    public boolean mouseClicked(double mx, double my, int btn) {
+        if (!isActive() || !visible || btn != 0) return false;
 
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-		boolean control = (modifiers & GLFW.GLFW_MOD_CONTROL) != 0;
-		if (control && keyCode == GLFW.GLFW_KEY_E) {
-			toggle();
-			return true;
-		}
-		if (control && keyCode == GLFW.GLFW_KEY_F) {
-			if (!open) open();
-			focusSearch();
-			return true;
-		}
-		if (!open) return false;
-		if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-			if (searchField != null && !searchField.getText().isEmpty()) {
-				searchField.setText("");
-				updateGrid();
-			} else {
-				close();
-			}
-			return true;
-		}
-		if (keyCode == GLFW.GLFW_KEY_TAB) {
-			cycleFocus((modifiers & GLFW.GLFW_MOD_SHIFT) != 0 ? -1 : 1);
-			return true;
-		}
-		if (focus == FocusTarget.SEARCH) {
-			return adapter != null
-					&& adapter.keyPressed(keyCode, scanCode, modifiers);
-		}
-		if (focus == FocusTarget.CATEGORIES) {
-			if (keyCode == GLFW.GLFW_KEY_LEFT
-					|| keyCode == GLFW.GLFW_KEY_RIGHT) {
-				int direction = keyCode == GLFW.GLFW_KEY_LEFT ? -1 : 1;
-				selectAdjacentCategory(direction);
-				return true;
-			}
-			if (keyCode == GLFW.GLFW_KEY_ENTER
-					|| keyCode == GLFW.GLFW_KEY_KP_ENTER
-					|| keyCode == GLFW.GLFW_KEY_DOWN) {
-				focusGrid();
-				return true;
-			}
-		}
-		return focus == FocusTarget.GRID && grid != null
-				&& grid.keyPressed(keyCode);
-	}
+        // Tab click
+        EmojiCategory[] cats = EmojiCategory.values();
+        int tabW = width / cats.length;
+        if (my >= y && my < y + TAB_HEIGHT) {
+            int idx = (int)((mx - x) / tabW);
+            if (idx >= 0 && idx < cats.length) { setCategory(cats[idx]); return true; }
+        }
 
-	public boolean charTyped(char character, int modifiers) {
-		return open && focus == FocusTarget.SEARCH && adapter != null
-				&& adapter.charTyped(character, modifiers);
-	}
+        // Emoji click
+        int gridY = y + TAB_HEIGHT + 2;
+        if (my >= gridY) {
+            dragging = true;
+            int row = (int)((my - gridY + scrollOffset) / TILE_SIZE);
+            int col = (int)((mx - x) / TILE_SIZE);
+            int idx = row * COLS + col;
+            if (idx >= 0 && idx < visibleEntries.size()) {
+                EmojiEntry entry = visibleEntries.get(idx);
+                EmojiRecentManager.instance().markUsed(entry.id());
+                onEmojiSelected.accept(entry.glyph());
+                return true;
+            }
+        }
+        return false;
+    }
 
-	public boolean writeComposedText(String text) {
-		if (!open || focus != FocusTarget.SEARCH
-				|| searchField == null || text == null || text.isEmpty()) return false;
-		searchField.write(text);
-		return true;
-	}
+    @Override public boolean mouseReleased(double mx, double my, int btn) { dragging = false; return false; }
 
-	public void render(
-			DrawContext context, int mouseX, int mouseY, float delta) {
-		if (owner == null || playerField == null) return;
-		if (fontEpoch != EmojiFontSupport.epoch()) {
-			refreshFontEntries();
-			buildAdapter();
-		}
-		position();
-		renderButton(context, mouseX, mouseY);
-		float target = open ? 1.0f : 0.0f;
-		openProgress += (target - openProgress)
-				* Math.min(1.0f, Math.max(0.14f, delta * 0.4f));
-		if (Math.abs(openProgress - target) < 0.01f) openProgress = target;
-		if (openProgress <= 0.01f || adapter == null) return;
-		if (adapterX != x || adapterY != y
-				|| adapterWidth != width || adapterHeight != height) {
-			adapter.moveAndResize(x, y, width, height);
-			adapterX = x;
-			adapterY = y;
-			adapterWidth = width;
-			adapterHeight = height;
-		}
-		context.getMatrices().push();
-		context.getMatrices().translate(0.0f,
-				Math.round((1.0f - openProgress) * 8.0f), 300.0f);
-		adapter.render(context, mouseX, mouseY, delta);
-		context.getMatrices().pop();
-		EmojiEntry hovered = grid == null ? null : grid.hoveredEntry();
-		if (hovered != null) {
-			context.getMatrices().push();
-			context.getMatrices().translate(0.0f, 0.0f, 360.0f);
-			context.drawTooltip(Minecraft.getInstance().textRenderer,
-					Component.literal(hovered.unicode() + "  "
-							+ hovered.chineseName() + " / " + hovered.englishName()),
-					mouseX, mouseY);
-			context.getMatrices().pop();
-		}
-		if (statusKey != null && System.currentTimeMillis() < statusUntil) {
-			context.drawTextWithShadow(
-					Minecraft.getInstance().textRenderer,
-					Component.translatable(statusKey), x + 7, y + height - 12,
-					0xFFFF858D);
-		}
-	}
-
-	private void buildAdapter() {
-		if (owner == null) return;
-		if (adapter != null) adapter.dispose();
-		categoryButtons.clear();
-		adapter = OwoUIAdapter.createWithoutScreen(
-				x, y, width, height, Containers::verticalFlow);
-		adapterX = x;
-		adapterY = y;
-		adapterWidth = width;
-		adapterHeight = height;
-		FlowLayout root = adapter.rootComponent;
-		root.surface(ModernUiTheme.PANEL_SURFACE);
-		root.padding(Insets.of(6));
-		root.gap(4);
-
-		searchField = Components.textBox(Sizing.fill(100));
-		searchField.setMaxLength(64);
-		searchField.setPlaceholder(Component.translatable("chat_canvas.emoji.search"));
-		searchField.sizing(Sizing.fill(100), Sizing.fixed(18));
-		searchField.onChanged().subscribe(value -> updateGrid());
-		root.child(searchField);
-
-		FlowLayout categoryRows = Containers.verticalFlow(
-				Sizing.fill(100), Sizing.fixed(44));
-		categoryRows.gap(2);
-		int categoryWidth = Math.max(20, (width - 20) / 5);
-		for (int rowIndex = 0; rowIndex < 2; rowIndex++) {
-			FlowLayout row = Containers.horizontalFlow(
-					Sizing.fill(100), Sizing.fixed(21));
-			row.gap(2);
-			for (int column = 0; column < 5; column++) {
-				int index = rowIndex * 5 + column;
-				if (index >= availableCategories.size()) break;
-				EmojiCategory target = availableCategories.get(index);
-				ButtonComponent button = ModernUiTheme.button(
-						categoryText(target), clicked -> {
-							category = target;
-							focus = FocusTarget.CATEGORIES;
-							setSearchFocused(false);
-							updateCategoryButtons();
-							updateGrid();
-						});
-				button.sizing(Sizing.fixed(categoryWidth), Sizing.fixed(20));
-				categoryButtons.put(target, button);
-				row.child(button);
-			}
-			categoryRows.child(row);
-		}
-		root.child(categoryRows);
-
-		grid = new VirtualizedEmojiGrid(this::insert);
-		root.child(grid);
-		adapter.inflateAndMount();
-		updateCategoryButtons();
-		updateGrid();
-	}
-
-	private void updateGrid() {
-		if (grid == null) return;
-		String query = searchField == null ? "" : searchField.getText();
-		List<EmojiEntry> values;
-		if (!query.isBlank()) {
-			values = EmojiRegistry.instance().search(query).stream()
-					.filter(supported::contains).toList();
-		} else if (category == EmojiCategory.RECENT) {
-			values = EmojiRuntime.recent().entries().stream()
-					.filter(supported::contains).toList();
-		} else {
-			values = EmojiRegistry.instance().category(category).stream()
-					.filter(supported::contains).toList();
-		}
-		grid.emptyMessageKey(query.isBlank()
-				&& category == EmojiCategory.RECENT
-				? "chat_canvas.emoji.recent_empty"
-				: "chat_canvas.emoji.empty");
-		grid.entries(values);
-	}
-
-	private void refreshFontEntries() {
-		supported = EmojiFontSupport.supportedEntries(
-				Minecraft.getInstance().textRenderer);
-		List<EmojiCategory> categories = new ArrayList<>();
-		categories.add(EmojiCategory.RECENT);
-		for (EmojiCategory candidate : EmojiCategory.values()) {
-			if (candidate == EmojiCategory.RECENT) continue;
-			boolean present = supported.stream()
-					.anyMatch(entry -> entry.category() == candidate);
-			if (present) categories.add(candidate);
-		}
-		availableCategories = List.copyOf(categories);
-		if (!availableCategories.contains(category)) {
-			category = availableCategories.getFirst();
-		}
-		fontEpoch = EmojiFontSupport.epoch();
-	}
-
-	private void insert(EmojiEntry entry) {
-		if (entry == null || playerField == null) return;
-		TextFieldWidgetAccessor accessor = (TextFieldWidgetAccessor) playerField;
-		inputController.capture(
-				io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputMode.PLAYER_CHAT,
-				new ChatInputSnapshot(
-						playerField.getText(), playerField.getCursor(),
-						accessor.chat_canvas$selectionEnd()));
-		UnicodeTextNavigator.EditResult result =
-				inputController.insertPlayerText(entry.unicode(), 256);
-		if (result.limitExceeded()) {
-			statusKey = "chat_canvas.emoji.input_too_long";
-			statusUntil = System.currentTimeMillis() + 2500L;
-			focusChat();
-			return;
-		}
-		playerField.setText(result.text());
-		playerField.setSelectionStart(result.cursor());
-		playerField.setSelectionEnd(result.selectionEnd());
-		inputController.capture(
-				io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputMode.PLAYER_CHAT,
-				new ChatInputSnapshot(
-						result.text(), result.cursor(), result.selectionEnd()));
-		EmojiRuntime.recent().recordSelected(entry.unicode());
-		if (suggestor != null) {
-			suggestor.setWindowActive(!result.text().isEmpty());
-			suggestor.refresh();
-		}
-		updateGrid();
-		focusChat();
-	}
-
-	private void position() {
-		if (owner == null || playerField == null) return;
-		buttonX = playerField.getX() + playerField.getWidth() + 1;
-		buttonY = playerField.getY() - 1;
-		int nextWidth = Math.max(80, Math.min(MAX_WIDTH, owner.width - 8));
-		int nextHeight = Math.max(90, Math.min(MAX_HEIGHT, owner.height - 8));
-		if (nextWidth != width || nextHeight != height) {
-			width = nextWidth;
-			height = nextHeight;
-		}
-		Rect2i suggestions = suggestionArea();
-		int[][] candidates = {
-				{buttonX + BUTTON_WIDTH - width, playerField.getY() - height - 18},
-				{playerField.getX() + playerField.getWidth() + BUTTON_SPACE + 2,
-						playerField.getY() - height / 2},
-				{playerField.getX() - width - 4, playerField.getY() - height / 2},
-				{buttonX + BUTTON_WIDTH - width, playerField.getY() + 20}
-		};
-		long bestScore = Long.MAX_VALUE;
-		for (int[] candidate : candidates) {
-			int candidateX = clamp(candidate[0], 4, Math.max(4, owner.width - width - 4));
-			int candidateY = clamp(candidate[1], 4, Math.max(4, owner.height - height - 4));
-			long score = overlap(candidateX, candidateY, width, height, suggestions)
-					* 1_000_000L + Math.abs(candidateX - buttonX)
-					+ Math.abs(candidateY - buttonY);
-			if (score >= bestScore) continue;
-			bestScore = score;
-			x = candidateX;
-			y = candidateY;
-		}
-	}
-
-	private void renderButton(DrawContext context, int mouseX, int mouseY) {
-		boolean hovered = hit(mouseX, mouseY,
-				buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT);
-		context.fill(buttonX, buttonY,
-				buttonX + BUTTON_WIDTH, buttonY + BUTTON_HEIGHT,
-				open ? 0xE0526684 : hovered ? 0xD0445066 : 0xB02A3240);
-		context.drawBorder(buttonX, buttonY,
-				BUTTON_WIDTH, BUTTON_HEIGHT, open ? 0xFFF6C85F : 0xFF71809A);
-		context.drawCenteredTextWithShadow(
-				Minecraft.getInstance().textRenderer,
-				Component.literal("😀"), buttonX + BUTTON_WIDTH / 2,
-				buttonY + 3, 0xFFFFFF);
-	}
-
-	private void focusSearch() {
-		focus = FocusTarget.SEARCH;
-		setSearchFocused(true);
-		if (playerField != null) playerField.setFocused(false);
-	}
-
-	private void focusGrid() {
-		focus = FocusTarget.GRID;
-		setSearchFocused(false);
-		if (playerField != null) playerField.setFocused(false);
-	}
-
-	private void focusChat() {
-		focus = FocusTarget.CHAT;
-		setSearchFocused(false);
-		if (owner != null && playerField != null) {
-			((ParentElement) owner).setFocused(playerField);
-			playerField.setFocused(true);
-		}
-	}
-
-	private void cycleFocus(int direction) {
-		FocusTarget[] order = FocusTarget.values();
-		int next = Math.floorMod(focus.ordinal() + direction, order.length);
-		focus = order[next];
-		if (focus == FocusTarget.SEARCH) focusSearch();
-		else if (focus == FocusTarget.GRID) focusGrid();
-		else if (focus == FocusTarget.CHAT) focusChat();
-		else {
-			setSearchFocused(false);
-			if (playerField != null) playerField.setFocused(false);
-		}
-	}
-
-	private void selectAdjacentCategory(int direction) {
-		int current = Math.max(0, availableCategories.indexOf(category));
-		category = availableCategories.get(
-				Math.floorMod(current + direction, availableCategories.size()));
-		updateCategoryButtons();
-		updateGrid();
-	}
-
-	private void updateCategoryButtons() {
-		categoryButtons.forEach((candidate, button) ->
-				button.setMessage(categoryText(candidate)));
-	}
-
-	private Component categoryText(EmojiCategory candidate) {
-		String marker = candidate == category ? "▶ " : "";
-		return Component.literal(marker).append(
-				Component.translatable(candidate.translationKey() + ".short"));
-	}
-
-	private void setSearchFocused(boolean focused) {
-		if (searchField != null) searchField.setFocused(focused);
-	}
-
-	private Rect2i suggestionArea() {
-		if (suggestor == null) return null;
-		ChatInputSuggestor.SuggestionWindow window =
-				((ChatInputSuggestorAccessor) suggestor).chat_canvas$window();
-		return window == null ? null
-				: ((SuggestionWindowAccessor) window).chat_canvas$area();
-	}
-
-	private boolean contains(double mouseX, double mouseY) {
-		return hit(mouseX, mouseY, x, y, width, height);
-	}
-
-	private static long overlap(
-			int x, int y, int width, int height, Rect2i other) {
-		if (other == null) return 0L;
-		int overlapWidth = Math.max(0,
-				Math.min(x + width, other.getX() + other.getWidth())
-						- Math.max(x, other.getX()));
-		int overlapHeight = Math.max(0,
-				Math.min(y + height, other.getY() + other.getHeight())
-						- Math.max(y, other.getY()));
-		return (long) overlapWidth * overlapHeight;
-	}
-
-	private static boolean hit(
-			double mouseX, double mouseY,
-			int x, int y, int width, int height) {
-		return mouseX >= x && mouseX < x + width
-				&& mouseY >= y && mouseY < y + height;
-	}
-
-	private static int clamp(int value, int min, int max) {
-		return Math.max(min, Math.min(max, value));
-	}
-
-	private enum FocusTarget {
-		CHAT,
-		SEARCH,
-		CATEGORIES,
-		GRID
-	}
-
+    @Override public boolean mouseScrolled(double mx, double my, double delta) {
+        if (isMouseOver(mx, my)) {
+            int maxScroll = Math.max(0, (visibleEntries.size() / COLS + 1) * TILE_SIZE - (height - TAB_HEIGHT));
+            scrollOffset = Math.max(0, Math.min(scrollOffset - (int)delta * 20, maxScroll));
+            return true;
+        }
+        return false;
+    }
 }
