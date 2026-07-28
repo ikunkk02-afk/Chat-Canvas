@@ -254,10 +254,7 @@ public final class LocalChatLogService implements ChatLogService {
         long last = lastErrorMs.get();
         if (now - last >= ERROR_COOLDOWN_MS && lastErrorMs.compareAndSet(last, now)) {
             try {
-                // route error to chat
-                /* TODO port ChatCanvasMessageIngress */
-                        .instance().reportError(
-                        Component.translatable(key), throwable);
+                ChatCanvasForge.LOGGER.error(key, throwable);
             } catch (Exception ignored) { }
         }
     }
