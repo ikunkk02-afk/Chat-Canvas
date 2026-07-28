@@ -4,16 +4,16 @@ How to port Chat Canvas to newer Minecraft versions.
 
 ## Current Baseline (1.2.0)
 
-| Item | Value |
-|------|-------|
-| Minecraft | 1.21.1 |
-| Fabric Loader | 0.19.3 |
-| Fabric API | 0.116.14+1.21.1 |
-| Yarn mappings | 1.21.1+build.3 |
-| Fabric Loom | 1.17 |
-| owo-lib | 0.12.15.4+1.21 |
-| Java | 21 |
-| Vosk Java | 0.3.45 (bundled, JNA excluded) |
+| Item | 1.21.1 | 1.21.2 |
+|------|--------|--------|
+| Minecraft | 1.21.1 | 1.21.2 |
+| Fabric Loader | 0.19.3 | 0.16.7 |
+| Fabric API | 0.116.14+1.21.1 | 0.105.4+1.21.2 |
+| Yarn mappings | 1.21.1+build.3 | 1.21.2+build.1 |
+| Fabric Loom | 1.17-SNAPSHOT | 1.14.10 |
+| owo-lib | 0.12.15.4+1.21 | 0.12.18+1.21.2 |
+| Java | 21 | 21 |
+| Vosk Java | 0.3.45 | 0.3.45 |
 
 ## High-Risk Porting Areas
 
@@ -107,6 +107,7 @@ These require the most attention during porting:
 
 - `main` — Current development (currently 1.21.1)
 - `mc/1.21.1` — Maintenance branch for 1.21.1 fixes only
+- `mc/1.21.2` — Maintenance branch for 1.21.2. Ported from v1.2.0 with no code changes needed (Mixin targets identical between 1.21.1 and 1.21.2).
 - Future: `mc/1.21.4`, `mc/1.21.5`, etc.
 
 > Each maintenance branch is created from its release tag and receives only

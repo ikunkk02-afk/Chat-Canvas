@@ -1,7 +1,7 @@
 # Mixin Targets
 
 Complete list of all Chat Canvas Mixin classes, their target Minecraft classes,
-and injected methods. Generated for Minecraft 1.21.1 (Yarn mappings).
+and injected methods. Verified for Minecraft 1.21.1 and 1.21.2 (Yarn mappings).
 
 ## Client Mixins
 

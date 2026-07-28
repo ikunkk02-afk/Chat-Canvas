@@ -2,7 +2,13 @@
 
 All notable changes to Chat Canvas will be documented in this file.
 
-## [1.2.0] - 2026-07-27
+## [1.2.0] - 2026-07-27 (Fabric 1.21.2 port)
+
+### Ported
+
+- **Minecraft 1.21.2 Fabric support**: Ported from v1.2.0 baseline. All 15 Mixin targets verified identical between 1.21.1 and 1.21.2 — zero code changes required.
+- Updated dependency versions: Fabric Loader 0.16.7, Fabric API 0.105.4+1.21.2, owo-lib 0.12.18+1.21.2, Fabric Loom (remap) 1.14.10.
+- See `docs/porting/1.21.2/api-diff.md` and `docs/porting/1.21.2/mixin-audit.md` for full analysis.
 
 ### Added
 

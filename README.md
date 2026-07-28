@@ -6,14 +6,14 @@
 
 # Chat Canvas｜聊天画布
 
-![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1-green)
+![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1_|_1.21.2-green)
 ![Loader](https://img.shields.io/badge/Loader-Fabric-lightyellow)
 ![Side](https://img.shields.io/badge/Side-Client--only-blue)
 ![Java](https://img.shields.io/badge/Java-21%2B-orange)
 ![Version](https://img.shields.io/badge/Version-1.2.0-informational)
 ![License](https://img.shields.io/badge/License-MIT-brightgreen)
 
-Chat Canvas 是一款适用于 **Minecraft 1.21.1 Fabric** 的纯客户端聊天增强模组。
+Chat Canvas 是一款适用于 **Minecraft 1.21.1 / 1.21.2 Fabric** 的纯客户端聊天增强模组。
 
 玩家可以在实时游戏画面中直接拖拽、缩放并预览聊天栏，同时自定义文字样式、背景、玩家名字颜色、艾特提醒、Emoji 表情、命令工具和语音输入等功能。
 
@@ -112,7 +112,7 @@ Chat Canvas 提供两套编辑器**视觉主题**，不是两套不同的编辑�
 
 | 依赖 | 类型 | 版本 |
 |---|---|---|
-| Minecraft | 必需 | 1.21.1 |
+| Minecraft | 必需 | 1.21.1 或 1.21.2 |
 | Java | 必需 | 21 或更高 |
 | Fabric Loader | 必需 | 0.19.3 或更高 |
 | Fabric API | 必需 | 0.116.14+1.21.1 或更高兼容版本 |
@@ -397,7 +397,7 @@ Chat Canvas 不实现重复的滚动动画，平滑滚动交给 Smooth Scrolling
 
 ## 已知限制
 
-1. 当前仅支持 Fabric 1.21.1
+1. 当前仅支持 Fabric 1.21.1 和 1.21.2
 2. 为客户端模组，不提供 Forge 或 NeoForge 版本
 3. 不提供玩家头像，需要使用 Chat Heads
 4. 不提供聊天消息进入动画，需要使用 ChatAnimation
@@ -471,7 +471,7 @@ Chat Canvas 设计为只填入命令到输入框，由玩家确认后手动按 E
 
 ## 故障排查
 
-1. 确认 Minecraft 版本为 1.21.1
+1. 确认 Minecraft 版本为 1.21.1 或 1.21.2
 2. 确认 Fabric Loader 已安装
 3. 确认 Fabric API 和 owo-lib 已安装
 4. 备份 `config/chat_canvas.json` 和相关配置目录

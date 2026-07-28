@@ -33,11 +33,11 @@
 		"chat_canvas.client.mixins.json"
 	],
 	"depends": {
-		"fabricloader": ">=0.19.3",
-		"minecraft": "~1.21.1",
+		"fabricloader": ">=0.16.7",
+		"minecraft": "~1.21.2",
 		"java": ">=21",
-		"fabric-api": ">=0.116.14",
-		"owo": ">=0.12.15.4"
+		"fabric-api": ">=0.105.4",
+		"owo": ">=0.12.18"
 	},
 	"suggests": {
 		"modmenu": ">=11.0.4"
