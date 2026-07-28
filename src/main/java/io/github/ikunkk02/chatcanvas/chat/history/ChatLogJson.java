@@ -1,5 +1,4 @@
 package io.github.ikunkk02.chatcanvas.chat.history;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 

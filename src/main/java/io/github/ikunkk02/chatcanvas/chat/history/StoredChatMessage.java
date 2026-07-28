@@ -1,7 +1,5 @@
 package io.github.ikunkk02.chatcanvas.chat.history;
-
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessage;
-
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 

@@ -1,5 +1,4 @@
 package io.github.ikunkk02.chatcanvas.chat.history;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

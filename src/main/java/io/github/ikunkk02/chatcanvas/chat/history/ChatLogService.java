@@ -1,5 +1,4 @@
 package io.github.ikunkk02.chatcanvas.chat.history;
-
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessage;
 
 public interface ChatLogService extends AutoCloseable {

@@ -1,5 +1,4 @@
 package io.github.ikunkk02.chatcanvas.chat.history;
-
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
