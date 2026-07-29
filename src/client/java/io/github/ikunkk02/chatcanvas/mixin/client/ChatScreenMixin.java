@@ -165,7 +165,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 
 	@Inject(method = "resize", at = @At("HEAD"))
 	private void chat_canvas$captureBeforeResize(
-			MinecraftClient client, int width, int height, CallbackInfo ci) {
+			int width, int height, CallbackInfo ci) {
 		if (!chat_canvas$inputHealthy) return;
 		chat_canvas$captureBothFields();
 		chat_canvas$unregisterFields();
