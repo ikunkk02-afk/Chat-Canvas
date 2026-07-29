@@ -80,7 +80,7 @@
 ## 4. ClientPlayNetworkHandlerMixin
 
 - **目标类 (Yarn)**: `net.minecraft.client.network.ClientPlayNetworkHandler`
-- **目标类 (Mojang)**: `net.minecraft.client.multiplayer.ClientPacketListener`
+- **目标类 (Mojang)**: `net.minecraft.client.multiplayer.ClientGamePacketListener`
 - **状态**: ⚠️ 中等修改
 
 | Yarn 方法 | Mojang 方法 | 状态 |

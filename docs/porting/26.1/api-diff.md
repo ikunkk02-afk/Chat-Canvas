@@ -40,7 +40,7 @@
 
 | Yarn | Mojang |
 |------|--------|
-| `net.minecraft.client.network.ClientPlayNetworkHandler` | `net.minecraft.client.multiplayer.ClientPacketListener` |
+| `net.minecraft.client.network.ClientPlayNetworkHandler` | `net.minecraft.client.multiplayer.ClientGamePacketListener` |
 | `net.minecraft.client.network.PlayerListEntry` | `net.minecraft.client.multiplayer.PlayerInfo` |
 | `net.minecraft.client.network.AbstractClientPlayerEntity` | `net.minecraft.client.player.AbstractClientPlayer` |
 | `net.minecraft.client.network.ClientPlayerEntity` | `net.minecraft.client.player.LocalPlayer` |
