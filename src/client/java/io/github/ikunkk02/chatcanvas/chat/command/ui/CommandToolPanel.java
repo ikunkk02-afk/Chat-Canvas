@@ -406,7 +406,7 @@ public final class CommandToolPanel {
 			context.drawCenteredTextWithShadow(
 					MinecraftClient.getInstance().textRenderer,
 					Text.translatable("chat_canvas.command.tools"),
-					bx + 27, commandField.getY() + 3, 0xFFFFFF);
+					bx + 27, commandField.getY() + 3, 0xFFFFFFFF);
 		}
 		if (openProgress <= 0.01f) return;
 		clamp(screen);
@@ -418,7 +418,7 @@ public final class CommandToolPanel {
 		context.drawBorder(px, y, WIDTH, HEIGHT, 0xFF59647A);
 		context.drawTextWithShadow(renderer,
 				Text.translatable("chat_canvas.command.tools"),
-				px + 8, y + 5, 0xFFFFFF);
+				px + 8, y + 5, 0xFFFFFFFF);
 		if (dialog != Dialog.NONE) {
 			renderDialog(context, renderer, mouseX, mouseY, delta);
 			return;
@@ -431,7 +431,7 @@ public final class CommandToolPanel {
 		fillButton(context, px + WIDTH - 32, y + 43, 24, 18, false);
 		context.drawCenteredTextWithShadow(renderer,
 				Text.literal(tab == CommandToolTab.CLIPBOARD ? "↻" : "×"),
-				px + WIDTH - 20, y + 48, 0xFFFFFF);
+				px + WIDTH - 20, y + 48, 0xFFFFFFFF);
 		renderToolbar(context, renderer, px);
 		List<Row> rows = rows();
 		if (rows.isEmpty()) {
@@ -467,7 +467,7 @@ public final class CommandToolPanel {
 			int tabX = px + 8 + i * 92;
 			fillButton(context, tabX, y + 20, 88, 18, active);
 			context.drawCenteredTextWithShadow(renderer,
-					Text.translatable(keys[i]), tabX + 44, y + 25, 0xFFFFFF);
+					Text.translatable(keys[i]), tabX + 44, y + 25, 0xFFFFFFFF);
 			if (active) context.fill(tabX + 6, y + 36, tabX + 82, y + 38,
 					0xFF9CC8FF);
 		}
@@ -480,7 +480,7 @@ public final class CommandToolPanel {
 			case CLIPBOARD -> "chat_canvas.command.clipboard.refresh";
 		};
 		context.drawCenteredTextWithShadow(renderer, Text.translatable(primary),
-				px + 66, y + 71, 0xFFFFFF);
+				px + 66, y + 71, 0xFFFFFFFF);
 		if (tab == CommandToolTab.RECENT) {
 			fillButton(context, px + WIDTH - 124, y + 66, 116, 18, false);
 			context.drawCenteredTextWithShadow(renderer,
@@ -564,9 +564,9 @@ public final class CommandToolPanel {
 		fillButton(context, dx + 8, y + HEIGHT - 32, 100, 18, false);
 		fillButton(context, px + WIDTH - 108, y + HEIGHT - 32, 100, 18, true);
 		context.drawCenteredTextWithShadow(renderer, Text.translatable("gui.cancel"),
-				dx + 58, y + HEIGHT - 27, 0xFFFFFF);
+				dx + 58, y + HEIGHT - 27, 0xFFFFFFFF);
 		context.drawCenteredTextWithShadow(renderer, Text.translatable("gui.ok"),
-				px + WIDTH - 58, y + HEIGHT - 27, 0xFFFFFF);
+				px + WIDTH - 58, y + HEIGHT - 27, 0xFFFFFFFF);
 	}
 
 	private boolean dialogClick(double mouseX, double mouseY, int button) {
