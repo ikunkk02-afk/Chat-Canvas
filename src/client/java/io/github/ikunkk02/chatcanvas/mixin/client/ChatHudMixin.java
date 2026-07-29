@@ -88,10 +88,11 @@ public abstract class ChatHudMixin {
 	private final StyledRangePipeline chat_canvas$stylePipeline = new StyledRangePipeline();
 
 	@Inject(method = "render", at = @At("HEAD"), cancellable = true)
-	private void chat_canvas$pushLayoutTransform(DrawContext context, int currentTick,
-												 int mouseX, int mouseY, boolean focused,
-												 CallbackInfo ci) {
-		if (DualChatHudRenderer.instance().render(context, mouseX, mouseY, focused)) {
+	private void chat_canvas$pushLayoutTransform(DrawContext context,
+			TextRenderer textRenderer, int currentTick,
+			int mouseX, int mouseY, boolean interactable, boolean insert,
+			CallbackInfo ci) {
+		if (DualChatHudRenderer.instance().render(context, mouseX, mouseY, interactable)) {
 			ci.cancel();
 			return;
 		}
@@ -112,9 +113,10 @@ public abstract class ChatHudMixin {
 	}
 
 	@Inject(method = "render", at = @At("RETURN"))
-	private void chat_canvas$popLayoutTransform(DrawContext context, int currentTick,
-												int mouseX, int mouseY, boolean focused,
-												CallbackInfo ci) {
+	private void chat_canvas$popLayoutTransform(DrawContext context,
+			TextRenderer textRenderer, int currentTick,
+			int mouseX, int mouseY, boolean interactable, boolean insert,
+			CallbackInfo ci) {
 		if (chat_canvas$matrixPushed) {
 			context.getMatrices().popMatrix();
 			chat_canvas$matrixPushed = false;
