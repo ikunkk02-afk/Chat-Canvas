@@ -153,6 +153,9 @@ public abstract class ChatHudMixin {
 				vanillaLineHeight, config.fontScale(), config.lineSpacing());
 	}
 
+	// 1.21.6 DISABLED: render() uses lambdas, @WrapOperation cannot target calls inside lambdas.
+	// See docs/porting/1.21.6/api-diff.md
+	/*
 	@WrapOperation(
 			method = "render",
 			at = @At(
@@ -163,37 +166,17 @@ public abstract class ChatHudMixin {
 	)
 	private void chat_canvas$drawCompactMessageBackground(DrawContext context,
 														 int x1, int y1, int x2, int y2, int color,
-														 Operation<Void> original,
-														 @Local ChatHudLine.Visible visible) {
+														 Operation<Void> original) {
 		ChatBackgroundConfig background = chat_canvas$background();
 		if (background.messageMode() == io.github.ikunkk02.chatcanvas.config.MessageBackgroundMode.HIDDEN) {
 			return;
 		}
-		ChatVerticalMetrics verticalMetrics = chat_canvas$verticalMetrics();
-		int textY = y2 + chat_canvas$vanillaTextOffset();
-		ChatLineMetrics lineMetrics = chat_canvas$metrics(visible);
-		double scale = Math.max(0.0001, getChatScale());
-		double messageLeft = -chat_canvas$VANILLA_TEXT_ORIGIN_X;
-		double messageRight = getWidth() / scale - chat_canvas$VANILLA_TEXT_ORIGIN_X;
-		ChatBackgroundBounds bounds = ChatBackgroundMetrics.messageBounds(
-				background.messageMode(),
-				messageLeft,
-				messageRight,
-				lineMetrics.drawX(),
-				lineMetrics.renderedWidth(),
-				textY,
-				textY + client.textRenderer.fontHeight,
-				verticalMetrics.lineAdvance(),
-				background.horizontalPadding(),
-				background.verticalPadding(),
-				scale
-		);
 		int configuredColor = ChatBackgroundMetrics.composeBackgroundColor(
 				background.messageColor(),
 				background.messageOpacity(),
 				(color >>> 24) / 255.0
 		);
-		ChatBackgroundDraw.fill(context, bounds, configuredColor);
+		original.call(context, x1, y1 - 1, x2, y2 + 1, configuredColor);
 	}
 
 	@WrapOperation(
@@ -218,6 +201,7 @@ public abstract class ChatHudMixin {
 				color
 		);
 	}
+	*/
 
 	@ModifyArg(
 			method = "addVisibleMessage",
@@ -256,6 +240,8 @@ public abstract class ChatHudMixin {
 		return lines;
 	}
 
+	// 1.21.6 DISABLED: render() uses lambdas — @WrapOperation can't target lambda-internal calls.
+	/*
 	@WrapOperation(
 			method = "render",
 			at = @At(
@@ -314,10 +300,11 @@ public abstract class ChatHudMixin {
 		float fontScale = (float) config.fontScale();
 		context.getMatrices().scale(fontScale, fontScale);
 		SpacedTextRenderer.draw(
-					context, renderer, text.asOrderedText(), 0.0, 0, configuredColor,
-					config.shadow(), config.characterSpacing());
-			context.getMatrices().popMatrix();
-		}
+				context, renderer, text.asOrderedText(), 0.0, 0, configuredColor,
+				config.shadow(), config.characterSpacing());
+		context.getMatrices().popMatrix();
+	}
+	*/
 
 	@Inject(method = "getTextStyleAt", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$getAlignedTextStyle(double x, double y,
