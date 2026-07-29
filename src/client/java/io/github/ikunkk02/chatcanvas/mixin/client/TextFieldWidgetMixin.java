@@ -66,11 +66,7 @@ public abstract class TextFieldWidgetMixin {
 	public abstract void setCursor(int cursor, boolean shiftKeyPressed);
 	@Shadow
 	public abstract int getWordSkipPosition(int wordOffset);
-	@Shadow
-	private void drawSelectionHighlight(
-			DrawContext context, int x1, int y1, int x2, int y2) {
-		throw new AssertionError();
-	}
+
 
 	@Inject(method = "onClick", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$locateSpacedClick(
@@ -245,8 +241,7 @@ public abstract class TextFieldWidgetMixin {
 			}
 		}
 		if (selectionOffset != cursorOffset) {
-			drawSelectionHighlight(
-					context, cursorX, textY - 1, selectionX - 1, textY + 10);
+			context.drawSelection(cursorX, textY - 1, selectionX - 1, textY + 10);
 		}
 	}
 

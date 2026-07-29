@@ -2,6 +2,18 @@
 
 All notable changes to Chat Canvas will be documented in this file.
 
+## [1.2.0-mc1.21.8] - 2026-07-29
+
+### Ported
+
+- Ported Chat Canvas 1.2.0 to Minecraft 1.21.8 (Fabric).
+- Source baseline: `mc/1.21.6` branch.
+
+### Changed
+
+- Replaced `TextFieldWidget.drawSelectionHighlight` shadow with `DrawContext.drawSelection()` (removed in MC 1.21.7).
+- Updated dependencies: Fabric API 0.136.1+1.21.8, owo-lib 0.12.23+1.21.8, ModMenu 15.0.2, Fabric Loom 1.17.17.
+
 ## [1.2.0] - 2026-07-27
 
 ### Added
