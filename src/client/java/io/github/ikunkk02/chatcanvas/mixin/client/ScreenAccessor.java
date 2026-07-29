@@ -8,6 +8,6 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 
 @Mixin(Screen.class)
 public interface ScreenAccessor {
-	@Invoker("addSelectableChild")
-	<T extends GuiEventListener & Selectable> T chat_canvas$addSelectableChild(T child);
+	@Invoker("addRenderableWidget")
+	<T extends GuiEventListener & TabOrderedElement> T chat_canvas$addTabOrderedElementChild(T child);
 }

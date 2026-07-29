@@ -10,11 +10,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(Keyboard.class)
+@Mixin(KeyboardHandler.class)
 public abstract class KeyboardMixin {
 
     @Inject(
-            method = "onKey",
+            method = "keyPress",
             at = @At("TAIL")
     )
     private void chat_canvas$handleVoiceKeyRelease(

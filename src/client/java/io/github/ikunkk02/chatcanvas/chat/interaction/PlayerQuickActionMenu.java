@@ -4,7 +4,7 @@ import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameHitbox;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameHitboxRegistry;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.mixin.client.ChatInputSuggestorAccessor;
-import io.github.ikunkk02.chatcanvas.mixin.client.SuggestionWindowAccessor;
+import io.github.ikunkk02.chatcanvas.mixin.client.SuggestionsListAccessor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.CommandSuggestions;
@@ -80,7 +80,7 @@ public final class PlayerQuickActionMenu {
 				context.fill(x + 1, rowY + 1, x + WIDTH - 1,
 						rowY + ROW_HEIGHT - 1, 0xAA3B4C66);
 			}
-			context.drawText(
+			graphics.text(
 					Minecraft.getInstance().textRenderer,
 					Component.translatable(switch (row) {
 						case 0 -> "chat_canvas.quick_action.mention";
@@ -148,7 +148,7 @@ public final class PlayerQuickActionMenu {
 	}
 
 	private static Optional<ScreenRectangle> suggestionArea(CommandSuggestions suggestor) {
-		CommandSuggestions.SuggestionWindow window =
+		CommandSuggestions.SuggestionsList window =
 				((ChatInputSuggestorAccessor) suggestor).chat_canvas$window();
 		return window == null
 				? Optional.empty()
@@ -156,8 +156,8 @@ public final class PlayerQuickActionMenu {
 	}
 
 	private static boolean intersects(int x, int y, int width, int height, ScreenRectangle area) {
-		return x < area.getX() + area.width() && x + width > area.getX()
-				&& y < area.getY() + area.getHeight() && y + height > area.getY();
+		return x < area.x() + area.width() && x + width > area.x()
+				&& y < area.y() + area.getHeight() && y + height > area.y();
 	}
 
 	private static int clamp(int value, int min, int max) {
