@@ -199,7 +199,7 @@ public abstract class ChatHudMixin {
 			method = "addVisibleMessage",
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/client/util/ChatMessages;breakRenderedChatMessageLines(Lnet/minecraft/text/StringVisitable;ILnet/minecraft/client/font/TextRenderer;)Ljava/util/List;"
+					target = "Lnet/minecraft/client/gui/hud/ChatHudLine;breakLines(Lnet/minecraft/client/font/TextRenderer;I)Ljava/util/List;"
 			),
 			index = 1
 	)
@@ -217,17 +217,17 @@ public abstract class ChatHudMixin {
 			method = "addVisibleMessage",
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/client/util/ChatMessages;breakRenderedChatMessageLines(Lnet/minecraft/text/StringVisitable;ILnet/minecraft/client/font/TextRenderer;)Ljava/util/List;"
+					target = "Lnet/minecraft/client/gui/hud/ChatHudLine;breakLines(Lnet/minecraft/client/font/TextRenderer;I)Ljava/util/List;"
 			)
 	)
 	private List<OrderedText> chat_canvas$bindVisiblePlayerNameRanges(
-			StringVisitable text, int width, TextRenderer renderer,
+			TextRenderer renderer, int width,
 			Operation<List<OrderedText>> original,
 			@Local(argsOnly = true) ChatHudLine message) {
 		ChatTextConfig config = ChatCanvasConfig.instance().text();
 		List<OrderedText> lines = ChatTextLayoutEngine.instance().wrap(
 				message, renderer, width, config.characterSpacing(), config.fontScale(),
-				() -> original.call(text, Integer.MAX_VALUE / 4, renderer));
+				() -> original.call(renderer, Integer.MAX_VALUE / 4));
 		ChatMessageMetadataRegistry.instance().registerVisibleLines(message, lines);
 		return lines;
 	}
