@@ -85,7 +85,7 @@ public final class VoiceInputOverlay {
 			mouseHolding = false;
 			manager.finish();
 		}
-		if (keyboardHolding && !Minecraft.getInstance().isWindowActive()) {
+		if (keyboardHolding && !Minecraft.getInstance().isWindowFocused()) {
 			cancel();
 		}
 	}
@@ -164,12 +164,12 @@ public final class VoiceInputOverlay {
 			label = Component.translatable(key).append(Component.literal(": " + manager.partial()));
 		}
 		int width = Math.min(240,
-				Minecraft.getInstance().font.width(label) + 20);
+				Minecraft.getInstance().textRenderer.width(label) + 20);
 		int x = Math.max(4, buttonX + BUTTON_WIDTH - width);
 		int y = Math.max(4, field.getY() - 34);
 		context.fill(x, y, x + width, y + 20, 0xD0202632);
 		context.outline(x, y, width, 20, 0xFF71809A);
-		context.text(Minecraft.getInstance().font,
+		context.text(Minecraft.getInstance().textRenderer,
 				label, x + 5, y + 4, 0xFFFFFFFF);
 		if (state == VoiceInputState.LISTENING && manager.settings().showInputLevel()) {
 			int meter = (int) Math.round((width - 10) * Math.min(1.0, manager.level() * 8.0));
@@ -216,12 +216,12 @@ public final class VoiceInputOverlay {
 							   String key) {
 		context.fill(x, y, x + width, y + height, 0xFF343D50);
 		context.outline(x, y, width, height, 0xFF71809A);
-		context.centeredText(Minecraft.getInstance().font,
+		context.centeredText(Minecraft.getInstance().textRenderer,
 				Component.translatable(key), x + width / 2, y + 6, 0xFFFFFFFF);
 	}
 
 	private static void draw(GuiGraphicsExtractor context, String key, int x, int y, int color) {
-		context.text(Minecraft.getInstance().font,
+		context.text(Minecraft.getInstance().textRenderer,
 				Component.translatable(key), x, y, color);
 	}
 

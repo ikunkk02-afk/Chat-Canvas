@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 /**
- * Bounded cache for the styled line layout owned by vanilla {@code ChatComponent}.
+ * Bounded cache for the styled line layout owned by vanilla {@code ChatHud}.
  * The source message is compared by identity so two equal messages remain two
  * independently cached entries.
  */

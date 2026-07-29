@@ -33,7 +33,7 @@ public final class EmojiFontSupport {
 					.filter(codePoint -> !ignorable(codePoint))
 					.allMatch(codePoint ->
 							storage.getGlyph(codePoint, false)
-									!= EmptyArea.class.MISSING);
+									!= EmptyArea.MISSING);
 		} catch (RuntimeException failure) {
 			supported = false;
 			if (!loggedFailure) {

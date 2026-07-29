@@ -2,8 +2,8 @@ package io.github.ikunkk02.chatcanvas.mixin.client;
 
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerRosterTracker;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
-import net.minecraft.network.packet.s2c.play.ClientboundPlayerInfoUpdatePacket;
-import net.minecraft.network.packet.s2c.play.ClientboundPlayerInfoRemovePacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;

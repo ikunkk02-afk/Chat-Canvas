@@ -36,7 +36,7 @@ public final class CommandMaxScrubberComponent extends BaseUIComponent implement
 
 	@Override
 	public void draw(OwoUIGraphics context, int mouseX, int mouseY, float partialTicks, float delta) {
-		var renderer = Minecraft.getInstance().font;
+		var renderer = Minecraft.getInstance().textRenderer;
 		int valueLeft = x() + width() - 92;
 		context.fill(valueLeft, y() + 2, x() + width(), y() + height() - 2, 0xB02A3543);
 		double progress = (session.commandClipboard().maxCommands()
@@ -73,7 +73,7 @@ public final class CommandMaxScrubberComponent extends BaseUIComponent implement
 	@Override
 	public boolean dragPointer(double mouseX, double mouseY, int button) {
 		if (!dragging || button != 0) return false;
-		double step = hasShiftDown() ? 1.0 : hasControlDown() ? 20.0 : 5.0;
+		double step = Screen.hasShiftDown() ? 1.0 : Screen.hasControlDown() ? 20.0 : 5.0;
 		apply((int) Math.round(startValue + (mouseX - startX) * step));
 		return true;
 	}
@@ -101,7 +101,7 @@ public final class CommandMaxScrubberComponent extends BaseUIComponent implement
 	@Override
 	public boolean scroll(double amount) {
 		if (!hovered || amount == 0) return false;
-		int step = hasShiftDown() ? 1 : hasControlDown() ? 100 : 20;
+		int step = Screen.hasShiftDown() ? 1 : Screen.hasControlDown() ? 100 : 20;
 		apply(session.commandClipboard().maxCommands() + (amount > 0 ? step : -step));
 		session.commit();
 		committed.run();

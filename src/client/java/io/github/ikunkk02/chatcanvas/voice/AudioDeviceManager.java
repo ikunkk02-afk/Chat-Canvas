@@ -20,11 +20,11 @@ public final class AudioDeviceManager {
 		for (Mixer.Info info : AudioSystem.getMixerInfo()) {
 			Mixer mixer = AudioSystem.getMixer(info);
 			if (mixer.getTargetLineInfo().length == 0) continue;
-			String base = info.name() + "\u001f" + info.getVendor() + "\u001f"
+			String base = info.getName() + "\u001f" + info.getVendor() + "\u001f"
 					+ info.getDescription() + "\u001f" + info.getVersion();
 			int occurrence = occurrences.merge(base, 1, Integer::sum) - 1;
 			devices.add(new AudioDevice(base + "\u001f" + occurrence,
-					info.name(), info, mixer.isLineSupported(
+					info.getName(), info, mixer.isLineSupported(
 							new DataLine.Info(TargetDataLine.class, TARGET_FORMAT))));
 		}
 		return List.copyOf(devices);
@@ -51,7 +51,7 @@ public final class AudioDeviceManager {
 			if (!mixer.isLineSupported(lineInfo)) return null;
 			TargetDataLine line = (TargetDataLine) mixer.getLine(lineInfo);
 			line.open(format);
-			return new OpenedMicrophone(line, format, info.name());
+			return new OpenedMicrophone(line, format, info.getName());
 		} catch (Exception ignored) {
 			return null;
 		}

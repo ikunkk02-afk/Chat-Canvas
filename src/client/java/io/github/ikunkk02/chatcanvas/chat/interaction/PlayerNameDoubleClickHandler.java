@@ -89,12 +89,12 @@ public final class PlayerNameDoubleClickHandler {
 		chatField.setValue(insertion.text());
 		if (!insertion.text().equals(chatField.getValue())) {
 			chatField.setValue(previous);
-			chatField.setCursorPosition(previousCursor);
+			chatField.moveCursorTo(previousCursor);
 			chatField.setHighlightPos(previousSelectionEnd);
 			showFeedback("chat_canvas.mention.input_too_long", now);
 			return true;
 		}
-		chatField.setCursor(insertion.cursorUtf16(), false);
+		chatField.moveCursorTo(insertion.cursorUtf16(), false);
 		chatField.setFocused(true);
 		suggestor.updateCommandInfo();
 		clearFeedback();
@@ -106,7 +106,7 @@ public final class PlayerNameDoubleClickHandler {
 		long now = Util.getMillis();
 		if (!config.doubleClickEnabled()
 				|| Minecraft.getInstance().screen != screen
-				|| !Minecraft.getInstance().isWindowActive()) {
+				|| !Minecraft.getInstance().isWindowFocused()) {
 			state.reset();
 		} else {
 			state.expire(now, config.doubleClickIntervalMs());
@@ -129,7 +129,7 @@ public final class PlayerNameDoubleClickHandler {
 
 	private static boolean isSuggestionWindowAt(
 			CommandSuggestions suggestor, double mouseX, double mouseY) {
-		CommandSuggestions.SuggestionsWindow window =
+		CommandSuggestions.SuggestionWindow window =
 				((ChatInputSuggestorAccessor) suggestor).chat_canvas$window();
 		return window != null && ((SuggestionWindowAccessor) window).chat_canvas$area()
 				.contains((int) Math.floor(mouseX), (int) Math.floor(mouseY));
@@ -139,10 +139,10 @@ public final class PlayerNameDoubleClickHandler {
 		Minecraft client = Minecraft.getInstance();
 		if (client.player == null) return false;
 		if (hitbox.playerUuid() != null) {
-			return hitbox.playerUuid().equals(client.player.uuid());
+			return hitbox.playerUuid().equals(client.player.getUuid());
 		}
 		return PlayerColorConfig.normalizeName(hitbox.playerName()).equals(
-				PlayerColorConfig.normalizeName(client.player.getGameProfile().name()));
+				PlayerColorConfig.normalizeName(client.player.getGameProfile().getName()));
 	}
 
 	private void showFeedback(String translationKey, long now) {

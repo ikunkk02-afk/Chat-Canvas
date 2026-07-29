@@ -80,7 +80,7 @@ public final class ChatHeadsCompat {
 				|| !channelAdapterAvailable()) {
 			return false;
 		}
-		PlayerInfo player = client.getConnection()
+		PlayerListEntry player = client.getConnection()
 				.getPlayerListEntry(message.senderUuid());
 		if (player == null) return false;
 		try {
@@ -94,12 +94,12 @@ public final class ChatHeadsCompat {
 		}
 	}
 
-	public static int extraWidth(GuiMessage.Line line) {
+	public static int extraWidth(GuiMessage.Visible line) {
 		HeadGeometry geometry = geometry(line);
 		return geometry == null ? 0 : geometry.width();
 	}
 
-	public static int widthBeforeCodePoint(GuiMessage.Line line, int codePointIndex) {
+	public static int widthBeforeCodePoint(GuiMessage.Visible line, int codePointIndex) {
 		HeadGeometry geometry = geometry(line);
 		return geometry != null && geometry.insertionCodePoint() <= codePointIndex
 				? geometry.width()
@@ -113,7 +113,7 @@ public final class ChatHeadsCompat {
 	 */
 	public static double textXAt(
 			Font renderer, FormattedCharSequence text, double spacing,
-			GuiMessage.Line line, double visualX) {
+			GuiMessage.Visible line, double visualX) {
 		HeadGeometry geometry = geometry(line);
 		if (geometry == null) return visualX;
 		double insertionX = SpacedTextMetrics.xAtCodePoint(
@@ -126,7 +126,7 @@ public final class ChatHeadsCompat {
 				: visualX;
 	}
 
-	private static synchronized HeadGeometry geometry(GuiMessage.Line line) {
+	private static synchronized HeadGeometry geometry(GuiMessage.Visible line) {
 		if (!ACTIVE || visibleReflectionFailed || line == null) return null;
 		try {
 			resolveVisibleApi(line.getClass());
@@ -151,8 +151,8 @@ public final class ChatHeadsCompat {
 					|| !method.getParameterTypes()[0].isAssignableFrom(visibleClass)) {
 				continue;
 			}
-			if (method.name().equals("getHeadData")) getHeadData = method;
-			if (method.name().equals("getTextWidthDifference")) {
+			if (method.getName().equals("getHeadData")) getHeadData = method;
+			if (method.getName().equals("getTextWidthDifference")) {
 				getTextWidthDifference = method;
 			}
 		}
@@ -173,7 +173,7 @@ public final class ChatHeadsCompat {
 				GuiGraphicsExtractor.class,
 				int.class,
 				int.class,
-				PlayerInfo.class,
+				PlayerListEntry.class,
 				float.class);
 		channelHeadWidth = chatHeads.getMethod("headWidth");
 	}

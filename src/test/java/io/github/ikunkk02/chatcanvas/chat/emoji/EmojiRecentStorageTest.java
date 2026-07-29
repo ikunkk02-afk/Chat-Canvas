@@ -27,7 +27,7 @@ class EmojiRecentStorageTest {
 		EmojiRecentStorage.LoadResult result = storage.load();
 
 		assertEquals(EmojiRecentStorage.LoadStatus.OK, result.status());
-		assertEquals(data, result.data());
+		assertEquals(data, result.getValue());
 	}
 
 	@Test
@@ -46,7 +46,7 @@ class EmojiRecentStorageTest {
 
 		assertEquals(EmojiRecentStorage.LoadStatus.PARTIAL_RECOVERY, result.status());
 		assertEquals(List.of(new RecentEmojiEntry("😀", 200L, 3)),
-				result.data().recent());
+				result.getValue().recent());
 	}
 
 	@Test
@@ -63,6 +63,6 @@ class EmojiRecentStorageTest {
 		assertNotNull(result.failure());
 		assertTrue(Files.exists(directory.resolve("emoji.corrupt-555.json")));
 		assertTrue(Files.exists(path));
-		assertEquals(EmojiRecentData.EMPTY, result.data());
+		assertEquals(EmojiRecentData.EMPTY, result.getValue());
 	}
 }

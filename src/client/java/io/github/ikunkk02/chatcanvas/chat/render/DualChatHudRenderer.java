@@ -73,7 +73,7 @@ public final class DualChatHudRenderer {
 			active = false;
 			hitLines.clear();
 			PlayerNameHitboxRegistry.clear();
-			ChatCanvas.LOGGER.error("Chat Canvas dual chat renderer failed; restoring vanilla ChatComponent", throwable);
+			ChatCanvas.LOGGER.error("Chat Canvas dual chat renderer failed; restoring vanilla ChatHud", throwable);
 			return false;
 		}
 	}
@@ -248,7 +248,7 @@ public final class DualChatHudRenderer {
 	public boolean copyCommandAt(double mouseX, double mouseY) {
 		HitLine line = hitAt(mouseX, mouseY);
 		if (line == null || line.channel() != ChatCanvasChannel.COMMAND_SYSTEM) return false;
-		Minecraft.getInstance().keyboardHandler.setClipboard(line.message().content().getString());
+		Minecraft.getInstance().keyboard.setClipboard(line.message().content().getString());
 		return true;
 	}
 
@@ -256,7 +256,7 @@ public final class DualChatHudRenderer {
 	public Style styleAt(double mouseX, double mouseY) {
 		HitLine line = hitAt(mouseX, mouseY);
 		if (line == null) return null;
-		return SpacedTextHitTester.styleAt(Minecraft.getInstance().font,
+		return SpacedTextHitTester.styleAt(Minecraft.getInstance().textRenderer,
 				line.text(), line.spacing(), (mouseX - line.x()) / line.scale());
 	}
 

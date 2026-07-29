@@ -243,7 +243,7 @@ public final class EmojiPickerPanel {
 		if (hovered != null) {
 			context.pose().pushMatrix();
 			context.pose().translate(0.0f, 0.0f, 360.0f);
-			context.setTooltipForNextFrame(Minecraft.getInstance().font,
+			context.setTooltipForNextFrame(Minecraft.getInstance().textRenderer,
 					Component.literal(hovered.unicode() + "  "
 							+ hovered.chineseName() + " / " + hovered.englishName()),
 					mouseX, mouseY);
@@ -251,7 +251,7 @@ public final class EmojiPickerPanel {
 		}
 		if (statusKey != null && System.currentTimeMillis() < statusUntil) {
 			context.text(
-					Minecraft.getInstance().font,
+					Minecraft.getInstance().textRenderer,
 					Component.translatable(statusKey), x + 7, y + height - 12,
 					0xFFFF858D);
 		}
@@ -337,7 +337,7 @@ public final class EmojiPickerPanel {
 
 	private void refreshFontEntries() {
 		supported = EmojiFontSupport.supportedEntries(
-				Minecraft.getInstance().font);
+				Minecraft.getInstance().textRenderer);
 		List<EmojiCategory> categories = new ArrayList<>();
 		categories.add(EmojiCategory.RECENT);
 		for (EmojiCategory candidate : EmojiCategory.values()) {
@@ -370,7 +370,7 @@ public final class EmojiPickerPanel {
 			return;
 		}
 		playerField.setValue(result.text());
-		playerField.setCursorPosition(result.cursor());
+		playerField.moveCursorTo(result.cursor());
 		playerField.setHighlightPos(result.selectionEnd());
 		inputController.capture(
 				io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputMode.PLAYER_CHAT,
@@ -378,7 +378,7 @@ public final class EmojiPickerPanel {
 						result.text(), result.cursor(), result.selectionEnd()));
 		EmojiRuntime.recent().recordSelected(entry.unicode());
 		if (suggestor != null) {
-			suggestor.setWindowActive(!result.text().isEmpty());
+			suggestor.setFocused(!result.text().isEmpty());
 			suggestor.updateCommandInfo();
 		}
 		updateGrid();
@@ -426,7 +426,7 @@ public final class EmojiPickerPanel {
 		context.outline(buttonX, buttonY,
 				BUTTON_WIDTH, BUTTON_HEIGHT, open ? 0xFFF6C85F : 0xFF71809A);
 		context.centeredText(
-				Minecraft.getInstance().font,
+				Minecraft.getInstance().textRenderer,
 				Component.literal("😀"), buttonX + BUTTON_WIDTH / 2,
 				buttonY + 3, 0xFFFFFF);
 	}
@@ -490,7 +490,7 @@ public final class EmojiPickerPanel {
 
 	private ScreenRectangle suggestionArea() {
 		if (suggestor == null) return null;
-		CommandSuggestions.SuggestionsWindow window =
+		CommandSuggestions.SuggestionWindow window =
 				((ChatInputSuggestorAccessor) suggestor).chat_canvas$window();
 		return window == null ? null
 				: ((SuggestionWindowAccessor) window).chat_canvas$area();

@@ -61,7 +61,7 @@ public final class PlayerQuickActionMenu {
 			closeMenu();
 			return true;
 		}
-		if (hasControlDown() && keyCode == GLFW.GLFW_KEY_Z && replacedInput != null) {
+		if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_Z && replacedInput != null) {
 			ChatFieldActions.restore(field, suggestor, replacedInput);
 			replacedInput = null;
 			return true;
@@ -81,7 +81,7 @@ public final class PlayerQuickActionMenu {
 						rowY + ROW_HEIGHT - 1, 0xAA3B4C66);
 			}
 			context.drawText(
-					Minecraft.getInstance().font,
+					Minecraft.getInstance().textRenderer,
 					Component.translatable(switch (row) {
 						case 0 -> "chat_canvas.quick_action.mention";
 						case 1 -> "chat_canvas.quick_action.private_message";
@@ -108,7 +108,7 @@ public final class PlayerQuickActionMenu {
 					PrivateMessageTemplate.apply(
 							ChatCanvasConfig.instance().mention().privateMessageTemplate(),
 							target.playerName()));
-			case 2 -> Minecraft.getInstance().keyboardHandler.setClipboard(target.playerName());
+			case 2 -> Minecraft.getInstance().keyboard.setClipboard(target.playerName());
 			default -> {
 			}
 		}
@@ -148,7 +148,7 @@ public final class PlayerQuickActionMenu {
 	}
 
 	private static Optional<ScreenRectangle> suggestionArea(CommandSuggestions suggestor) {
-		CommandSuggestions.SuggestionsWindow window =
+		CommandSuggestions.SuggestionWindow window =
 				((ChatInputSuggestorAccessor) suggestor).chat_canvas$window();
 		return window == null
 				? Optional.empty()

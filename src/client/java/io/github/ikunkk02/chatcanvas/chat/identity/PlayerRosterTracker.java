@@ -25,8 +25,8 @@ public final class PlayerRosterTracker {
 			clear();
 			return;
 		}
-		List<PlayerChatIdentity> updated = handler.getListedPlayers().stream()
-				.map(PlayerInfo::getProfile)
+		List<PlayerChatIdentity> updated = handler.getOnlinePlayers().stream()
+				.map(PlayerListEntry::getProfile)
 				.map(PlayerRosterTracker::fromProfile)
 				.sorted(Comparator.comparing(PlayerChatIdentity::playerName,
 						String.CASE_INSENSITIVE_ORDER))
@@ -65,7 +65,7 @@ public final class PlayerRosterTracker {
 	}
 
 	private static PlayerChatIdentity fromProfile(GameProfile profile) {
-		return new PlayerChatIdentity(profile.uuid(), profile.name(), true);
+		return new PlayerChatIdentity(profile.getId(), profile.getName(), true);
 	}
 
 	private static PlayerChatIdentity preview(String name) {

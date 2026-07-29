@@ -116,7 +116,7 @@ public final class SpacedTextWrapper {
 			atoms.add(new Atom(
 					codePoint,
 					safe,
-					renderer.getTextHandler().width(FormattedCharSequence.styled(codePoint, safe))));
+					renderer.getSplitter().width(FormattedCharSequence.styled(codePoint, safe))));
 			return true;
 		});
 		return atoms;

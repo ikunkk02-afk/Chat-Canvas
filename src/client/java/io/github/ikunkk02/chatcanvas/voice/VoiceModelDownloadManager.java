@@ -123,13 +123,13 @@ public final class VoiceModelDownloadManager {
 			for (ZipEntry entry; (entry = zip.getNextEntry()) != null;) {
 				checkCancelled();
 				if (++entries > MAX_ENTRIES) throw new IOException("Too many ZIP entries");
-				String name = entry.name().replace('\\', '/');
+				String name = entry.getName().replace('\\', '/');
 				if (name.startsWith("/") || name.matches("^[A-Za-z]:.*")
 						|| !name.equals(rootName) && !name.startsWith(rootName + "/")) {
 					throw new IOException("Unsafe ZIP entry: " + name);
 				}
-				Path output = staging.resolve(name).normalizeChatMessage();
-				if (!output.startsWith(staging.normalizeChatMessage()) || !targets.add(output)) {
+				Path output = staging.resolve(name).normalize();
+				if (!output.startsWith(staging.normalize()) || !targets.add(output)) {
 					throw new IOException("Unsafe or duplicate ZIP entry: " + name);
 				}
 				if (entry.isDirectory()) {

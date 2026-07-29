@@ -36,8 +36,8 @@ import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public final class ChatCanvasClient implements ClientModInitializer {
-	private static KeyMapping openEditor;
-	private static KeyMapping voiceInput;
+	private static KeyBinding openEditor;
+	private static KeyBinding voiceInput;
 
 	@Override
 	public void onInitializeClient() {
@@ -69,13 +69,13 @@ public final class ChatCanvasClient implements ClientModInitializer {
 					VoiceInputManager.instance().shutdown();
 					LocalChatLogService.instance().close();
 				});
-		openEditor = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+		openEditor = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 				"key.chat_canvas.open_editor",
 				InputUtil.Type.KEYSYM,
 				GLFW.GLFW_KEY_K,
 				"key.category.chat_canvas"
 		));
-		voiceInput = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+		voiceInput = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 				"key.chat_canvas.voice_input",
 				InputUtil.Type.KEYSYM,
 				GLFW.GLFW_KEY_V,
@@ -120,7 +120,7 @@ public final class ChatCanvasClient implements ClientModInitializer {
 		});
 	}
 
-	public static KeyMapping voiceInputKey() {
+	public static KeyBinding voiceInputKey() {
 		return voiceInput;
 	}
 }

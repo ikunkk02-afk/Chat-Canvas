@@ -32,8 +32,8 @@ class CommandToolStorageTest {
 		CommandToolStorage.LoadResult result = storage.load();
 
 		assertEquals(CommandToolStorage.LoadStatus.OK, result.status());
-		assertEquals(List.of(recent), result.data().recent());
-		assertEquals(List.of(favorite), result.data().favorites());
+		assertEquals(List.of(recent), result.getValue().recent());
+		assertEquals(List.of(favorite), result.getValue().favorites());
 	}
 
 	@Test

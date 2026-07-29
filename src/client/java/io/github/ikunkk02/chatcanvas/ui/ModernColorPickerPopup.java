@@ -82,7 +82,7 @@ public final class ModernColorPickerPopup extends BaseUIComponent {
 		ModernUiTheme.roundedRect(context, x(), y(), width(), height(), 7, 0xF21A1E28);
 		ModernUiTheme.border(context, x(), y(), width(), height(), 0x8860738F);
 
-		Font renderer = Minecraft.getInstance().font;
+		Font renderer = Minecraft.getInstance().textRenderer;
 		context.drawText(renderer, Component.translatable("chat_canvas.color_picker.title"),
 				x() + 10, y() + 8, ModernUiTheme.TEXT_PRIMARY, false);
 
@@ -250,7 +250,7 @@ public final class ModernColorPickerPopup extends BaseUIComponent {
 			return true;
 		}
 		if (Screen.isPaste(keyCode)) {
-			replaceOrAppend(Minecraft.getInstance().keyboardHandler.getClipboard());
+			replaceOrAppend(Minecraft.getInstance().keyboard.getClipboard());
 			return true;
 		}
 		if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {

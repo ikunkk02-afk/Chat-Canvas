@@ -38,10 +38,10 @@ public final class CommandToolRuntime {
 		} else if (client.hasSingleplayerServer()) {
 			serverIdentifier = "singleplayer";
 		} else {
-			String address = client.getCurrentServer() == null
+			String ip = client.getCurrentServer() == null
 					? "unknown" : client.getCurrentServer().ip;
 			serverIdentifier = "server-"
-					+ UUID.nameUUIDFromBytes(address.getBytes(StandardCharsets.UTF_8));
+					+ UUID.nameUUIDFromBytes(ip.getBytes(StandardCharsets.UTF_8));
 		}
 	}
 

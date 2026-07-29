@@ -323,7 +323,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 					keyCode == GLFW.GLFW_KEY_UP ? -1 : 1,
 					chat_canvas$snapshot(activeField));
 			chat_canvas$restoreField(activeField, next);
-			activeSuggestor.setWindowActive(false);
+			activeSuggestor.setFocused(false);
 			activeSuggestor.updateCommandInfo();
 			cir.setReturnValue(true);
 			return;
@@ -351,7 +351,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 			if (VoiceInputManager.instance().isBusy()) chat_canvas$voiceOverlay.cancel();
 			return;
 		}
-		if (!Minecraft.getInstance().isWindowActive()
+		if (!Minecraft.getInstance().isWindowFocused()
 				&& VoiceInputManager.instance().isBusy()) {
 			chat_canvas$voiceOverlay.cancel();
 			return;
@@ -370,7 +370,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		if (chat_canvas$voiceOverlay == null) {
 			return;
 		}
-		KeyMapping voiceKey = io.github.ikunkk02.chatcanvas.ChatCanvasClient.voiceInputKey();
+		KeyBinding voiceKey = io.github.ikunkk02.chatcanvas.ChatCanvasClient.voiceInputKey();
 		if (voiceKey == null) {
 			return;
 		}
@@ -389,7 +389,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		}
 		EditBox activeField = chat_canvas$activeInputField();
 		context.text(
-				Minecraft.getInstance().font,
+				Minecraft.getInstance().textRenderer,
 				Component.translatable(chat_canvas$inputMode == ChatCanvasInputMode.COMMAND
 						? "chat_canvas.input.mode.command"
 						: "chat_canvas.input.mode.player"),
@@ -405,7 +405,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 			int x = transform.bounds().left() + 2;
 			int y = Math.max(2, transform.bounds().inputTop() - 12);
 			context.drawText(
-					Minecraft.getInstance().font,
+					Minecraft.getInstance().textRenderer,
 					message, x, y, 0xFFFF858D, true);
 		});
 		chat_canvas$quickActionMenu.render(
@@ -541,7 +541,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 			return;
 		}
 		chat_canvas$inputController.capture(ChatCanvasInputMode.PLAYER_CHAT, changed);
-		chat_canvas$playerChatSuggestor.setWindowActive(!text.isEmpty());
+		chat_canvas$playerChatSuggestor.setFocused(!text.isEmpty());
 		chat_canvas$playerChatSuggestor.updateCommandInfo();
 	}
 
@@ -550,7 +550,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		if (chat_canvas$suppressInputUpdates) return;
 		chat_canvas$inputController.capture(
 				ChatCanvasInputMode.COMMAND, chat_canvas$snapshot(chatField));
-		chatInputSuggestor.setWindowActive(
+		chatInputSuggestor.setFocused(
 				chat_canvas$inputMode == ChatCanvasInputMode.COMMAND);
 		chatInputSuggestor.updateCommandInfo();
 	}
@@ -563,8 +563,8 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		chat_canvas$playerChatField.setVisible(!command);
 		chatField.setFocused(false);
 		chat_canvas$playerChatField.setFocused(false);
-		chatInputSuggestor.setWindowActive(command);
-		chat_canvas$playerChatSuggestor.setWindowActive(!command);
+		chatInputSuggestor.setFocused(command);
+		chat_canvas$playerChatSuggestor.setFocused(!command);
 		if (!command) chatInputSuggestor.clearWindow();
 		else chat_canvas$playerChatSuggestor.clearWindow();
 		if (!command) chat_canvas$commandTools.close();
@@ -680,7 +680,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		chat_canvas$suppressInputUpdates = true;
 		try {
 			field.setValue(snapshot.text());
-			field.setCursorPosition(snapshot.cursor());
+			field.moveCursorTo(snapshot.cursor());
 			field.setHighlightPos(snapshot.selectionEnd());
 		} finally {
 			chat_canvas$suppressInputUpdates = previousSuppression;
@@ -698,14 +698,14 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 				"chat_canvas.emoji.length", graphemes, text.length(), 256);
 		int color = text.length() >= 256 ? 0xFFFF6B6B
 				: text.length() >= 230 ? 0xFFF6C85F : 0xFFADB6C7;
-		int width = Minecraft.getInstance().font.width(counter);
-		int modeWidth = Minecraft.getInstance().font.width(
+		int width = Minecraft.getInstance().textRenderer.width(counter);
+		int modeWidth = Minecraft.getInstance().textRenderer.width(
 				Component.translatable("chat_canvas.input.mode.player"));
 		int counterY = activeField.width() < width + modeWidth + 8
 				? Math.max(2, activeField.getY() - 20)
 				: Math.max(2, activeField.getY() - 10);
 		context.text(
-				Minecraft.getInstance().font, counter,
+				Minecraft.getInstance().textRenderer, counter,
 				Math.max(activeField.getX(),
 						activeField.getX() + activeField.width() - width),
 				counterY, color);
@@ -744,7 +744,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		chat_canvas$inputController.capture(
 				ChatCanvasInputMode.PLAYER_CHAT,
 				new ChatInputSnapshot(result.text(), result.cursor(), result.selectionEnd()));
-		chat_canvas$playerChatSuggestor.setWindowActive(!result.text().isEmpty());
+		chat_canvas$playerChatSuggestor.setFocused(!result.text().isEmpty());
 		chat_canvas$playerChatSuggestor.updateCommandInfo();
 		chat_canvas$focusActiveField();
 	}

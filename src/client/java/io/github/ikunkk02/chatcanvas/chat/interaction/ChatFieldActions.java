@@ -22,11 +22,11 @@ public final class ChatFieldActions {
 		field.setValue(insertion.text());
 		if (!insertion.text().equals(field.getValue())) {
 			field.setValue(previous);
-			field.setCursorPosition(previousCursor);
+			field.moveCursorTo(previousCursor);
 			field.setHighlightPos(previousSelection);
 			return false;
 		}
-		field.setCursor(insertion.cursorUtf16(), false);
+		field.moveCursorTo(insertion.cursorUtf16(), false);
 		field.setFocused(true);
 		suggestor.updateCommandInfo();
 		return true;
@@ -38,7 +38,7 @@ public final class ChatFieldActions {
 		InputSnapshot previous = new InputSnapshot(
 				field.getValue(), field.getCursorPosition(), accessor.chat_canvas$selectionEnd());
 		field.setValue(replacement);
-		field.setCursorToEnd(false);
+		field.moveCursorToEnd(false);
 		field.setFocused(true);
 		suggestor.updateCommandInfo();
 		return previous;
@@ -48,7 +48,7 @@ public final class ChatFieldActions {
 									String command, CommandInsertMode mode) {
 		if (mode == CommandInsertMode.REPLACE_INPUT) {
 			field.setValue(command);
-			field.setCursorToEnd(false);
+			field.moveCursorToEnd(false);
 		} else {
 			field.insertText(command);
 		}
@@ -59,7 +59,7 @@ public final class ChatFieldActions {
 	public static void restore(
 			EditBox field, CommandSuggestions suggestor, InputSnapshot snapshot) {
 		field.setValue(snapshot.text());
-		field.setCursorPosition(snapshot.cursor());
+		field.moveCursorTo(snapshot.cursor());
 		field.setHighlightPos(snapshot.selectionEnd());
 		field.setFocused(true);
 		suggestor.updateCommandInfo();

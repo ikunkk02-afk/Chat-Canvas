@@ -172,7 +172,7 @@ public final class PreviewChatWidget extends BaseUIComponent implements EditorPo
 	@Override
 	public void draw(OwoUIGraphics context, int mouseX, int mouseY, float partialTicks, float delta) {
 		PixelLayout layout = session.layout(channel);
-		Font renderer = Minecraft.getInstance().font;
+		Font renderer = Minecraft.getInstance().textRenderer;
 		renderEngine.render(new ChatRenderContext(
 				context,
 				renderer,
@@ -199,15 +199,15 @@ public final class PreviewChatWidget extends BaseUIComponent implements EditorPo
 
 	private List<PreviewChatMessage> previewMessages() {
 		String shouyunName = Component.translatable("chat_canvas.preview.shouyun_name").getString();
-		MutableText steve = Component.literal("Steve: ").formatted(ChatFormatting.WHITE)
+		MutableComponent steve = Component.literal("Steve: ").formatted(ChatFormatting.WHITE)
 				.append(Component.literal("@" + shouyunName + " ").formatted(ChatFormatting.WHITE))
 				.append(Component.translatable("chat_canvas.preview.steve").formatted(ChatFormatting.WHITE));
-		MutableText alex = Component.literal("Alex: ").formatted(ChatFormatting.WHITE)
+		MutableComponent alex = Component.literal("Alex: ").formatted(ChatFormatting.WHITE)
 				.append(Component.translatable("chat_canvas.preview.alex").formatted(ChatFormatting.WHITE));
-		MutableText shouyun = Component.literal(shouyunName).formatted(ChatFormatting.WHITE)
+		MutableComponent shouyun = Component.literal(shouyunName).formatted(ChatFormatting.WHITE)
 				.append(Component.literal(": ").formatted(ChatFormatting.WHITE))
 				.append(Component.translatable("chat_canvas.preview.shouyun_body").formatted(ChatFormatting.WHITE));
-		MutableText system = Component.translatable("chat_canvas.preview.system").formatted(ChatFormatting.GREEN, ChatFormatting.ITALIC);
+		MutableComponent system = Component.translatable("chat_canvas.preview.system").formatted(ChatFormatting.GREEN, ChatFormatting.ITALIC);
 		return List.of(
 				new PreviewChatMessage(steve, previewIdentity("Steve")),
 				new PreviewChatMessage(alex, previewIdentity("Alex")),

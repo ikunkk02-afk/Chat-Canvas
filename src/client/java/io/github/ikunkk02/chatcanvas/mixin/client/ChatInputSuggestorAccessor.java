@@ -7,5 +7,5 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 @Mixin(CommandSuggestions.class)
 public interface ChatInputSuggestorAccessor {
 	@Accessor("window")
-	CommandSuggestions.SuggestionsWindow chat_canvas$window();
+	CommandSuggestions.SuggestionWindow chat_canvas$window();
 }

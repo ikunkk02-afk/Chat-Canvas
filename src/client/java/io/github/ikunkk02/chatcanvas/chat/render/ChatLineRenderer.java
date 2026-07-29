@@ -11,7 +11,7 @@ public final class ChatLineRenderer {
 				? 0.0
 				: context.textConfig().characterSpacing();
 		SpacedTextRenderer.draw(
-				context.drawContext(), context.font(), text, x, y,
+				context.drawContext(), context.textRenderer(), text, x, y,
 				(alpha << 24) | 0xFFFFFF, shadow, spacing);
 	}
 }

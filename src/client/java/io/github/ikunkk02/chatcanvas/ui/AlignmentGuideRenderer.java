@@ -9,7 +9,7 @@ public final class AlignmentGuideRenderer {
 	private AlignmentGuideRenderer() {
 	}
 
-	public static void render(GuiGraphicsExtractor context, int screenWidth, int screenHeight,
+	public static void extractRenderState(GuiGraphicsExtractor context, int screenWidth, int screenHeight,
 							  PixelLayout layout, PreviewChatWidget preview) {
 		if (!preview.dragging()) return;
 		int margin = PixelLayout.DEFAULT_SAFE_MARGIN;
@@ -24,10 +24,10 @@ public final class AlignmentGuideRenderer {
 
 		Component geometry = Component.translatable("chat_canvas.editor.geometry",
 				layout.x(), layout.y(), layout.width(), layout.height());
-		int textWidth = Minecraft.getInstance().font.width(geometry);
+		int textWidth = Minecraft.getInstance().textRenderer.width(geometry);
 		int x = Math.max(4, Math.min(screenWidth - textWidth - 8, layout.x()));
 		int y = Math.max(4, layout.y() - 18);
 		ModernUiTheme.roundedRect(context, x, y, textWidth + 8, 15, 4, 0xD91A1E28);
-		context.drawText(Minecraft.getInstance().font, geometry, x + 4, y + 3, 0xFFE9EDF4, false);
+		context.drawText(Minecraft.getInstance().textRenderer, geometry, x + 4, y + 3, 0xFFE9EDF4, false);
 	}
 }

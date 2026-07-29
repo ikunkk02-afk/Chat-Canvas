@@ -1,6 +1,6 @@
 package io.github.ikunkk02.chatcanvas.mixin.client;
 
-import net.minecraft.client.font.FontSet;
+import net.minecraft.client.gui.font.FontSet;
 import net.minecraft.client.gui.Font;
 import net.minecraft.resources.Identifier;
 import org.spongepowered.asm.mixin.Mixin;

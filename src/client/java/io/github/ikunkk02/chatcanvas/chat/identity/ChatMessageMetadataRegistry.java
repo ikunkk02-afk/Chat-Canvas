@@ -180,7 +180,7 @@ public final class ChatMessageMetadataRegistry {
 		Minecraft client = Minecraft.getInstance();
 		String playerName = client.player == null
 				? ""
-				: client.player.getGameProfile().name();
+				: client.player.getGameProfile().getName();
 		return new MentionKey(
 				PlayerColorConfig.normalizeName(playerName),
 				ChatCanvasConfig.instance().mention().requireAtSymbol());

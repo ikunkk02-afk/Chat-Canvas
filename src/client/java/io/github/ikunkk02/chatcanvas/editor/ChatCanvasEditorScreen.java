@@ -187,11 +187,11 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 			super.keyPressed(keyCode, scanCode, modifiers);
 			return true;
 		}
-		if (hasControlDown() && keyCode == GLFW.GLFW_KEY_Z) {
+		if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_Z) {
 			undo();
 			return true;
 		}
-		if (hasControlDown() && keyCode == GLFW.GLFW_KEY_Y) {
+		if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_Y) {
 			redo();
 			return true;
 		}
@@ -214,7 +214,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		if (scrubber != null) {
 			if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
 				return pointerCapture.begin(scrubber, mouseX, mouseY, button,
-						hasShiftDown(), hasControlDown());
+						Screen.hasShiftDown(), Screen.hasControlDown());
 			}
 			if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
 				return scrubber.restoreDefault();
@@ -224,12 +224,12 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && commandPreviewCanReceive(mouseX, mouseY)) {
 			selectChannel(EditorChannel.COMMAND_SYSTEM);
 			return pointerCapture.begin(commandPreview, mouseX, mouseY, button,
-					hasShiftDown(), hasControlDown());
+					Screen.hasShiftDown(), Screen.hasControlDown());
 		}
 		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && previewCanReceive(mouseX, mouseY)) {
 			selectChannel(EditorChannel.PLAYER_CHAT);
 			return pointerCapture.begin(preview, mouseX, mouseY, button,
-					hasShiftDown(), hasControlDown());
+					Screen.hasShiftDown(), Screen.hasControlDown());
 		}
 		return super.mouseClicked(mouseX, mouseY, button);
 	}
@@ -275,7 +275,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	@Override
 	public void tick() {
 		super.tick();
-		if (client != null && !client.isWindowActive()) {
+		if (client != null && !client.isWindowFocused()) {
 			pointerCapture.cancel();
 		}
 	}

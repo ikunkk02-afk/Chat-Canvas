@@ -48,7 +48,7 @@ public final class MentionNumericScrubberComponent extends BaseUIComponent imple
 
 	@Override
 	public void draw(OwoUIGraphics context, int mouseX, int mouseY, float partialTicks, float delta) {
-		Font renderer = Minecraft.getInstance().font;
+		Font renderer = Minecraft.getInstance().textRenderer;
 		int valueLeft = valueLeft();
 		boolean vanilla = ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA;
 		context.fill(valueLeft, y() + 2, x() + width(), y() + height() - 2,
@@ -90,7 +90,7 @@ public final class MentionNumericScrubberComponent extends BaseUIComponent imple
 	@Override
 	public boolean dragPointer(double mouseX, double mouseY, int button) {
 		if (!dragging || button != 0 || dragStart == null) return false;
-		double modifier = hasShiftDown() ? 0.2 : hasControlDown() ? 5.0 : 1.0;
+		double modifier = Screen.hasShiftDown() ? 0.2 : Screen.hasControlDown() ? 5.0 : 1.0;
 		applyValue(dragStartValue + (mouseX - dragStartMouseX) * property.dragStep * modifier);
 		return true;
 	}
@@ -123,7 +123,7 @@ public final class MentionNumericScrubberComponent extends BaseUIComponent imple
 	@Override
 	public boolean scroll(double amount) {
 		if (!valueHovered || amount == 0.0) return false;
-		double modifier = hasShiftDown() ? 0.2 : hasControlDown() ? 5.0 : 1.0;
+		double modifier = Screen.hasShiftDown() ? 0.2 : Screen.hasControlDown() ? 5.0 : 1.0;
 		MentionConfig before = session.mention();
 		applyValue(property.read(before) + Math.signum(amount) * property.scrollStep * modifier);
 		if (!before.equals(session.mention())) {

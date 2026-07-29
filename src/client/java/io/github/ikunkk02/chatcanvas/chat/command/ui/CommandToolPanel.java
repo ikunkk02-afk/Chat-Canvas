@@ -73,7 +73,7 @@ public final class CommandToolPanel {
 	public void init(ChatScreen screen, EditBox commandField) {
 		owner = screen;
 		ACTIVE.put(screen, this);
-		Font renderer = Minecraft.getInstance().font;
+		Font renderer = Minecraft.getInstance().textRenderer;
 		searchField = new EditBox(renderer, 0, 0, WIDTH - 46, 18,
 				Component.translatable("chat_canvas.command.search"));
 		searchField.setHint(Component.translatable("chat_canvas.command.search"));
@@ -202,7 +202,7 @@ public final class CommandToolPanel {
 		Row row = rows.get(rowIndex);
 		int right = px + WIDTH - 8;
 		if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
-			Minecraft.getInstance().keyboardHandler.setClipboard(row.command());
+			Minecraft.getInstance().keyboard.setClipboard(row.command());
 		} else if (tab == CommandToolTab.FAVORITES && mouseX >= right - 18) {
 			pendingId = row.id();
 			dialog = Dialog.CONFIRM_DELETE_FAVORITE;
@@ -215,15 +215,15 @@ public final class CommandToolPanel {
 		} else if (tab == CommandToolTab.FAVORITES && mouseX >= right - 58) {
 			if (searchField.getValue().isEmpty()) draggingFavorite = row.id();
 		} else if (tab == CommandToolTab.FAVORITES && mouseX >= right - 78) {
-			Minecraft.getInstance().keyboardHandler.setClipboard(row.command());
+			Minecraft.getInstance().keyboard.setClipboard(row.command());
 		} else if (tab == CommandToolTab.RECENT && mouseX >= right - 38) {
 			openFavoriteDialog(null, row.command());
 		} else if (tab == CommandToolTab.RECENT && mouseX >= right - 58) {
-			Minecraft.getInstance().keyboardHandler.setClipboard(row.command());
+			Minecraft.getInstance().keyboard.setClipboard(row.command());
 		} else if (tab == CommandToolTab.CLIPBOARD && mouseX >= right - 20) {
-			Minecraft.getInstance().keyboardHandler.setClipboard(row.command());
+			Minecraft.getInstance().keyboard.setClipboard(row.command());
 		} else {
-			insert(commandField, suggestor, row.command(), hasShiftDown());
+			insert(commandField, suggestor, row.command(), Screen.hasShiftDown());
 		}
 		return true;
 	}
@@ -280,7 +280,7 @@ public final class CommandToolPanel {
 			int keyCode, int scanCode, int modifiers,
 			EditBox commandField, CommandSuggestions suggestor) {
 		if (!open) {
-			if (keyCode == GLFW.GLFW_KEY_F && hasControlDown()) {
+			if (keyCode == GLFW.GLFW_KEY_F && Screen.hasControlDown()) {
 				open = true;
 				setSearchFocused(true);
 				return true;
@@ -316,7 +316,7 @@ public final class CommandToolPanel {
 			} else close();
 			return true;
 		}
-		if (keyCode == GLFW.GLFW_KEY_F && hasControlDown()) {
+		if (keyCode == GLFW.GLFW_KEY_F && Screen.hasControlDown()) {
 			setSearchFocused(true);
 			listFocused = false;
 			return true;
@@ -356,7 +356,7 @@ public final class CommandToolPanel {
 			if (!rows.isEmpty()) {
 				insert(commandField, suggestor,
 						rows.get(Math.min(selected, rows.size() - 1)).command(),
-						hasShiftDown());
+						Screen.hasShiftDown());
 			}
 			return true;
 		}
@@ -404,7 +404,7 @@ public final class CommandToolPanel {
 			int bx = buttonX(screen, commandField);
 			fillButton(context, bx, commandField.getY(), 54, 14, false);
 			context.centeredText(
-					Minecraft.getInstance().font,
+					Minecraft.getInstance().textRenderer,
 					Component.translatable("chat_canvas.command.tools"),
 					bx + 27, commandField.getY() + 3, 0xFFFFFF);
 		}
@@ -413,7 +413,7 @@ public final class CommandToolPanel {
 		visualX = x + Math.round((1.0f - openProgress)
 				* (x < screen.width / 2 ? -24 : 24));
 		int px = visualX;
-		Font renderer = Minecraft.getInstance().font;
+		Font renderer = Minecraft.getInstance().textRenderer;
 		context.fill(px, y, px + WIDTH, y + HEIGHT, 0xF0181B25);
 		context.outline(px, y, WIDTH, HEIGHT, 0xFF59647A);
 		context.text(renderer,
@@ -689,7 +689,7 @@ public final class CommandToolPanel {
 
 	private void refreshClipboard() {
 		try {
-			String text = Minecraft.getInstance().keyboardHandler.getClipboard();
+			String text = Minecraft.getInstance().keyboard.getClipboard();
 			clipboard = ClipboardCommandParser.parse(text);
 			clipboardLoaded = true;
 			statusKey = null;

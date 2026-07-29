@@ -10,7 +10,7 @@ public final class ChatCanvasInputSender {
 
 	public static boolean sendPlayerChat(
 			Minecraft client, ChatScreen screen, String input) {
-		String message = screen.normalizeChatMessage(
+		String message = screen.normalize(
 				UnicodeTextNavigator.truncateAtGraphemeBoundary(input, 256));
 		if (message.isEmpty() || message.startsWith("/") || client.player == null) {
 			return false;
@@ -22,7 +22,7 @@ public final class ChatCanvasInputSender {
 
 	public static boolean executeCommand(
 			Minecraft client, ChatScreen screen, String input) {
-		String normalized = screen.normalizeChatMessage(
+		String normalized = screen.normalize(
 				UnicodeTextNavigator.truncateAtGraphemeBoundary(input, 256));
 		if (client.player == null) return false;
 		String command = normalized.startsWith("/")
