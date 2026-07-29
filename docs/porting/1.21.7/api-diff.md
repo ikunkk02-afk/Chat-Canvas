@@ -62,6 +62,8 @@ All `drawTextWithShadow` and `drawText` overloads now return `void`.
 - `drawWrappedTextWithShadow` — replaces `drawTextWrapped` (which was in 1.21.1)
 - `drawWrappedText` — new, with boolean shadow parameter
 
+**Critical pitfall — Alpha channel check**: `DrawContext.drawText()` now checks `ColorHelper.getAlpha(color) != 0` before rendering. Colors without explicit alpha (like `0xFFFFFF`, which has alpha=0x00) are silently dropped. All text colors must include the alpha byte: `0xFFFFFFFF` (not `0xFFFFFF`).
+
 ### 3. DrawContext.fill — RenderPipeline Parameter 🟡 MODERATE
 
 **Status**: Compatible (5-param overload preserved)
