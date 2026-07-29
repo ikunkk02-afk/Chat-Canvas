@@ -81,7 +81,7 @@ public final class PlayerQuickActionMenu {
 						rowY + ROW_HEIGHT - 1, 0xAA3B4C66);
 			}
 			context.drawText(
-					MinecraftClient.getInstance().textRenderer,
+					MinecraftClient.getInstance().advanceValidatingTextRenderer,
 					Text.translatable(switch (row) {
 						case 0 -> "chat_canvas.quick_action.mention";
 						case 1 -> "chat_canvas.quick_action.private_message";

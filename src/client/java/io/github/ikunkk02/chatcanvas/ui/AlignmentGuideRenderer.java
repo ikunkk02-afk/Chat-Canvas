@@ -24,10 +24,10 @@ public final class AlignmentGuideRenderer {
 
 		Text geometry = Text.translatable("chat_canvas.editor.geometry",
 				layout.x(), layout.y(), layout.width(), layout.height());
-		int textWidth = MinecraftClient.getInstance().textRenderer.getWidth(geometry);
+		int textWidth = MinecraftClient.getInstance().advanceValidatingTextRenderer.getWidth(geometry);
 		int x = Math.max(4, Math.min(screenWidth - textWidth - 8, layout.x()));
 		int y = Math.max(4, layout.y() - 18);
 		ModernUiTheme.roundedRect(context, x, y, textWidth + 8, 15, 4, 0xD91A1E28);
-		context.drawText(MinecraftClient.getInstance().textRenderer, geometry, x + 4, y + 3, 0xFFE9EDF4, false);
+		context.drawText(MinecraftClient.getInstance().advanceValidatingTextRenderer, geometry, x + 4, y + 3, 0xFFE9EDF4, false);
 	}
 }

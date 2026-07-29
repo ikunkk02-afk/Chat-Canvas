@@ -101,13 +101,13 @@ public final class VirtualizedEmojiGrid extends BaseComponent {
 		if (entries.isEmpty()) {
 			Text empty = Text.translatable(emptyMessageKey);
 			context.drawCenteredTextWithShadow(
-					MinecraftClient.getInstance().textRenderer,
+					MinecraftClient.getInstance().advanceValidatingTextRenderer,
 					empty, x() + width() / 2,
 					y() + Math.max(2, height() / 2 - 4), 0xFFADB6C7);
 			return;
 		}
 		context.enableScissor(x(), y(), x() + width(), y() + height());
-		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+		TextRenderer renderer = MinecraftClient.getInstance().advanceValidatingTextRenderer;
 		int columns = columns();
 		int start = scrollRow * columns;
 		int visibleRows = Math.max(1, (height() + CELL_HEIGHT - 1) / CELL_HEIGHT);

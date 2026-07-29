@@ -73,7 +73,7 @@ public final class CommandToolPanel {
 	public void init(ChatScreen screen, TextFieldWidget commandField) {
 		owner = screen;
 		ACTIVE.put(screen, this);
-		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+		TextRenderer renderer = MinecraftClient.getInstance().advanceValidatingTextRenderer;
 		searchField = new TextFieldWidget(renderer, 0, 0, WIDTH - 46, 18,
 				Text.translatable("chat_canvas.command.search"));
 		searchField.setPlaceholder(Text.translatable("chat_canvas.command.search"));
@@ -404,7 +404,7 @@ public final class CommandToolPanel {
 			int bx = buttonX(screen, commandField);
 			fillButton(context, bx, commandField.getY(), 54, 14, false);
 			context.drawCenteredTextWithShadow(
-					MinecraftClient.getInstance().textRenderer,
+					MinecraftClient.getInstance().advanceValidatingTextRenderer,
 					Text.translatable("chat_canvas.command.tools"),
 					bx + 27, commandField.getY() + 3, 0xFFFFFF);
 		}
@@ -413,7 +413,7 @@ public final class CommandToolPanel {
 		visualX = x + Math.round((1.0f - openProgress)
 				* (x < screen.width / 2 ? -24 : 24));
 		int px = visualX;
-		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+		TextRenderer renderer = MinecraftClient.getInstance().advanceValidatingTextRenderer;
 		context.fill(px, y, px + WIDTH, y + HEIGHT, 0xF0181B25);
 		context.drawBorder(px, y, WIDTH, HEIGHT, 0xFF59647A);
 		context.drawTextWithShadow(renderer,

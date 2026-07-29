@@ -58,7 +58,7 @@ public final class NumericScrubberComponent extends BaseComponent implements Num
 
 	@Override
 	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
-		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+		TextRenderer renderer = MinecraftClient.getInstance().advanceValidatingTextRenderer;
 		int valueLeft = valueLeft();
 		boolean vanilla = ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA;
 		int background = dragging

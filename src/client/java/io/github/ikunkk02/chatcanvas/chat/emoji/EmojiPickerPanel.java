@@ -242,7 +242,7 @@ public final class EmojiPickerPanel {
 		if (hovered != null) {
 			context.getMatrices().pushMatrix();
 			context.getMatrices().translate(0.0f, 0.0f);
-			context.drawTooltip(MinecraftClient.getInstance().textRenderer,
+			context.drawTooltip(MinecraftClient.getInstance().advanceValidatingTextRenderer,
 					Text.literal(hovered.unicode() + "  "
 							+ hovered.chineseName() + " / " + hovered.englishName()),
 					mouseX, mouseY);
@@ -250,7 +250,7 @@ public final class EmojiPickerPanel {
 		}
 		if (statusKey != null && System.currentTimeMillis() < statusUntil) {
 			context.drawTextWithShadow(
-					MinecraftClient.getInstance().textRenderer,
+					MinecraftClient.getInstance().advanceValidatingTextRenderer,
 					Text.translatable(statusKey), x + 7, y + height - 12,
 					0xFFFF858D);
 		}
@@ -336,7 +336,7 @@ public final class EmojiPickerPanel {
 
 	private void refreshFontEntries() {
 		supported = EmojiFontSupport.supportedEntries(
-				MinecraftClient.getInstance().textRenderer);
+				MinecraftClient.getInstance().advanceValidatingTextRenderer);
 		List<EmojiCategory> categories = new ArrayList<>();
 		categories.add(EmojiCategory.RECENT);
 		for (EmojiCategory candidate : EmojiCategory.values()) {
@@ -425,7 +425,7 @@ public final class EmojiPickerPanel {
 		context.drawBorder(buttonX, buttonY,
 				BUTTON_WIDTH, BUTTON_HEIGHT, open ? 0xFFF6C85F : 0xFF71809A);
 		context.drawCenteredTextWithShadow(
-				MinecraftClient.getInstance().textRenderer,
+				MinecraftClient.getInstance().advanceValidatingTextRenderer,
 				Text.literal("😀"), buttonX + BUTTON_WIDTH / 2,
 				buttonY + 3, 0xFFFFFF);
 	}

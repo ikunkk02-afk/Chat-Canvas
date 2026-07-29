@@ -36,7 +36,7 @@ public final class CommandMaxScrubberComponent extends BaseComponent implements 
 
 	@Override
 	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
-		var renderer = MinecraftClient.getInstance().textRenderer;
+		var renderer = MinecraftClient.getInstance().advanceValidatingTextRenderer;
 		int valueLeft = x() + width() - 92;
 		context.fill(valueLeft, y() + 2, x() + width(), y() + height() - 2, 0xB02A3543);
 		double progress = (session.commandClipboard().maxCommands()

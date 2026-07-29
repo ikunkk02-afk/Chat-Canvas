@@ -256,7 +256,7 @@ public final class DualChatHudRenderer {
 	public Style styleAt(double mouseX, double mouseY) {
 		HitLine line = hitAt(mouseX, mouseY);
 		if (line == null) return null;
-		return SpacedTextHitTester.styleAt(MinecraftClient.getInstance().textRenderer,
+		return SpacedTextHitTester.styleAt(MinecraftClient.getInstance().advanceValidatingTextRenderer,
 				line.text(), line.spacing(), (mouseX - line.x()) / line.scale());
 	}
 

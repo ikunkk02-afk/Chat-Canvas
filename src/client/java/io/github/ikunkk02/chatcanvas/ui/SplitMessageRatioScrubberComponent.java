@@ -49,7 +49,7 @@ public final class SplitMessageRatioScrubberComponent
 	@Override
 	public void draw(OwoUIDrawContext context, int mouseX, int mouseY,
 					 float partialTicks, float delta) {
-		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+		TextRenderer renderer = MinecraftClient.getInstance().advanceValidatingTextRenderer;
 		boolean enabled = enabled();
 		boolean vanilla = ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA;
 		int valueLeft = valueLeft();

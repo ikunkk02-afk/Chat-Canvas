@@ -82,7 +82,7 @@ public final class ModernColorPickerPopup extends BaseComponent {
 		ModernUiTheme.roundedRect(context, x(), y(), width(), height(), 7, 0xF21A1E28);
 		ModernUiTheme.border(context, x(), y(), width(), height(), 0x8860738F);
 
-		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+		TextRenderer renderer = MinecraftClient.getInstance().advanceValidatingTextRenderer;
 		context.drawText(renderer, Text.translatable("chat_canvas.color_picker.title"),
 				x() + 10, y() + 8, ModernUiTheme.TEXT_PRIMARY, false);
 

@@ -172,7 +172,7 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 	@Override
 	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
 		PixelLayout layout = session.layout(channel);
-		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+		TextRenderer renderer = MinecraftClient.getInstance().advanceValidatingTextRenderer;
 		renderEngine.render(new ChatRenderContext(
 				context,
 				renderer,

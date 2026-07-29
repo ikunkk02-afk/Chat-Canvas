@@ -48,7 +48,7 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 
 	@Override
 	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
-		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+		TextRenderer renderer = MinecraftClient.getInstance().advanceValidatingTextRenderer;
 		int valueLeft = valueLeft();
 		boolean vanilla = ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA;
 		context.fill(valueLeft, y() + 2, x() + width(), y() + height() - 2,

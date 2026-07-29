@@ -389,7 +389,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		}
 		TextFieldWidget activeField = chat_canvas$activeInputField();
 		context.drawTextWithShadow(
-				MinecraftClient.getInstance().textRenderer,
+				MinecraftClient.getInstance().advanceValidatingTextRenderer,
 				Text.translatable(chat_canvas$inputMode == ChatCanvasInputMode.COMMAND
 						? "chat_canvas.input.mode.command"
 						: "chat_canvas.input.mode.player"),
@@ -405,7 +405,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 			int x = transform.bounds().left() + 2;
 			int y = Math.max(2, transform.bounds().inputTop() - 12);
 			context.drawText(
-					MinecraftClient.getInstance().textRenderer,
+					MinecraftClient.getInstance().advanceValidatingTextRenderer,
 					message, x, y, 0xFFFF858D, true);
 		});
 		chat_canvas$quickActionMenu.render(
@@ -698,14 +698,14 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 				"chat_canvas.emoji.length", graphemes, text.length(), 256);
 		int color = text.length() >= 256 ? 0xFFFF6B6B
 				: text.length() >= 230 ? 0xFFF6C85F : 0xFFADB6C7;
-		int width = MinecraftClient.getInstance().textRenderer.getWidth(counter);
-		int modeWidth = MinecraftClient.getInstance().textRenderer.getWidth(
+		int width = MinecraftClient.getInstance().advanceValidatingTextRenderer.getWidth(counter);
+		int modeWidth = MinecraftClient.getInstance().advanceValidatingTextRenderer.getWidth(
 				Text.translatable("chat_canvas.input.mode.player"));
 		int counterY = activeField.getWidth() < width + modeWidth + 8
 				? Math.max(2, activeField.getY() - 20)
 				: Math.max(2, activeField.getY() - 10);
 		context.drawTextWithShadow(
-				MinecraftClient.getInstance().textRenderer, counter,
+				MinecraftClient.getInstance().advanceValidatingTextRenderer, counter,
 				Math.max(activeField.getX(),
 						activeField.getX() + activeField.getWidth() - width),
 				counterY, color);
