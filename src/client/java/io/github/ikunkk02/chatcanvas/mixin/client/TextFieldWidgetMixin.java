@@ -30,8 +30,8 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.function.BiFunction;
 
+import java.util.List;
 @Mixin(TextFieldWidget.class)
 public abstract class TextFieldWidgetMixin {
 	@Shadow @Final
@@ -56,8 +56,6 @@ public abstract class TextFieldWidgetMixin {
 	private int uneditableColor;
 	@Shadow @Nullable
 	private String suggestion;
-	@Shadow
-	private BiFunction<String, Integer, OrderedText> renderTextProvider;
 	@Shadow
 	private long lastSwitchFocusTime;
 
@@ -213,7 +211,7 @@ public abstract class TextFieldWidgetMixin {
 		int selectionOffset = MathHelper.clamp(selectionEnd - first, 0, visible.length());
 		int textX = self.getX();
 		int textY = self.getY();
-		OrderedText rendered = renderTextProvider.apply(visible, first);
+		OrderedText rendered = OrderedText.styledForwardsVisitedString(visible, net.minecraft.text.Style.EMPTY);
 		SpacedTextRenderer.draw(
 				context, textRenderer, rendered, textX, textY, color, true, spacing);
 
