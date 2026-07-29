@@ -12,9 +12,9 @@ import io.github.ikunkk02.chatcanvas.voice.VoiceInputManager;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.minecraft.network.message.MessageSignatureData;
-import net.minecraft.network.message.SignedMessage;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.MessageSignature;
+import net.minecraft.network.chat.PlayerChatMessage;
+import net.minecraft.network.chat.Component;
 
 import java.util.Optional;
 
@@ -85,7 +85,7 @@ public final class PlayerChatCapture {
 	}
 
 	private static Optional<ChatMessageMetadata> standardMetadata(
-			Text message, SignedMessage signedMessage, GameProfile sender, Text senderName) {
+			Component message, PlayerChatMessage signedMessage, GameProfile sender, Component senderName) {
 		if (sender != null) {
 			return PlayerIdentityResolver.resolveStandard(
 					message, senderName, sender.getId(), sender.getName());
@@ -100,7 +100,7 @@ public final class PlayerChatCapture {
 						message, senderName, player.uuid(), player.playerName()));
 	}
 
-	private static MessageSignatureData signatureOf(SignedMessage message) {
+	private static MessageSignature signatureOf(PlayerChatMessage message) {
 		return message == null ? null : message.signature();
 	}
 }

@@ -1,8 +1,8 @@
 package io.github.ikunkk02.chatcanvas.chat.message;
 
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatIdentity;
-import net.minecraft.network.message.MessageSignatureData;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.MessageSignature;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -10,9 +10,9 @@ import java.util.UUID;
 
 public record MessageContext(
 		MessageIngress ingress,
-		@Nullable MessageSignatureData signature,
+		@Nullable MessageSignature signature,
 		@Nullable PlayerChatIdentity sender,
-		@Nullable Text senderName,
+		@Nullable Component senderName,
 		List<PlayerChatIdentity> onlinePlayers,
 		@Nullable UUID localPlayerUuid,
 		String localPlayerName,

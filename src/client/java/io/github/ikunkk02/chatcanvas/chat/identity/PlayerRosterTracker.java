@@ -1,9 +1,9 @@
 package io.github.ikunkk02.chatcanvas.chat.identity;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.client.network.PlayerListEntry;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.client.multiplayer.PlayerInfo;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
@@ -20,7 +20,7 @@ public final class PlayerRosterTracker {
 	private PlayerRosterTracker() {
 	}
 
-	public static void refresh(ClientPlayNetworkHandler handler) {
+	public static void refresh(ClientGamePacketListener handler) {
 		if (handler == null) {
 			clear();
 			return;
@@ -38,7 +38,7 @@ public final class PlayerRosterTracker {
 	}
 
 	public static void refreshFromClient() {
-		refresh(MinecraftClient.getInstance().getNetworkHandler());
+		refresh(Minecraft.getInstance().getNetworkHandler());
 	}
 
 	public static void clear() {

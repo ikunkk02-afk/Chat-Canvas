@@ -7,16 +7,16 @@ import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextMetrics;
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextRenderer;
 import io.github.ikunkk02.chatcanvas.chat.text.UnicodeTextNavigator;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.text.OrderedText;
-import net.minecraft.util.Colors;
-import net.minecraft.util.StringHelper;
-import net.minecraft.util.Util;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.StringUtil;
+import net.minecraft.Util;
+import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -30,10 +30,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.function.BiFunction;
 
-@Mixin(TextFieldWidget.class)
+@Mixin(EditBox.class)
 public abstract class TextFieldWidgetMixin {
 	@Shadow @Final
-	private TextRenderer textRenderer;
+	private Font textRenderer;
 	@Shadow
 	private String text;
 	@Shadow
@@ -55,7 +55,7 @@ public abstract class TextFieldWidgetMixin {
 	@Shadow @Nullable
 	private String suggestion;
 	@Shadow
-	private BiFunction<String, Integer, OrderedText> renderTextProvider;
+	private BiFunction<String, Integer, FormattedCharSequence> renderTextProvider;
 	@Shadow
 	private long lastSwitchFocusTime;
 
@@ -67,17 +67,17 @@ public abstract class TextFieldWidgetMixin {
 	public abstract int getWordSkipPosition(int wordOffset);
 	@Shadow
 	private void drawSelectionHighlight(
-			DrawContext context, int x1, int y1, int x2, int y2) {
+			GuiGraphicsExtractor context, int x1, int y1, int x2, int y2) {
 		throw new AssertionError();
 	}
 
 	@Inject(method = "onClick", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$locateSpacedClick(
 			double mouseX, double mouseY, CallbackInfo ci) {
-		TextFieldWidget self = (TextFieldWidget) (Object) this;
+		EditBox self = (EditBox) (Object) this;
 		double spacing = chat_canvas$spacing(self);
 		if (Double.isNaN(spacing)) return;
-		int localX = MathHelper.floor(mouseX) - self.getX();
+		int localX = Mth.floor(mouseX) - self.getX();
 		if (drawsBackground) localX -= 4;
 		String remaining = text.substring(Math.min(firstCharacterIndex, text.length()));
 		String visible = SpacedTextMetrics.trimToWidth(
@@ -93,7 +93,7 @@ public abstract class TextFieldWidgetMixin {
 	private void chat_canvas$navigateUnicodeClusters(
 			int keyCode, int scanCode, int modifiers,
 			CallbackInfoReturnable<Boolean> cir) {
-		TextFieldWidget self = (TextFieldWidget) (Object) this;
+		EditBox self = (EditBox) (Object) this;
 		if (!ChatCanvasTextFieldRegistry.isChatField(self)
 				|| !self.isFocused()) return;
 		boolean shift = Screen.hasShiftDown();
@@ -135,9 +135,9 @@ public abstract class TextFieldWidgetMixin {
 	@Inject(method = "write", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$writeWholeUnicodeText(
 			String value, CallbackInfo ci) {
-		TextFieldWidget self = (TextFieldWidget) (Object) this;
+		EditBox self = (EditBox) (Object) this;
 		if (!ChatCanvasTextFieldRegistry.isChatField(self)) return;
-		String sanitized = StringHelper.stripInvalidChars(
+		String sanitized = StringUtil.stripInvalidChars(
 				value == null ? "" : value);
 		if (!UnicodeTextNavigator.isWellFormedUtf16(sanitized)) {
 			ci.cancel();
@@ -153,14 +153,14 @@ public abstract class TextFieldWidgetMixin {
 
 	@ModifyVariable(method = "setText", at = @At("HEAD"), argsOnly = true)
 	private String chat_canvas$truncateWholeUnicodeText(String value) {
-		TextFieldWidget self = (TextFieldWidget) (Object) this;
+		EditBox self = (EditBox) (Object) this;
 		if (!ChatCanvasTextFieldRegistry.isChatField(self)) return value;
 		return UnicodeTextNavigator.truncateAtGraphemeBoundary(value, maxLength);
 	}
 
 	@Inject(method = "updateFirstCharacterIndex", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$scrollSpacedInput(int cursor, CallbackInfo ci) {
-		TextFieldWidget self = (TextFieldWidget) (Object) this;
+		EditBox self = (EditBox) (Object) this;
 		double spacing = chat_canvas$spacing(self);
 		if (Double.isNaN(spacing)) return;
 		firstCharacterIndex = Math.min(firstCharacterIndex, text.length());
@@ -175,14 +175,14 @@ public abstract class TextFieldWidgetMixin {
 			firstCharacterIndex = cursor;
 		}
 		firstCharacterIndex = UnicodeTextNavigator.floorGraphemeBoundary(
-				text, MathHelper.clamp(firstCharacterIndex, 0, text.length()));
+				text, Mth.clamp(firstCharacterIndex, 0, text.length()));
 		ci.cancel();
 	}
 
 	@Inject(method = "getCharacterX", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$getSpacedCharacterX(
 			int index, CallbackInfoReturnable<Integer> cir) {
-		TextFieldWidget self = (TextFieldWidget) (Object) this;
+		EditBox self = (EditBox) (Object) this;
 		double spacing = chat_canvas$spacing(self);
 		if (Double.isNaN(spacing)) return;
 		if (index > text.length()) {
@@ -195,8 +195,8 @@ public abstract class TextFieldWidgetMixin {
 
 	@Inject(method = "renderWidget", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$renderSpacedInput(
-			DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-		TextFieldWidget self = (TextFieldWidget) (Object) this;
+			GuiGraphicsExtractor context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+		EditBox self = (EditBox) (Object) this;
 		double spacing = chat_canvas$spacing(self);
 		if (Double.isNaN(spacing) || drawsBackground) return;
 		ci.cancel();
@@ -206,13 +206,13 @@ public abstract class TextFieldWidgetMixin {
 		int first = Math.min(firstCharacterIndex, text.length());
 		String visible = SpacedTextMetrics.trimToWidth(
 				textRenderer, text.substring(first), getInnerWidth(), spacing);
-		int cursorOffset = MathHelper.clamp(selectionStart - first, 0, visible.length());
+		int cursorOffset = Mth.clamp(selectionStart - first, 0, visible.length());
 		boolean cursorVisible = selectionStart >= first
 				&& selectionStart <= first + visible.length();
-		int selectionOffset = MathHelper.clamp(selectionEnd - first, 0, visible.length());
+		int selectionOffset = Mth.clamp(selectionEnd - first, 0, visible.length());
 		int textX = self.getX();
 		int textY = self.getY();
-		OrderedText rendered = renderTextProvider.apply(visible, first);
+		FormattedCharSequence rendered = renderTextProvider.apply(visible, first);
 		SpacedTextRenderer.draw(
 				context, textRenderer, rendered, textX, textY, color, true, spacing);
 
@@ -226,21 +226,21 @@ public abstract class TextFieldWidgetMixin {
 			int endX = textX + SpacedTextMetrics.width(textRenderer, rendered, spacing);
 			SpacedTextRenderer.draw(
 					context, textRenderer,
-					OrderedText.styledForwardsVisitedString(suggestion, net.minecraft.text.Style.EMPTY),
-					endX, textY, Colors.GRAY, true, spacing);
+					FormattedCharSequence.styledForwardsVisitedString(suggestion, net.minecraft.text.Style.EMPTY),
+					endX, textY, ARGB.GRAY, true, spacing);
 		}
 
 		boolean blink = self.isFocused()
-				&& (Util.getMeasuringTimeMs() - lastSwitchFocusTime) / 300L % 2L == 0L
+				&& (Util.getMillis() - lastSwitchFocusTime) / 300L % 2L == 0L
 				&& cursorVisible;
 		if (blink) {
 			if (hasFollowing) {
 				context.fill(
-						RenderLayer.getGuiOverlay(),
+						RenderPipelines.getGuiOverlay(),
 						cursorX, textY - 1, cursorX + 1, textY + 10,
 						-3092272);
 			} else {
-				context.drawTextWithShadow(textRenderer, "_", cursorX, textY, color);
+				context.drawString(textRenderer, "_", cursorX, textY, color);
 			}
 		}
 		if (selectionOffset != cursorOffset) {
@@ -251,7 +251,7 @@ public abstract class TextFieldWidgetMixin {
 
 	@Unique
 	private int chat_canvas$xAtUtf16(
-			OrderedText rendered, String visible, double spacing, int utf16Index) {
+			FormattedCharSequence rendered, String visible, double spacing, int utf16Index) {
 		int codePointIndex = visible.codePointCount(
 				0, Math.max(0, Math.min(utf16Index, visible.length())));
 		return (int) Math.round(SpacedTextMetrics.xAtCodePoint(
@@ -259,7 +259,7 @@ public abstract class TextFieldWidgetMixin {
 	}
 
 	@Unique
-	private static double chat_canvas$spacing(TextFieldWidget field) {
+	private static double chat_canvas$spacing(EditBox field) {
 		if (!ChatCanvasTextFieldRegistry.isChatField(field)) return Double.NaN;
 		ChatCanvasInputMode mode = ChatCanvasTextFieldRegistry.modeOf(field);
 		double spacing = mode == ChatCanvasInputMode.COMMAND
@@ -270,12 +270,12 @@ public abstract class TextFieldWidgetMixin {
 
 	@Unique
 	private void chat_canvas$applyEdit(
-			TextFieldWidget field, UnicodeTextNavigator.EditResult result) {
+			EditBox field, UnicodeTextNavigator.EditResult result) {
 		if (!result.changed()) {
 			field.setCursor(result.cursor(), false);
 			return;
 		}
-		field.setText(result.text());
+		field.setValue(result.text());
 		field.setCursor(result.cursor(), false);
 		field.setSelectionEnd(result.selectionEnd());
 	}

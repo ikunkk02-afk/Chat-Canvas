@@ -4,14 +4,14 @@ import io.github.ikunkk02.chatcanvas.chat.identity.ChatMessageMetadata;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatIdentity;
 import io.github.ikunkk02.chatcanvas.chat.identity.PluginChatFallbackResolver;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
-import net.minecraft.text.Text;
-import net.minecraft.text.TranslatableTextContent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
 
 import java.util.Locale;
 
 public final class DefaultMessageClassifier implements MessageClassifier {
 	@Override
-	public ClassifiedMessage classify(Text message, MessageContext context) {
+	public ClassifiedMessage classify(Component message, MessageContext context) {
 		if (message == null) throw new IllegalArgumentException("message");
 		MessageContext safe = context == null
 				? MessageContext.direct(java.util.List.of(), null, "")
@@ -43,19 +43,19 @@ public final class DefaultMessageClassifier implements MessageClassifier {
 	}
 
 	private static ClassifiedMessage player(
-			Text message, PlayerChatIdentity sender, MessageContext context) {
+			Component message, PlayerChatIdentity sender, MessageContext context) {
 		boolean self = isSelf(sender, context);
 		return new ClassifiedMessage(
 				ChatCanvasChannel.PLAYER_CHAT,
 				self ? ChatCanvasMessageSource.SELF_PLAYER : ChatCanvasMessageSource.PLAYER,
 				sender == null ? null : sender.uuid(),
-				sender == null ? null : Text.literal(sender.playerName()),
+				sender == null ? null : Component.literal(sender.playerName()),
 				message,
 				self
 		);
 	}
 
-	private static ClassifiedMessage system(Text message, ChatCanvasMessageSource source) {
+	private static ClassifiedMessage system(Component message, ChatCanvasMessageSource source) {
 		return new ClassifiedMessage(
 				ChatCanvasChannel.COMMAND_SYSTEM, source,
 				null, null, message, false);
@@ -84,8 +84,8 @@ public final class DefaultMessageClassifier implements MessageClassifier {
 		return matches == 1;
 	}
 
-	private static ChatCanvasMessageSource vanillaSource(Text message) {
-		if (!(message.getContent() instanceof TranslatableTextContent translated)) return null;
+	private static ChatCanvasMessageSource vanillaSource(Component message) {
+		if (!(message.getContents() instanceof TranslatableContents translated)) return null;
 		String key = translated.getKey().toLowerCase(Locale.ROOT);
 		if (key.startsWith("death.")) return ChatCanvasMessageSource.DEATH_MESSAGE;
 		if (key.equals("multiplayer.player.joined")
@@ -103,14 +103,14 @@ public final class DefaultMessageClassifier implements MessageClassifier {
 		return ChatCanvasMessageSource.SERVER_NOTICE;
 	}
 
-	private static ClassifiedMessage translatedPlayerChat(Text message, MessageContext context) {
-		if (!(message.getContent() instanceof TranslatableTextContent translated)
+	private static ClassifiedMessage translatedPlayerChat(Component message, MessageContext context) {
+		if (!(message.getContents() instanceof TranslatableContents translated)
 				|| !translated.getKey().equals("chat.type.text")) {
 			return null;
 		}
 		Object[] args = translated.getArgs();
 		if (args.length == 0) return null;
-		String candidate = args[0] instanceof Text text
+		String candidate = args[0] instanceof Component text
 				? text.getString() : String.valueOf(args[0]);
 		PlayerChatIdentity matched = null;
 		for (PlayerChatIdentity player : context.onlinePlayers()) {

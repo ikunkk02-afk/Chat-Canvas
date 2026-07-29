@@ -28,11 +28,11 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
-import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourceType;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public final class ChatCanvasClient implements ClientModInitializer {
@@ -85,7 +85,7 @@ public final class ChatCanvasClient implements ClientModInitializer {
 				.registerReloadListener(new SimpleSynchronousResourceReloadListener() {
 					@Override
 					public Identifier getFabricId() {
-						return Identifier.of(ChatCanvas.MOD_ID, "chat_text_metrics");
+						return Identifier.fromNamespaceAndPath(ChatCanvas.MOD_ID, "chat_text_metrics");
 					}
 
 					@Override

@@ -23,11 +23,11 @@ import io.wispforest.owo.ui.core.Component;
 import io.wispforest.owo.ui.core.Positioning;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.VerticalAlignment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
@@ -48,7 +48,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	private ModernColorPickerPopup colorPickerPopup;
 
 	public ChatCanvasEditorScreen(@Nullable Screen parent) {
-		super(Text.translatable("chat_canvas.editor.title"));
+		super(Component.translatable("chat_canvas.editor.title"));
 		this.parent = parent;
 	}
 
@@ -88,7 +88,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	}
 
 	private FlowLayout buildToolbar() {
-		FlowLayout bar = Containers.horizontalFlow(Sizing.fixed(620), Sizing.fixed(32));
+		FlowLayout bar = UIContainers.horizontalFlow(Sizing.fixed(620), Sizing.fixed(32));
 		bar.positioning(Positioning.absolute(Math.max(8, (width - 620) / 2), 10));
 		bar.padding(Insets.of(5).withLeft(16));
 		bar.gap(6);
@@ -97,22 +97,22 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		bar.verticalAlignment(VerticalAlignment.CENTER);
 		bar.zIndex(30);
 
-		var title = Components.label(Text.translatable("chat_canvas.editor.title")
-				.formatted(Formatting.WHITE, Formatting.BOLD));
+		var title = UIComponents.label(Component.translatable("chat_canvas.editor.title")
+				.formatted(ChatFormatting.WHITE, ChatFormatting.BOLD));
 		title.horizontalSizing(Sizing.fill(28));
 		bar.child(title);
 		ButtonComponent playerButton = ModernUiTheme.button(
-				Text.literal("玩家栏"), button -> selectChannel(EditorChannel.PLAYER_CHAT));
+				Component.literal("玩家栏"), button -> selectChannel(EditorChannel.PLAYER_CHAT));
 		playerButton.sizing(Sizing.fixed(64), Sizing.fixed(22));
 		ButtonComponent commandButton = ModernUiTheme.button(
-				Text.literal("命令栏"), button -> selectChannel(EditorChannel.COMMAND_SYSTEM));
+				Component.literal("命令栏"), button -> selectChannel(EditorChannel.COMMAND_SYSTEM));
 		commandButton.sizing(Sizing.fixed(64), Sizing.fixed(22));
 		bar.child(playerButton);
 		bar.child(commandButton);
 
 		ButtonComponent styleButton = ModernUiTheme.button(
-				Text.translatable("chat_canvas.ui_theme").append(Text.literal(": "))
-						.append(Text.translatable(ModernUiTheme.currentStyle() == EditorUiStyle.CHAT_CANVAS
+				Component.translatable("chat_canvas.ui_theme").append(Component.literal(": "))
+						.append(Component.translatable(ModernUiTheme.currentStyle() == EditorUiStyle.CHAT_CANVAS
 								? "chat_canvas.ui_theme.chat_canvas"
 								: "chat_canvas.ui_theme.vanilla")),
 				button -> onSwitchTheme());
@@ -120,9 +120,9 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		this.themeButton = styleButton;
 		bar.child(styleButton);
 
-		undoButton = ModernUiTheme.button(Text.translatable("chat_canvas.action.undo"), button -> undo());
+		undoButton = ModernUiTheme.button(Component.translatable("chat_canvas.action.undo"), button -> undo());
 		undoButton.sizing(Sizing.fixed(72), Sizing.fixed(22));
-		redoButton = ModernUiTheme.button(Text.translatable("chat_canvas.action.redo"), button -> redo());
+		redoButton = ModernUiTheme.button(Component.translatable("chat_canvas.action.redo"), button -> redo());
 		redoButton.sizing(Sizing.fixed(72), Sizing.fixed(22));
 		bar.child(undoButton);
 		bar.child(redoButton);
@@ -143,15 +143,15 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		// Update the theme button text to reflect the new theme.
 		if (themeButton != null) {
 			themeButton.setMessage(
-					Text.translatable("chat_canvas.ui_theme").append(Text.literal(": "))
-							.append(Text.translatable(next == EditorUiStyle.CHAT_CANVAS
+					Component.translatable("chat_canvas.ui_theme").append(Component.literal(": "))
+							.append(Component.translatable(next == EditorUiStyle.CHAT_CANVAS
 									? "chat_canvas.ui_theme.chat_canvas"
 									: "chat_canvas.ui_theme.vanilla")));
 		}
 	}
 
 	@Override
-	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+	public void render(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
 		double deltaSeconds = animationClock.tick();
 		if (settingsPanel != null) {
 			settingsPanel.update(deltaSeconds);
@@ -170,7 +170,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	}
 
 	@Override
-	public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
+	public void renderBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
 		if (client != null && client.world == null) {
 			renderPanoramaBackground(context, delta);
 		}
@@ -297,7 +297,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	}
 
 	@Override
-	public void resize(MinecraftClient client, int width, int height) {
+	public void resize(Minecraft client, int width, int height) {
 		pointerCapture.cancel();
 		if (colorPickerPopup != null) {
 			colorPickerPopup.cancel();

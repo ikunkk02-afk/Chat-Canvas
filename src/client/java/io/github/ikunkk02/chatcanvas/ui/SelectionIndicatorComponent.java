@@ -1,14 +1,14 @@
 package io.github.ikunkk02.chatcanvas.ui;
 
 import io.github.ikunkk02.chatcanvas.editor.EditorUiStyle;
-import io.wispforest.owo.ui.base.BaseComponent;
-import io.wispforest.owo.ui.core.OwoUIDrawContext;
+import io.wispforest.owo.ui.base.BaseUIComponent;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
 
 import java.util.function.IntSupplier;
 import java.util.function.DoubleSupplier;
 
-public final class SelectionIndicatorComponent extends BaseComponent {
+public final class SelectionIndicatorComponent extends BaseUIComponent {
 	private final IntSupplier selectedIndex;
 	private final DoubleSupplier directPosition;
 	private final int optionCount;
@@ -44,7 +44,7 @@ public final class SelectionIndicatorComponent extends BaseComponent {
 	}
 
 	@Override
-	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
+	public void draw(OwoUIGraphics context, int mouseX, int mouseY, float partialTicks, float delta) {
 		int segmentWidth = Math.max(1, width() / optionCount);
 		double position = directPosition == null
 				? animatedIndex

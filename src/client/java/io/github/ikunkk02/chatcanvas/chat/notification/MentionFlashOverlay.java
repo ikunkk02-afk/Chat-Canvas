@@ -2,10 +2,10 @@ package io.github.ikunkk02.chatcanvas.chat.notification;
 
 import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.util.Util;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.Util;
+import net.minecraft.util.Mth;
 
 public final class MentionFlashOverlay {
 	private long startedAtMs;
@@ -20,7 +20,7 @@ public final class MentionFlashOverlay {
 	public void trigger(MentionConfig source) {
 		MentionConfig config = source.sanitized();
 		if (!config.flashEnabled() || config.flashOpacity() <= 0.0) return;
-		long now = Util.getMeasuringTimeMs();
+		long now = Util.getMillis();
 		startedAtMs = now;
 		endsAtMs = now + config.flashDurationMs();
 		color = config.flashColor();
@@ -33,14 +33,14 @@ public final class MentionFlashOverlay {
 		maximumOpacity = 0.0;
 	}
 
-	private void render(net.minecraft.client.gui.DrawContext context) {
-		MinecraftClient client = MinecraftClient.getInstance();
+	private void render(net.minecraft.client.gui.GuiGraphicsExtractor context) {
+		Minecraft client = Minecraft.getInstance();
 		if (client.world == null) return;
 		if (client.currentScreen != null && !(client.currentScreen instanceof ChatScreen)) return;
-		long now = Util.getMeasuringTimeMs();
+		long now = Util.getMillis();
 		if (now >= endsAtMs || endsAtMs <= startedAtMs) return;
 		double duration = Math.max(1.0, endsAtMs - startedAtMs);
-		double remaining = MathHelper.clamp((endsAtMs - now) / duration, 0.0, 1.0);
+		double remaining = Mth.clamp((endsAtMs - now) / duration, 0.0, 1.0);
 		double eased = 1.0 - Math.pow(1.0 - remaining, 2.0);
 		int alpha = (int) Math.round(255.0 * Math.min(0.6, maximumOpacity) * eased);
 		int argb = (alpha << 24) | (color & 0xFFFFFF);

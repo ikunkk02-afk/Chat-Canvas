@@ -2,7 +2,7 @@ package io.github.ikunkk02.chatcanvas.voice;
 
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessageIngress;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,6 +17,6 @@ public final class VoiceErrorHandler {
 			return;
 		}
 		lastShown.put(key, now);
-		ChatCanvasMessageIngress.instance().reportError(Text.translatable(key), error);
+		ChatCanvasMessageIngress.instance().reportError(Component.translatable(key), error);
 	}
 }

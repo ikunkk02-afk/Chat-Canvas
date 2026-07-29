@@ -9,12 +9,12 @@ import io.github.ikunkk02.chatcanvas.chat.notification.MentionDebugPolicy;
 import io.github.ikunkk02.chatcanvas.mixin.client.ChatInputSuggestorAccessor;
 import io.github.ikunkk02.chatcanvas.mixin.client.SuggestionWindowAccessor;
 import io.github.ikunkk02.chatcanvas.mixin.client.TextFieldWidgetAccessor;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ChatInputSuggestor;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
-import net.minecraft.util.Util;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.CommandSuggestions;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.network.chat.Component;
+import net.minecraft.Util;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.Optional;
@@ -25,7 +25,7 @@ public final class PlayerNameDoubleClickHandler {
 			new PlayerNameDoubleClickHandler();
 
 	private final MentionInteractionState state = new MentionInteractionState();
-	private Text feedback;
+	private Component feedback;
 	private long feedbackUntilMs;
 
 	private PlayerNameDoubleClickHandler() {
@@ -37,8 +37,8 @@ public final class PlayerNameDoubleClickHandler {
 
 	public boolean mouseClicked(
 			ChatScreen screen,
-			TextFieldWidget chatField,
-			ChatInputSuggestor suggestor,
+			EditBox chatField,
+			CommandSuggestions suggestor,
 			double mouseX,
 			double mouseY,
 			int button
@@ -62,19 +62,19 @@ public final class PlayerNameDoubleClickHandler {
 			state.reset();
 			return false;
 		}
-		long now = Util.getMeasuringTimeMs();
+		long now = Util.getMillis();
 		if (!state.click(hitbox.get(), now, mouseX, mouseY,
 				config.doubleClickIntervalMs(), screen)) {
 			return false;
 		}
 		if (isLocalPlayer(hitbox.get())
-				&& !MentionDebugPolicy.allowsSelfMention(MinecraftClient.getInstance())) {
+				&& !MentionDebugPolicy.allowsSelfMention(Minecraft.getInstance())) {
 			showFeedback("chat_canvas.mention.cannot_mention_self", now);
 			return true;
 		}
 		TextFieldWidgetAccessor accessor = (TextFieldWidgetAccessor) chatField;
 		MentionInsertionController.Result insertion = MentionInsertionController.plan(
-				chatField.getText(),
+				chatField.getValue(),
 				chatField.getCursor(),
 				accessor.chat_canvas$selectionEnd(),
 				accessor.chat_canvas$maxLength(),
@@ -83,12 +83,12 @@ public final class PlayerNameDoubleClickHandler {
 			showFeedback("chat_canvas.mention.input_too_long", now);
 			return true;
 		}
-		String previous = chatField.getText();
+		String previous = chatField.getValue();
 		int previousCursor = chatField.getCursor();
 		int previousSelectionEnd = accessor.chat_canvas$selectionEnd();
-		chatField.setText(insertion.text());
-		if (!insertion.text().equals(chatField.getText())) {
-			chatField.setText(previous);
+		chatField.setValue(insertion.text());
+		if (!insertion.text().equals(chatField.getValue())) {
+			chatField.setValue(previous);
 			chatField.setSelectionStart(previousCursor);
 			chatField.setSelectionEnd(previousSelectionEnd);
 			showFeedback("chat_canvas.mention.input_too_long", now);
@@ -103,10 +103,10 @@ public final class PlayerNameDoubleClickHandler {
 
 	public void tick(ChatScreen screen) {
 		MentionConfig config = ChatCanvasConfig.instance().mention();
-		long now = Util.getMeasuringTimeMs();
+		long now = Util.getMillis();
 		if (!config.doubleClickEnabled()
-				|| MinecraftClient.getInstance().currentScreen != screen
-				|| !MinecraftClient.getInstance().isWindowFocused()) {
+				|| Minecraft.getInstance().currentScreen != screen
+				|| !Minecraft.getInstance().isWindowFocused()) {
 			state.reset();
 		} else {
 			state.expire(now, config.doubleClickIntervalMs());
@@ -114,8 +114,8 @@ public final class PlayerNameDoubleClickHandler {
 		if (feedback != null && now > feedbackUntilMs) clearFeedback();
 	}
 
-	public Optional<Text> feedback() {
-		if (feedback == null || Util.getMeasuringTimeMs() > feedbackUntilMs) {
+	public Optional<Component> feedback() {
+		if (feedback == null || Util.getMillis() > feedbackUntilMs) {
 			clearFeedback();
 			return Optional.empty();
 		}
@@ -128,15 +128,15 @@ public final class PlayerNameDoubleClickHandler {
 	}
 
 	private static boolean isSuggestionWindowAt(
-			ChatInputSuggestor suggestor, double mouseX, double mouseY) {
-		ChatInputSuggestor.SuggestionWindow window =
+			CommandSuggestions suggestor, double mouseX, double mouseY) {
+		CommandSuggestions.SuggestionWindow window =
 				((ChatInputSuggestorAccessor) suggestor).chat_canvas$window();
 		return window != null && ((SuggestionWindowAccessor) window).chat_canvas$area()
 				.contains((int) Math.floor(mouseX), (int) Math.floor(mouseY));
 	}
 
 	private static boolean isLocalPlayer(PlayerNameHitbox hitbox) {
-		MinecraftClient client = MinecraftClient.getInstance();
+		Minecraft client = Minecraft.getInstance();
 		if (client.player == null) return false;
 		if (hitbox.playerUuid() != null) {
 			return hitbox.playerUuid().equals(client.player.getUuid());
@@ -146,7 +146,7 @@ public final class PlayerNameDoubleClickHandler {
 	}
 
 	private void showFeedback(String translationKey, long now) {
-		feedback = Text.translatable(translationKey);
+		feedback = Component.translatable(translationKey);
 		feedbackUntilMs = now + FEEDBACK_DURATION_MS;
 	}
 

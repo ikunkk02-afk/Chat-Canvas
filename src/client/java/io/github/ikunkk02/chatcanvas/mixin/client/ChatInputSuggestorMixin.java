@@ -2,12 +2,12 @@ package io.github.ikunkk02.chatcanvas.mixin.client;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import net.minecraft.client.gui.screen.ChatInputSuggestor;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Style;
-import net.minecraft.util.Formatting;
+import net.minecraft.client.gui.components.CommandSuggestions;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.network.chat.Style;
+import net.minecraft.ChatFormatting;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 
-@Mixin(ChatInputSuggestor.class)
+@Mixin(CommandSuggestions.class)
 public abstract class ChatInputSuggestorMixin {
 	private static final int READABLE_INPUT_COLOR = 0xE0E0E0;
 
@@ -27,14 +27,14 @@ public abstract class ChatInputSuggestorMixin {
 
 	@Shadow
 	@Final
-	private TextFieldWidget textField;
+	private EditBox textField;
 
 	@Shadow
 	@Final
 	private boolean chatScreenSized;
 
 	@Shadow
-	private List<OrderedText> messages;
+	private List<FormattedCharSequence> messages;
 
 	@Shadow
 	private int x;
@@ -69,8 +69,8 @@ public abstract class ChatInputSuggestorMixin {
 	}
 
 	@ModifyReturnValue(method = "provideRenderText", at = @At("RETURN"))
-	private OrderedText chat_canvas$useReadableBaseCommandColor(OrderedText original) {
-		Integer gray = Formatting.GRAY.getColorValue();
+	private FormattedCharSequence chat_canvas$useReadableBaseCommandColor(FormattedCharSequence original) {
+		Integer gray = ChatFormatting.GRAY.getColorValue();
 		if (gray == null) {
 			return original;
 		}

@@ -6,20 +6,20 @@ import io.github.ikunkk02.chatcanvas.editor.EditorChannel;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.github.ikunkk02.chatcanvas.editor.EditorUiStyle;
 import io.github.ikunkk02.chatcanvas.editor.NumericScrubberMath;
-import io.wispforest.owo.ui.base.BaseComponent;
+import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
-import io.wispforest.owo.ui.core.OwoUIDrawContext;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.network.chat.Component;
 
 public final class SplitMessageRatioScrubberComponent
-		extends BaseComponent implements NumericScrubber {
+		extends BaseUIComponent implements NumericScrubber {
 	private static final int VALUE_WIDTH = 78;
 
 	private final EditorSession session;
-	private final Text label;
+	private final Component label;
 	private final Runnable previewChanged;
 	private final Runnable historyChanged;
 	private double dragStartMouseX;
@@ -29,7 +29,7 @@ public final class SplitMessageRatioScrubberComponent
 	private boolean valueHovered;
 
 	public SplitMessageRatioScrubberComponent(
-			EditorSession session, Text label,
+			EditorSession session, Component label,
 			Runnable previewChanged, Runnable historyChanged) {
 		this.session = session;
 		this.label = label;
@@ -47,9 +47,9 @@ public final class SplitMessageRatioScrubberComponent
 	}
 
 	@Override
-	public void draw(OwoUIDrawContext context, int mouseX, int mouseY,
+	public void draw(OwoUIGraphics context, int mouseX, int mouseY,
 					 float partialTicks, float delta) {
-		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+		Font renderer = Minecraft.getInstance().font;
 		boolean enabled = enabled();
 		boolean vanilla = ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA;
 		int valueLeft = valueLeft();
@@ -63,7 +63,7 @@ public final class SplitMessageRatioScrubberComponent
 			context.fill(valueLeft, y() + height() - 3, progressRight,
 					y() + height() - 2, 0xCC6E9ED8);
 		}
-		int textY = y() + (height() - renderer.fontHeight) / 2;
+		int textY = y() + (height() - renderer.lineHeight) / 2;
 		context.drawText(renderer, label, x() + 2, textY,
 				enabled ? 0xFFC7CEDA : 0xFF777777, false);
 		String value = Math.round(session.splitMessageMaxWidthRatio() * 100.0) + "%";

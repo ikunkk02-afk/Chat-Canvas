@@ -1,8 +1,8 @@
 package io.github.ikunkk02.chatcanvas.chat.text;
 
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.OrderedText;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.util.FormattedCharSequence;
 
 public final class SpacedTextRenderer {
 	private static final double EPSILON = 0.00001;
@@ -11,9 +11,9 @@ public final class SpacedTextRenderer {
 	}
 
 	public static int draw(
-			DrawContext context,
-			TextRenderer renderer,
-			OrderedText text,
+			GuiGraphicsExtractor context,
+			Font renderer,
+			FormattedCharSequence text,
 			double x,
 			int y,
 			int color,

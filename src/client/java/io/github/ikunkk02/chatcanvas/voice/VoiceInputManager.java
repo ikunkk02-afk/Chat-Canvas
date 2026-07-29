@@ -1,7 +1,7 @@
 package io.github.ikunkk02.chatcanvas.voice;
 
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 
 import java.awt.Desktop;
 import java.nio.file.Files;
@@ -340,7 +340,7 @@ public final class VoiceInputManager {
 	}
 
 	private static void onClient(Runnable runnable) {
-		MinecraftClient client = MinecraftClient.getInstance();
+		Minecraft client = Minecraft.getInstance();
 		if (client != null) client.execute(runnable);
 	}
 

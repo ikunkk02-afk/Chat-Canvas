@@ -1,7 +1,7 @@
 package io.github.ikunkk02.chatcanvas.chat.style;
 
 import io.github.ikunkk02.chatcanvas.config.MentionConfig;
-import net.minecraft.text.Style;
+import net.minecraft.network.chat.Style;
 
 import java.util.function.UnaryOperator;
 

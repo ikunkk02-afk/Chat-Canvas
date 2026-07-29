@@ -1,6 +1,6 @@
 package io.github.ikunkk02.chatcanvas.chat.message;
 
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
@@ -9,8 +9,8 @@ public record ClassifiedMessage(
 		ChatCanvasChannel channel,
 		ChatCanvasMessageSource source,
 		@Nullable UUID senderUuid,
-		@Nullable Text senderName,
-		Text content,
+		@Nullable Component senderName,
+		Component content,
 		boolean selfMessage
 ) {
 	public ClassifiedMessage {

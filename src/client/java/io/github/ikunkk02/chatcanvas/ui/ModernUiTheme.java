@@ -4,10 +4,10 @@ import io.github.ikunkk02.chatcanvas.ChatCanvas;
 import io.github.ikunkk02.chatcanvas.editor.EditorUiStyle;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.Components;
-import io.wispforest.owo.ui.core.OwoUIDrawContext;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Surface;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
 
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -55,7 +55,7 @@ public final class ModernUiTheme {
         }
     };
 
-    private static void drawVanillaPanel(DrawContext context, int x, int y, int w, int h) {
+    private static void drawVanillaPanel(GuiGraphicsExtractor context, int x, int y, int w, int h) {
         context.fill(x, y, x + w, y + h, 0xC8000000);
         context.fill(x, y, x + w, y + 1, 0xFF555555);
         context.fill(x, y + h - 1, x + w, y + h, 0xFF555555);
@@ -72,10 +72,10 @@ public final class ModernUiTheme {
     /**
      * Create a themed button. For transparent hit targets and colour swatches
      * that should never draw a solid background, prefer
-     * {@link #transparentButton(Text, Consumer)}.
+     * {@link #transparentButton(Component, Consumer)}.
      */
-    public static ButtonComponent button(Text text, Consumer<ButtonComponent> action) {
-        ButtonComponent button = Components.button(text, clicked -> {
+    public static ButtonComponent button(Component text, Consumer<ButtonComponent> action) {
+        ButtonComponent button = UIComponents.button(text, clicked -> {
             PRESSED_AT.put(clicked, System.nanoTime());
             action.accept(clicked);
         });
@@ -85,14 +85,14 @@ public final class ModernUiTheme {
     }
 
     /** Create a button that never draws a solid background in either theme. */
-    public static ButtonComponent transparentButton(Text text, Consumer<ButtonComponent> action) {
-        ButtonComponent button = Components.button(text, action);
+    public static ButtonComponent transparentButton(Component text, Consumer<ButtonComponent> action) {
+        ButtonComponent button = UIComponents.button(text, action);
         button.renderer(ModernUiTheme::drawTransparentButton);
         button.textShadow(false);
         return button;
     }
 
-    private static void drawButton(OwoUIDrawContext context, ButtonComponent button, float delta) {
+    private static void drawButton(OwoUIGraphics context, ButtonComponent button, float delta) {
         if (currentStyle == EditorUiStyle.VANILLA) {
             drawVanillaButton(context, button);
         } else {
@@ -100,7 +100,7 @@ public final class ModernUiTheme {
         }
     }
 
-    private static void drawTransparentButton(OwoUIDrawContext context, ButtonComponent button, float delta) {
+    private static void drawTransparentButton(OwoUIGraphics context, ButtonComponent button, float delta) {
         // In vanilla theme, draw no background (prevents gray rectangle from oversized hit targets).
         // In modern theme, draw the normal modern background.
         if (currentStyle == EditorUiStyle.VANILLA) {
@@ -110,7 +110,7 @@ public final class ModernUiTheme {
         drawModernButton(context, button);
     }
 
-    private static void drawModernButton(OwoUIDrawContext context, ButtonComponent button) {
+    private static void drawModernButton(OwoUIGraphics context, ButtonComponent button) {
         int color;
         if (!button.active()) {
             color = 0x55343A48;
@@ -129,7 +129,7 @@ public final class ModernUiTheme {
                 button.active() ? 0x554F6079 : 0x223C4452);
     }
 
-    private static void drawVanillaButton(OwoUIDrawContext context, ButtonComponent button) {
+    private static void drawVanillaButton(OwoUIGraphics context, ButtonComponent button) {
         int w = button.getWidth();
         int h = button.getHeight();
         int x = button.getX();
@@ -140,8 +140,8 @@ public final class ModernUiTheme {
         // Defensive: if the button is abnormally large, log and skip background fill.
         if (w > MAX_REASONABLE_BUTTON_WIDTH || h > MAX_REASONABLE_BUTTON_HEIGHT) {
             if (VANILLA_THEME_RENDER_DEBUG) {
-                net.minecraft.client.MinecraftClient client =
-                        net.minecraft.client.MinecraftClient.getInstance();
+                net.minecraft.client.Minecraft client =
+                        net.minecraft.client.Minecraft.getInstance();
                 String text = "";
                 try { text = button.getMessage().getString(); } catch (Exception ignored) {}
                 ChatCanvas.LOGGER.warn(
@@ -173,12 +173,12 @@ public final class ModernUiTheme {
 
     /* ── shared draw utilities ───────────────────────────────── */
 
-    public static void shadow(DrawContext context, int x, int y, int width, int height) {
+    public static void shadow(GuiGraphicsExtractor context, int x, int y, int width, int height) {
         roundedRect(context, x - 3, y + 4, width + 6, height + 4, 8, 0x32000000);
         roundedRect(context, x - 1, y + 2, width + 2, height + 2, 7, 0x45000000);
     }
 
-    public static void roundedRect(DrawContext context, int x, int y,
+    public static void roundedRect(GuiGraphicsExtractor context, int x, int y,
                                     int width, int height, int radius, int color) {
         if (width <= 0 || height <= 0) return;
         int r = Math.max(0, Math.min(radius, Math.min(width, height) / 2));
@@ -191,7 +191,7 @@ public final class ModernUiTheme {
         }
     }
 
-    public static void border(DrawContext context, int x, int y,
+    public static void border(GuiGraphicsExtractor context, int x, int y,
                                int width, int height, int color) {
         if (width <= 1 || height <= 1) return;
         context.fill(x + 5, y, x + width - 5, y + 1, color);

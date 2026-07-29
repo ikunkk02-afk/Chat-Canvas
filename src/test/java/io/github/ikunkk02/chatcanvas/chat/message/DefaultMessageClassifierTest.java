@@ -1,7 +1,7 @@
 package io.github.ikunkk02.chatcanvas.chat.message;
 
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatIdentity;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -20,7 +20,7 @@ class DefaultMessageClassifierTest {
 	void authoritativeChatAlwaysUsesPlayerChannelAndDetectsSelf() {
 		PlayerChatIdentity remote = new PlayerChatIdentity(remoteUuid, "Alex", true);
 		ClassifiedMessage other = classifier.classify(
-				Text.literal("<Alex> hello"),
+				Component.literal("<Alex> hello"),
 				context(MessageIngress.CHAT, remote, List.of(remote)));
 		assertEquals(ChatCanvasChannel.PLAYER_CHAT, other.channel());
 		assertEquals(ChatCanvasMessageSource.PLAYER, other.source());
@@ -28,7 +28,7 @@ class DefaultMessageClassifierTest {
 
 		PlayerChatIdentity self = new PlayerChatIdentity(localUuid, "Steve", true);
 		ClassifiedMessage own = classifier.classify(
-				Text.literal("<Steve> hello"),
+				Component.literal("<Steve> hello"),
 				context(MessageIngress.CHAT, self, List.of(self)));
 		assertEquals(ChatCanvasMessageSource.SELF_PLAYER, own.source());
 		assertTrue(own.selfMessage());
@@ -39,7 +39,7 @@ class DefaultMessageClassifierTest {
 		PlayerChatIdentity spoofedName =
 				new PlayerChatIdentity(remoteUuid, "Steve", true);
 		ClassifiedMessage classified = classifier.classify(
-				Text.literal("<Steve> not local"),
+				Component.literal("<Steve> not local"),
 				context(MessageIngress.CHAT, spoofedName, List.of(spoofedName)));
 		assertFalse(classified.selfMessage());
 		assertEquals(ChatCanvasMessageSource.PLAYER, classified.source());
@@ -50,13 +50,13 @@ class DefaultMessageClassifierTest {
 		PlayerChatIdentity inferred =
 				new PlayerChatIdentity(localUuid, "Steve", false);
 		assertTrue(classifier.classify(
-				Text.literal("Steve: local echo"),
+				Component.literal("Steve: local echo"),
 				context(MessageIngress.CHAT, inferred, List.of(inferred)))
 				.selfMessage());
 		PlayerChatIdentity duplicate =
 				new PlayerChatIdentity(UUID.randomUUID(), "steve", false);
 		assertFalse(classifier.classify(
-				Text.literal("Steve: ambiguous"),
+				Component.literal("Steve: ambiguous"),
 				context(MessageIngress.CHAT, inferred, List.of(inferred, duplicate)))
 				.selfMessage());
 	}
@@ -66,32 +66,32 @@ class DefaultMessageClassifierTest {
 		PlayerChatIdentity alex = new PlayerChatIdentity(remoteUuid, "Alex", true);
 		MessageContext game = context(MessageIngress.GAME, null, List.of(alex));
 		assertEquals(ChatCanvasChannel.PLAYER_CHAT,
-				classifier.classify(Text.literal("[VIP] Alex: hello"), game).channel());
+				classifier.classify(Component.literal("[VIP] Alex: hello"), game).channel());
 		assertEquals(ChatCanvasChannel.COMMAND_SYSTEM,
-				classifier.classify(Text.literal("Server is saving Alex data"), game).channel());
+				classifier.classify(Component.literal("Server is saving Alex data"), game).channel());
 		assertEquals(ChatCanvasChannel.COMMAND_SYSTEM,
-				classifier.classify(Text.literal("Alex was slain by Zombie"), game).channel());
+				classifier.classify(Component.literal("Alex was slain by Zombie"), game).channel());
 	}
 
 	@Test
 	void vanillaSystemKindsStayInCommandChannel() {
 		MessageContext game = context(MessageIngress.GAME, null, List.of());
 		assertEquals(ChatCanvasMessageSource.DEATH_MESSAGE, classifier.classify(
-				Text.translatable("death.attack.generic", Text.literal("Alex")), game).source());
+				Component.translatable("death.attack.generic", Component.literal("Alex")), game).source());
 		assertEquals(ChatCanvasMessageSource.PLAYER_JOIN, classifier.classify(
-				Text.translatable("multiplayer.player.joined", Text.literal("Alex")), game).source());
+				Component.translatable("multiplayer.player.joined", Component.literal("Alex")), game).source());
 		assertEquals(ChatCanvasMessageSource.PLAYER_LEAVE, classifier.classify(
-				Text.translatable("multiplayer.player.left", Text.literal("Alex")), game).source());
+				Component.translatable("multiplayer.player.left", Component.literal("Alex")), game).source());
 		assertEquals(ChatCanvasMessageSource.COMMAND_ERROR, classifier.classify(
-				Text.translatable("commands.generic.unknown"), game).source());
+				Component.translatable("commands.generic.unknown"), game).source());
 	}
 
 	@Test
 	void unsignedVanillaPlayerChatTranslationStillUsesPlayerChannel() {
 		PlayerChatIdentity alex = new PlayerChatIdentity(remoteUuid, "Alex", true);
 		ClassifiedMessage classified = classifier.classify(
-				Text.translatable("chat.type.text", Text.literal("Alex"),
-						Text.literal("你好，@Steve！")),
+				Component.translatable("chat.type.text", Component.literal("Alex"),
+						Component.literal("你好，@Steve！")),
 				context(MessageIngress.DIRECT_HUD, null, List.of(alex)));
 		assertEquals(ChatCanvasChannel.PLAYER_CHAT, classified.channel());
 		assertEquals(ChatCanvasMessageSource.PLAYER, classified.source());
@@ -103,7 +103,7 @@ class DefaultMessageClassifierTest {
 		PlayerChatIdentity first = new PlayerChatIdentity(remoteUuid, "Alex", true);
 		PlayerChatIdentity duplicate = new PlayerChatIdentity(UUID.randomUUID(), "alex", true);
 		ClassifiedMessage classified = classifier.classify(
-				Text.translatable("chat.type.text", Text.literal("Alex"), Text.literal("@Steve")),
+				Component.translatable("chat.type.text", Component.literal("Alex"), Component.literal("@Steve")),
 				context(MessageIngress.DIRECT_HUD, null, List.of(first, duplicate)));
 		assertEquals(ChatCanvasChannel.COMMAND_SYSTEM, classified.channel());
 	}
@@ -111,10 +111,10 @@ class DefaultMessageClassifierTest {
 	@Test
 	void commandInputAndUnknownMessagesUseCommandChannel() {
 		assertEquals(ChatCanvasMessageSource.COMMAND_INPUT, classifier.classify(
-				Text.literal("/time set day"),
+				Component.literal("/time set day"),
 				context(MessageIngress.COMMAND_INPUT, null, List.of())).source());
 		ClassifiedMessage unknown = classifier.classify(
-				Text.literal("unclassified notice"),
+				Component.literal("unclassified notice"),
 				context(MessageIngress.DIRECT_HUD, null, List.of()));
 		assertEquals(ChatCanvasChannel.COMMAND_SYSTEM, unknown.channel());
 		assertEquals(ChatCanvasMessageSource.UNKNOWN, unknown.source());
@@ -124,7 +124,7 @@ class DefaultMessageClassifierTest {
 			MessageIngress ingress, PlayerChatIdentity sender,
 			List<PlayerChatIdentity> online) {
 		return new MessageContext(ingress, null, sender,
-				sender == null ? null : Text.literal(sender.playerName()),
+				sender == null ? null : Component.literal(sender.playerName()),
 				online, localUuid, "Steve", false);
 	}
 }

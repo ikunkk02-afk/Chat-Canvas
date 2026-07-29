@@ -1,10 +1,10 @@
 package io.github.ikunkk02.chatcanvas.voice;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.function.Consumer;
@@ -15,7 +15,7 @@ public final class VoiceInputOverlay {
 	private static final int BUTTON_HEIGHT = 14;
 	private final VoiceInputManager manager = VoiceInputManager.instance();
 	private ChatScreen owner;
-	private TextFieldWidget field;
+	private EditBox field;
 	private Consumer<VoiceRecognitionResult> resultConsumer;
 	private int buttonX;
 	private int buttonY;
@@ -23,7 +23,7 @@ public final class VoiceInputOverlay {
 	private boolean keyboardHolding;
 	private boolean installPrompt;
 
-	public void init(ChatScreen screen, TextFieldWidget playerField,
+	public void init(ChatScreen screen, EditBox playerField,
 					 Consumer<VoiceRecognitionResult> consumer) {
 		owner = screen;
 		field = playerField;
@@ -78,14 +78,14 @@ public final class VoiceInputOverlay {
 
 	public void tick() {
 		if (owner == null) return;
-		long window = MinecraftClient.getInstance().getWindow().getHandle();
+		long window = Minecraft.getInstance().getWindow().getHandle();
 		if (mouseHolding
 				&& GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_LEFT)
 				== GLFW.GLFW_RELEASE) {
 			mouseHolding = false;
 			manager.finish();
 		}
-		if (keyboardHolding && !MinecraftClient.getInstance().isWindowFocused()) {
+		if (keyboardHolding && !Minecraft.getInstance().isWindowFocused()) {
 			cancel();
 		}
 	}
@@ -115,7 +115,7 @@ public final class VoiceInputOverlay {
 		installPrompt = false;
 	}
 
-	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+	public void render(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
 		if (owner == null || field == null) return;
 		buttonX = field.getX() + field.getWidth() + EmojiOffset.TOTAL_SPACE + 1;
 		buttonY = field.getY() - 1;
@@ -124,7 +124,7 @@ public final class VoiceInputOverlay {
 		if (installPrompt) renderPrompt(context, mouseX, mouseY);
 	}
 
-	private void renderButton(DrawContext context, int mouseX, int mouseY) {
+	private void renderButton(GuiGraphicsExtractor context, int mouseX, int mouseY) {
 		VoiceInputState state = manager.state();
 		boolean hovered = hit(mouseX, mouseY, buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT);
 		int fill = state == VoiceInputState.LISTENING ? 0xE05D2E46
@@ -132,7 +132,7 @@ public final class VoiceInputOverlay {
 				: state == VoiceInputState.MODEL_MISSING || state == VoiceInputState.ERROR
 				? 0xE06B4430 : hovered ? 0xD0445066 : 0xB02A3240;
 		context.fill(buttonX, buttonY, buttonX + BUTTON_WIDTH, buttonY + BUTTON_HEIGHT, fill);
-		context.drawBorder(buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT,
+		context.renderOutline(buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT,
 				state == VoiceInputState.LISTENING ? 0xFFFF858D : 0xFF71809A);
 		int cx = buttonX + 9;
 		context.fill(cx - 2, buttonY + 3, cx + 3, buttonY + 9, 0xFFE7ECF5);
@@ -142,7 +142,7 @@ public final class VoiceInputOverlay {
 		context.fill(cx, buttonY + 11, cx + 1, buttonY + 13, 0xFFE7ECF5);
 	}
 
-	private void renderStatus(DrawContext context) {
+	private void renderStatus(GuiGraphicsExtractor context) {
 		VoiceInputState state = manager.state();
 		if (state != VoiceInputState.LISTENING
 				&& state != VoiceInputState.RECOGNIZING
@@ -157,19 +157,19 @@ public final class VoiceInputOverlay {
 				: state == VoiceInputState.MODEL_DOWNLOADING
 				? "chat_canvas.voice.downloading"
 				: "chat_canvas.voice.loading";
-		Text label = Text.translatable(key);
+		Component label = Component.translatable(key);
 		if (state == VoiceInputState.LISTENING
 				&& manager.settings().showPartialResults()
 				&& !manager.partial().isBlank()) {
-			label = Text.translatable(key).append(Text.literal(": " + manager.partial()));
+			label = Component.translatable(key).append(Component.literal(": " + manager.partial()));
 		}
 		int width = Math.min(240,
-				MinecraftClient.getInstance().textRenderer.getWidth(label) + 20);
+				Minecraft.getInstance().font.getWidth(label) + 20);
 		int x = Math.max(4, buttonX + BUTTON_WIDTH - width);
 		int y = Math.max(4, field.getY() - 34);
 		context.fill(x, y, x + width, y + 20, 0xD0202632);
-		context.drawBorder(x, y, width, 20, 0xFF71809A);
-		context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer,
+		context.renderOutline(x, y, width, 20, 0xFF71809A);
+		context.drawString(Minecraft.getInstance().font,
 				label, x + 5, y + 4, 0xFFFFFFFF);
 		if (state == VoiceInputState.LISTENING && manager.settings().showInputLevel()) {
 			int meter = (int) Math.round((width - 10) * Math.min(1.0, manager.level() * 8.0));
@@ -177,13 +177,13 @@ public final class VoiceInputOverlay {
 		}
 	}
 
-	private void renderPrompt(DrawContext context, int mouseX, int mouseY) {
+	private void renderPrompt(GuiGraphicsExtractor context, int mouseX, int mouseY) {
 		int width = Math.min(330, owner.width - 16);
 		int height = 128;
 		int x = (owner.width - width) / 2;
 		int y = Math.max(8, (owner.height - height) / 2);
 		context.fill(x, y, x + width, y + height, 0xF0181D27);
-		context.drawBorder(x, y, width, height, 0xFF71809A);
+		context.renderOutline(x, y, width, height, 0xFF71809A);
 		draw(context, "chat_canvas.voice.model.title", x + 10, y + 10, 0xFFFFFFFF);
 		draw(context, "chat_canvas.voice.model.details", x + 10, y + 28, 0xFFADB6C7);
 		draw(context, "chat_canvas.voice.model.privacy", x + 10, y + 44, 0xFFADB6C7);
@@ -212,17 +212,17 @@ public final class VoiceInputOverlay {
 		return true;
 	}
 
-	private static void button(DrawContext context, int x, int y, int width, int height,
+	private static void button(GuiGraphicsExtractor context, int x, int y, int width, int height,
 							   String key) {
 		context.fill(x, y, x + width, y + height, 0xFF343D50);
-		context.drawBorder(x, y, width, height, 0xFF71809A);
-		context.drawCenteredTextWithShadow(MinecraftClient.getInstance().textRenderer,
-				Text.translatable(key), x + width / 2, y + 6, 0xFFFFFFFF);
+		context.renderOutline(x, y, width, height, 0xFF71809A);
+		context.drawCenteredString(Minecraft.getInstance().font,
+				Component.translatable(key), x + width / 2, y + 6, 0xFFFFFFFF);
 	}
 
-	private static void draw(DrawContext context, String key, int x, int y, int color) {
-		context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer,
-				Text.translatable(key), x, y, color);
+	private static void draw(GuiGraphicsExtractor context, String key, int x, int y, int color) {
+		context.drawString(Minecraft.getInstance().font,
+				Component.translatable(key), x, y, color);
 	}
 
 	private static boolean hit(double mx, double my, int x, int y, int width, int height) {

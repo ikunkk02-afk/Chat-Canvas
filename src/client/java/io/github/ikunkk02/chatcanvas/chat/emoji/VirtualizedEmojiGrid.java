@@ -1,18 +1,18 @@
 package io.github.ikunkk02.chatcanvas.chat.emoji;
 
-import io.wispforest.owo.ui.base.BaseComponent;
+import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
-import io.wispforest.owo.ui.core.OwoUIDrawContext;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 import java.util.function.Consumer;
 
-public final class VirtualizedEmojiGrid extends BaseComponent {
+public final class VirtualizedEmojiGrid extends BaseUIComponent {
 	private static final int CELL_WIDTH = 28;
 	private static final int CELL_HEIGHT = 23;
 
@@ -94,20 +94,20 @@ public final class VirtualizedEmojiGrid extends BaseComponent {
 
 	@Override
 	public void draw(
-			OwoUIDrawContext context, int mouseX, int mouseY,
+			OwoUIGraphics context, int mouseX, int mouseY,
 			float partialTicks, float delta) {
 		context.fill(x(), y(), x() + width(), y() + height(), 0x70202531);
 		hoveredEntry = null;
 		if (entries.isEmpty()) {
-			Text empty = Text.translatable(emptyMessageKey);
-			context.drawCenteredTextWithShadow(
-					MinecraftClient.getInstance().textRenderer,
+			Component empty = Component.translatable(emptyMessageKey);
+			context.drawCenteredString(
+					Minecraft.getInstance().font,
 					empty, x() + width() / 2,
 					y() + Math.max(2, height() / 2 - 4), 0xFFADB6C7);
 			return;
 		}
 		context.enableScissor(x(), y(), x() + width(), y() + height());
-		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+		Font renderer = Minecraft.getInstance().font;
 		int columns = columns();
 		int start = scrollRow * columns;
 		int visibleRows = Math.max(1, (height() + CELL_HEIGHT - 1) / CELL_HEIGHT);
@@ -125,16 +125,16 @@ public final class VirtualizedEmojiGrid extends BaseComponent {
 						0xB04B5970);
 			}
 			if (index == selected) {
-				context.drawBorder(cellX, cellY,
+				context.renderOutline(cellX, cellY,
 						CELL_WIDTH, CELL_HEIGHT, 0xFFF6C85F);
 				context.fill(cellX + 3, cellY + CELL_HEIGHT - 3,
 						cellX + CELL_WIDTH - 3, cellY + CELL_HEIGHT - 1,
 						0xFFF6C85F);
 			}
 			String emoji = entries.get(index).unicode();
-			context.drawTextWithShadow(renderer, emoji,
+			context.drawString(renderer, emoji,
 					cellX + (CELL_WIDTH - renderer.getWidth(emoji)) / 2,
-					cellY + (CELL_HEIGHT - renderer.fontHeight) / 2,
+					cellY + (CELL_HEIGHT - renderer.lineHeight) / 2,
 					0xFFFFFFFF);
 		}
 		context.disableScissor();

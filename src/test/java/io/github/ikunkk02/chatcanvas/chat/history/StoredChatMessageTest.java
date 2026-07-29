@@ -13,7 +13,7 @@ import java.util.UUID;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasChannel;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessage;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessageSource;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -28,8 +28,8 @@ class StoredChatMessageTest {
                 ChatCanvasChannel.PLAYER_CHAT,
                 ChatCanvasMessageSource.PLAYER,
                 UUID.randomUUID(),
-                Text.literal("Steve"),
-                Text.literal("Hello 😀"),
+                Component.literal("Steve"),
+                Component.literal("Hello 😀"),
                 now,
                 false,
                 true);
@@ -53,7 +53,7 @@ class StoredChatMessageTest {
         ChatCanvasMessage original = new ChatCanvasMessage(
                 UUID.randomUUID(), ChatCanvasChannel.PLAYER_CHAT,
                 ChatCanvasMessageSource.PLAYER,
-                null, null, Text.literal("test"),
+                null, null, Component.literal("test"),
                 System.currentTimeMillis(), false, false);
         StoredChatMessage stored = StoredChatMessage.from(original, ZoneId.systemDefault());
         assertNull(stored.senderUuid());
@@ -65,7 +65,7 @@ class StoredChatMessageTest {
         ChatCanvasMessage original = new ChatCanvasMessage(
                 UUID.randomUUID(), ChatCanvasChannel.PLAYER_CHAT,
                 ChatCanvasMessageSource.PLAYER,
-                null, Text.literal("Tester"), Text.literal("红石⚙️测试 中文 English 123 😀"),
+                null, Component.literal("Tester"), Component.literal("红石⚙️测试 中文 English 123 😀"),
                 System.currentTimeMillis(), false, false);
         StoredChatMessage stored = StoredChatMessage.from(original, ZoneId.systemDefault());
         assertEquals("红石⚙️测试 中文 English 123 😀", stored.plainText());
@@ -77,7 +77,7 @@ class StoredChatMessageTest {
         ChatCanvasMessage original = new ChatCanvasMessage(
                 msgId, ChatCanvasChannel.PLAYER_CHAT,
                 ChatCanvasMessageSource.PLAYER,
-                null, Text.literal("Steve"), Text.literal("你好\n\"test\""),
+                null, Component.literal("Steve"), Component.literal("你好\n\"test\""),
                 System.currentTimeMillis(), false, false);
         StoredChatMessage stored = StoredChatMessage.from(original, ZoneId.systemDefault());
 

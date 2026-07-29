@@ -4,8 +4,8 @@ import io.github.ikunkk02.chatcanvas.ChatCanvas;
 import io.github.ikunkk02.chatcanvas.mixin.client.TextRendererAccessor;
 import net.minecraft.client.font.BuiltinEmptyGlyph;
 import net.minecraft.client.font.FontStorage;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.text.Style;
+import net.minecraft.client.gui.Font;
+import net.minecraft.network.chat.Style;
 
 import java.util.HashMap;
 import java.util.List;
@@ -21,7 +21,7 @@ public final class EmojiFontSupport {
 	}
 
 	public static synchronized boolean supports(
-			TextRenderer renderer, EmojiEntry entry) {
+			Font renderer, EmojiEntry entry) {
 		if (renderer == null || entry == null) return false;
 		Boolean cached = CACHE.get(entry.unicode());
 		if (cached != null) return cached;
@@ -47,7 +47,7 @@ public final class EmojiFontSupport {
 		return supported;
 	}
 
-	public static List<EmojiEntry> supportedEntries(TextRenderer renderer) {
+	public static List<EmojiEntry> supportedEntries(Font renderer) {
 		List<EmojiEntry> supported = EmojiRegistry.instance().entries().stream()
 				.filter(entry -> supports(renderer, entry))
 				.toList();

@@ -1,7 +1,7 @@
 package io.github.ikunkk02.chatcanvas.mixin.client;
 
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedDrawingContext;
-import net.minecraft.text.Style;
+import net.minecraft.network.chat.Style;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(targets = "net.minecraft.client.font.TextRenderer$Drawer")
+@Mixin(targets = "net.minecraft.client.font.Font$Drawer")
 public abstract class TextRendererDrawerMixin {
 	@Shadow
 	float x;

@@ -1,7 +1,7 @@
 package io.github.ikunkk02.chatcanvas.chat.style;
 
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Style;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.network.chat.Style;
 
 import java.util.Comparator;
 import java.util.List;
@@ -10,7 +10,7 @@ public final class OrderedTextStyleOverlay {
 	private OrderedTextStyleOverlay() {
 	}
 
-	public static OrderedText apply(OrderedText original, List<StyledRange> ranges) {
+	public static FormattedCharSequence apply(FormattedCharSequence original, List<StyledRange> ranges) {
 		if (original == null || ranges == null || ranges.isEmpty()) return original;
 		List<StyledRange> ordered = ranges.stream()
 				.sorted(Comparator.comparingInt(StyledRange::priority))
@@ -30,7 +30,7 @@ public final class OrderedTextStyleOverlay {
 		};
 	}
 
-	public static OrderedText selectRange(OrderedText original, TextRange range) {
+	public static FormattedCharSequence selectRange(FormattedCharSequence original, TextRange range) {
 		return visitor -> {
 			int[] codePointIndex = {0};
 			return original.accept((index, style, codePoint) -> {

@@ -8,9 +8,9 @@ import io.github.ikunkk02.chatcanvas.chat.notification.MentionNotificationContro
 import io.github.ikunkk02.chatcanvas.chat.notification.MentionDebugPolicy;
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.network.message.MessageSignatureData;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.MessageSignature;
+import net.minecraft.network.chat.Component;
 
 import java.util.List;
 import java.util.UUID;
@@ -30,14 +30,14 @@ public final class ChatCanvasMessageIngress {
 	}
 
 	public void registerIncoming(
-			Text message, MessageSignatureData signature,
-			MessageIngress ingress, PlayerChatIdentity sender, Text senderName,
+			Component message, MessageSignature signature,
+			MessageIngress ingress, PlayerChatIdentity sender, Component senderName,
 			boolean overlay) {
 		pending.register(message, signature,
 				context(ingress, signature, sender, senderName, overlay));
 	}
 
-	public boolean acceptFromChatHud(Text message, MessageSignatureData signature) {
+	public boolean acceptFromChatHud(Component message, MessageSignature signature) {
 		if (fallbackBridge) return false;
 		PendingMessageContextRegistry.PendingMessage registered =
 				pending.consume(message, signature);
@@ -51,7 +51,7 @@ public final class ChatCanvasMessageIngress {
 	}
 
 	public boolean acceptCommand(String commandWithoutSlash) {
-		Text content = Text.literal(SensitiveCommandMasker.display(commandWithoutSlash));
+		Component content = Component.literal(SensitiveCommandMasker.display(commandWithoutSlash));
 		boolean accepted = accept(UUID.randomUUID(), content,
 				context(MessageIngress.COMMAND_INPUT, null, null, null, false),
 				System.currentTimeMillis());
@@ -59,7 +59,7 @@ public final class ChatCanvasMessageIngress {
 		return accepted;
 	}
 
-	public void reportError(Text summary, Throwable throwable) {
+	public void reportError(Component summary, Throwable throwable) {
 		if (throwable != null) {
 			io.github.ikunkk02.chatcanvas.ChatCanvas.LOGGER.error(summary.getString(), throwable);
 		}
@@ -75,9 +75,9 @@ public final class ChatCanvasMessageIngress {
 		manager.clearWorld();
 	}
 
-	private boolean accept(UUID id, Text message, MessageContext context, long receivedAt) {
+	private boolean accept(UUID id, Component message, MessageContext context, long receivedAt) {
 		ClassifiedMessage classified = classifier.classify(message, context);
-		MinecraftClient client = MinecraftClient.getInstance();
+		Minecraft client = Minecraft.getInstance();
 		boolean debugSelfMention = MentionDebugPolicy.allowsSelfMention(client);
 		boolean mentionMatched = isMention(message);
 		boolean mentioned = classified.channel() == ChatCanvasChannel.PLAYER_CHAT
@@ -108,19 +108,19 @@ public final class ChatCanvasMessageIngress {
 		return true;
 	}
 
-	private void mirrorToVanilla(Text message) {
-		MinecraftClient client = MinecraftClient.getInstance();
+	private void mirrorToVanilla(Component message) {
+		Minecraft client = Minecraft.getInstance();
 		if (client.inGameHud == null) return;
 		try {
 			fallbackBridge = true;
-			client.inGameHud.getChatHud().addMessage(message);
+			client.inGameHud.getChat().addMessage(message);
 		} finally {
 			fallbackBridge = false;
 		}
 	}
 
-	private static boolean isMention(Text message) {
-		MinecraftClient client = MinecraftClient.getInstance();
+	private static boolean isMention(Component message) {
+		Minecraft client = Minecraft.getInstance();
 		if (client.player == null) return false;
 		return !MentionMatcher.findMentions(
 				message.getString(),
@@ -129,9 +129,9 @@ public final class ChatCanvasMessageIngress {
 	}
 
 	private static MessageContext context(
-			MessageIngress ingress, MessageSignatureData signature,
-			PlayerChatIdentity sender, Text senderName, boolean overlay) {
-		MinecraftClient client = MinecraftClient.getInstance();
+			MessageIngress ingress, MessageSignature signature,
+			PlayerChatIdentity sender, Component senderName, boolean overlay) {
+		Minecraft client = Minecraft.getInstance();
 		UUID localUuid = client.player == null ? null : client.player.getUuid();
 		String localName = client.player == null
 				? "" : client.player.getGameProfile().getName();

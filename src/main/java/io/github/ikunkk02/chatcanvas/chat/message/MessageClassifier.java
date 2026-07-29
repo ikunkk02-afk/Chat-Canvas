@@ -1,7 +1,7 @@
 package io.github.ikunkk02.chatcanvas.chat.message;
 
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 public interface MessageClassifier {
-	ClassifiedMessage classify(Text message, MessageContext context);
+	ClassifiedMessage classify(Component message, MessageContext context);
 }

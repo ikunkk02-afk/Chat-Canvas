@@ -1,7 +1,7 @@
 package io.github.ikunkk02.chatcanvas.chat.identity;
 
 import io.github.ikunkk02.chatcanvas.chat.style.TextIndexing;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 import java.util.Locale;
 import java.util.Optional;
@@ -12,7 +12,7 @@ public final class PlayerIdentityResolver {
 	}
 
 	public static Optional<ChatMessageMetadata> resolveStandard(
-			Text message, Text senderComponent, UUID uuid, String playerName) {
+			Component message, Component senderComponent, UUID uuid, String playerName) {
 		if (message == null || senderComponent == null || playerName == null || playerName.isBlank()) {
 			return Optional.empty();
 		}
@@ -36,7 +36,7 @@ public final class PlayerIdentityResolver {
 	}
 
 	public static Optional<ChatMessageMetadata> revalidate(
-			Text finalMessage, ChatMessageMetadata metadata) {
+			Component finalMessage, ChatMessageMetadata metadata) {
 		if (finalMessage == null || metadata == null) return Optional.empty();
 		String text = finalMessage.getString();
 		String name = metadata.sender().playerName();

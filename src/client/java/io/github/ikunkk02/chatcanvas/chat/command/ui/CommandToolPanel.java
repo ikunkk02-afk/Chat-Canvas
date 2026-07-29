@@ -15,14 +15,14 @@ import io.github.ikunkk02.chatcanvas.chat.interaction.ChatFieldActions;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.config.CommandClipboardConfig;
 import io.github.ikunkk02.chatcanvas.config.CommandInsertMode;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ChatInputSuggestor;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.CommandSuggestions;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -42,9 +42,9 @@ public final class CommandToolPanel {
 
 	private final CommandToolManager manager = CommandToolRuntime.manager();
 	private ChatScreen owner;
-	private TextFieldWidget searchField;
-	private TextFieldWidget nameField;
-	private TextFieldWidget favoriteCommandField;
+	private EditBox searchField;
+	private EditBox nameField;
+	private EditBox favoriteCommandField;
 	private CommandToolTab tab = CommandToolTab.RECENT;
 	private ClipboardCommandParseResult clipboard =
 			new ClipboardCommandParseResult(List.of(), false, false);
@@ -70,20 +70,20 @@ public final class CommandToolPanel {
 	private CommandToolTab cachedTab;
 	private List<Row> cachedRows = List.of();
 
-	public void init(ChatScreen screen, TextFieldWidget commandField) {
+	public void init(ChatScreen screen, EditBox commandField) {
 		owner = screen;
 		ACTIVE.put(screen, this);
-		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
-		searchField = new TextFieldWidget(renderer, 0, 0, WIDTH - 46, 18,
-				Text.translatable("chat_canvas.command.search"));
-		searchField.setPlaceholder(Text.translatable("chat_canvas.command.search"));
+		Font renderer = Minecraft.getInstance().font;
+		searchField = new EditBox(renderer, 0, 0, WIDTH - 46, 18,
+				Component.translatable("chat_canvas.command.search"));
+		searchField.setHint(Component.translatable("chat_canvas.command.search"));
 		searchField.setMaxLength(128);
-		nameField = new TextFieldWidget(renderer, 0, 0, WIDTH - 32, 18,
-				Text.translatable("chat_canvas.command.name"));
-		nameField.setPlaceholder(Text.translatable("chat_canvas.command.name"));
-		favoriteCommandField = new TextFieldWidget(renderer, 0, 0, WIDTH - 32, 18,
-				Text.translatable("chat_canvas.command.command"));
-		favoriteCommandField.setPlaceholder(Text.translatable(
+		nameField = new EditBox(renderer, 0, 0, WIDTH - 32, 18,
+				Component.translatable("chat_canvas.command.name"));
+		nameField.setHint(Component.translatable("chat_canvas.command.name"));
+		favoriteCommandField = new EditBox(renderer, 0, 0, WIDTH - 32, 18,
+				Component.translatable("chat_canvas.command.command"));
+		favoriteCommandField.setHint(Component.translatable(
 				"chat_canvas.command.command"));
 		favoriteCommandField.setMaxLength(CommandTextSanitizer.MAX_COMMAND_LENGTH);
 		int rightSpace = screen.width - commandField.getX() - commandField.getWidth();
@@ -131,8 +131,8 @@ public final class CommandToolPanel {
 
 	public boolean mouseClicked(
 			ChatScreen screen,
-			TextFieldWidget commandField,
-			ChatInputSuggestor suggestor,
+			EditBox commandField,
+			CommandSuggestions suggestor,
 			double mouseX,
 			double mouseY,
 			int button
@@ -173,16 +173,16 @@ public final class CommandToolPanel {
 		if (hit(mouseX, mouseY, px + WIDTH - 32, y + 43, 24, 18)) {
 			if (tab == CommandToolTab.CLIPBOARD) refreshClipboard();
 			else {
-				searchField.setText("");
+				searchField.setValue("");
 				invalidateRows();
 			}
 			return true;
 		}
 		if (hit(mouseX, mouseY, px + 8, y + 66, 116, 18)) {
 			if (tab == CommandToolTab.FAVORITES) openFavoriteDialog(
-					null, commandField.getText());
+					null, commandField.getValue());
 			else if (tab == CommandToolTab.RECENT) {
-				openFavoriteDialog(null, commandField.getText());
+				openFavoriteDialog(null, commandField.getValue());
 			} else refreshClipboard();
 			return true;
 		}
@@ -202,7 +202,7 @@ public final class CommandToolPanel {
 		Row row = rows.get(rowIndex);
 		int right = px + WIDTH - 8;
 		if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
-			MinecraftClient.getInstance().keyboard.setClipboard(row.command());
+			Minecraft.getInstance().keyboardHandler.setClipboard(row.command());
 		} else if (tab == CommandToolTab.FAVORITES && mouseX >= right - 18) {
 			pendingId = row.id();
 			dialog = Dialog.CONFIRM_DELETE_FAVORITE;
@@ -213,15 +213,15 @@ public final class CommandToolPanel {
 			favorite(row.id()).ifPresent(entry -> openFavoriteDialog(
 					entry, entry.command()));
 		} else if (tab == CommandToolTab.FAVORITES && mouseX >= right - 58) {
-			if (searchField.getText().isEmpty()) draggingFavorite = row.id();
+			if (searchField.getValue().isEmpty()) draggingFavorite = row.id();
 		} else if (tab == CommandToolTab.FAVORITES && mouseX >= right - 78) {
-			MinecraftClient.getInstance().keyboard.setClipboard(row.command());
+			Minecraft.getInstance().keyboardHandler.setClipboard(row.command());
 		} else if (tab == CommandToolTab.RECENT && mouseX >= right - 38) {
 			openFavoriteDialog(null, row.command());
 		} else if (tab == CommandToolTab.RECENT && mouseX >= right - 58) {
-			MinecraftClient.getInstance().keyboard.setClipboard(row.command());
+			Minecraft.getInstance().keyboardHandler.setClipboard(row.command());
 		} else if (tab == CommandToolTab.CLIPBOARD && mouseX >= right - 20) {
-			MinecraftClient.getInstance().keyboard.setClipboard(row.command());
+			Minecraft.getInstance().keyboardHandler.setClipboard(row.command());
 		} else {
 			insert(commandField, suggestor, row.command(), Screen.hasShiftDown());
 		}
@@ -278,7 +278,7 @@ public final class CommandToolPanel {
 
 	public boolean keyPressed(
 			int keyCode, int scanCode, int modifiers,
-			TextFieldWidget commandField, ChatInputSuggestor suggestor) {
+			EditBox commandField, CommandSuggestions suggestor) {
 		if (!open) {
 			if (keyCode == GLFW.GLFW_KEY_F && Screen.hasControlDown()) {
 				open = true;
@@ -310,8 +310,8 @@ public final class CommandToolPanel {
 			return true;
 		}
 		if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-			if (!searchField.getText().isEmpty()) {
-				searchField.setText("");
+			if (!searchField.getValue().isEmpty()) {
+				searchField.setValue("");
 				invalidateRows();
 			} else close();
 			return true;
@@ -392,7 +392,7 @@ public final class CommandToolPanel {
 	}
 
 	public void render(
-			ChatScreen screen, TextFieldWidget commandField, DrawContext context,
+			ChatScreen screen, EditBox commandField, GuiGraphicsExtractor context,
 			int mouseX, int mouseY, float delta) {
 		CommandClipboardConfig config = ChatCanvasConfig.instance().commandClipboard();
 		if (!config.enabled()) return;
@@ -403,9 +403,9 @@ public final class CommandToolPanel {
 		if (config.showPanelButton() && !open && openProgress <= 0.01f) {
 			int bx = buttonX(screen, commandField);
 			fillButton(context, bx, commandField.getY(), 54, 14, false);
-			context.drawCenteredTextWithShadow(
-					MinecraftClient.getInstance().textRenderer,
-					Text.translatable("chat_canvas.command.tools"),
+			context.drawCenteredString(
+					Minecraft.getInstance().font,
+					Component.translatable("chat_canvas.command.tools"),
 					bx + 27, commandField.getY() + 3, 0xFFFFFF);
 		}
 		if (openProgress <= 0.01f) return;
@@ -413,11 +413,11 @@ public final class CommandToolPanel {
 		visualX = x + Math.round((1.0f - openProgress)
 				* (x < screen.width / 2 ? -24 : 24));
 		int px = visualX;
-		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+		Font renderer = Minecraft.getInstance().font;
 		context.fill(px, y, px + WIDTH, y + HEIGHT, 0xF0181B25);
-		context.drawBorder(px, y, WIDTH, HEIGHT, 0xFF59647A);
-		context.drawTextWithShadow(renderer,
-				Text.translatable("chat_canvas.command.tools"),
+		context.renderOutline(px, y, WIDTH, HEIGHT, 0xFF59647A);
+		context.drawString(renderer,
+				Component.translatable("chat_canvas.command.tools"),
 				px + 8, y + 5, 0xFFFFFF);
 		if (dialog != Dialog.NONE) {
 			renderDialog(context, renderer, mouseX, mouseY, delta);
@@ -429,14 +429,14 @@ public final class CommandToolPanel {
 		searchField.setWidth(WIDTH - 46);
 		searchField.render(context, mouseX, mouseY, delta);
 		fillButton(context, px + WIDTH - 32, y + 43, 24, 18, false);
-		context.drawCenteredTextWithShadow(renderer,
-				Text.literal(tab == CommandToolTab.CLIPBOARD ? "↻" : "×"),
+		context.drawCenteredString(renderer,
+				Component.literal(tab == CommandToolTab.CLIPBOARD ? "↻" : "×"),
 				px + WIDTH - 20, y + 48, 0xFFFFFF);
 		renderToolbar(context, renderer, px);
 		List<Row> rows = rows();
 		if (rows.isEmpty()) {
-			context.drawCenteredTextWithShadow(renderer,
-					Text.translatable(emptyStateKey()), px + WIDTH / 2,
+			context.drawCenteredString(renderer,
+					Component.translatable(emptyStateKey()), px + WIDTH / 2,
 					y + 139, 0xFFADB6C7);
 		} else {
 			for (int visible = 0; visible < VISIBLE_ROWS; visible++) {
@@ -447,16 +447,16 @@ public final class CommandToolPanel {
 			}
 		}
 		if (statusKey != null) {
-			context.drawTextWithShadow(renderer, Text.translatable(statusKey),
+			context.drawString(renderer, Component.translatable(statusKey),
 					px + 8, y + HEIGHT - 14, 0xFFFFCC66);
 		} else if (tab == CommandToolTab.CLIPBOARD && clipboard.multipleLines()) {
-			context.drawTextWithShadow(renderer,
-					Text.translatable("chat_canvas.command.clipboard.multiple"),
+			context.drawString(renderer,
+					Component.translatable("chat_canvas.command.clipboard.multiple"),
 					px + 8, y + HEIGHT - 14, 0xFFFFCC66);
 		}
 	}
 
-	private void renderTabs(DrawContext context, TextRenderer renderer, int px) {
+	private void renderTabs(GuiGraphicsExtractor context, Font renderer, int px) {
 		String[] keys = {
 				"chat_canvas.command.tab.recent",
 				"chat_canvas.command.tab.favorites",
@@ -466,31 +466,31 @@ public final class CommandToolPanel {
 			boolean active = tab.ordinal() == i;
 			int tabX = px + 8 + i * 92;
 			fillButton(context, tabX, y + 20, 88, 18, active);
-			context.drawCenteredTextWithShadow(renderer,
-					Text.translatable(keys[i]), tabX + 44, y + 25, 0xFFFFFF);
+			context.drawCenteredString(renderer,
+					Component.translatable(keys[i]), tabX + 44, y + 25, 0xFFFFFF);
 			if (active) context.fill(tabX + 6, y + 36, tabX + 82, y + 38,
 					0xFF9CC8FF);
 		}
 	}
 
-	private void renderToolbar(DrawContext context, TextRenderer renderer, int px) {
+	private void renderToolbar(GuiGraphicsExtractor context, Font renderer, int px) {
 		fillButton(context, px + 8, y + 66, 116, 18, false);
 		String primary = switch (tab) {
 			case RECENT, FAVORITES -> "chat_canvas.command.favorite_current";
 			case CLIPBOARD -> "chat_canvas.command.clipboard.refresh";
 		};
-		context.drawCenteredTextWithShadow(renderer, Text.translatable(primary),
+		context.drawCenteredString(renderer, Component.translatable(primary),
 				px + 66, y + 71, 0xFFFFFF);
 		if (tab == CommandToolTab.RECENT) {
 			fillButton(context, px + WIDTH - 124, y + 66, 116, 18, false);
-			context.drawCenteredTextWithShadow(renderer,
-					Text.translatable("chat_canvas.command.clear_all"),
+			context.drawCenteredString(renderer,
+					Component.translatable("chat_canvas.command.clear_all"),
 					px + WIDTH - 66, y + 71, 0xFFFFB0B0);
 		}
 	}
 
 	private void renderRow(
-			DrawContext context, TextRenderer renderer, Row row, int index,
+			GuiGraphicsExtractor context, Font renderer, Row row, int index,
 			int rowY, int mouseX, int mouseY) {
 		int px = visualX;
 		boolean hover = hit(mouseX, mouseY, px + 8, rowY,
@@ -498,12 +498,12 @@ public final class CommandToolPanel {
 		boolean active = listFocused && index == selected;
 		context.fill(px + 8, rowY, px + WIDTH - 8, rowY + ROW_HEIGHT - 2,
 				active ? 0xDD40516B : hover ? 0xCC354157 : 0xAA252B39);
-		context.drawTextWithShadow(renderer,
-				Text.literal(shorten(row.title(), 30)), px + 12, rowY + 3,
+		context.drawString(renderer,
+				Component.literal(shorten(row.title(), 30)), px + 12, rowY + 3,
 				0xFFFFFFFF);
 		int commandColor = row.dangerous() ? 0xFFFFB36A : 0xFFB7BFCE;
-		context.drawTextWithShadow(renderer,
-				Text.literal((row.dangerous() ? "⚠ " : "")
+		context.drawString(renderer,
+				Component.literal((row.dangerous() ? "⚠ " : "")
 						+ shorten(row.command(), 34)),
 				px + 12, rowY + 16, commandColor);
 		String actions = switch (tab) {
@@ -512,21 +512,21 @@ public final class CommandToolPanel {
 			case CLIPBOARD -> "C";
 		};
 		if (!actions.isEmpty()) {
-			context.drawTextWithShadow(renderer, Text.literal(actions),
+			context.drawString(renderer, Component.literal(actions),
 					px + WIDTH - renderer.getWidth(actions) - 12,
 					rowY + 7, 0xFFFFD36A);
 		}
 		if (hover && renderer.getWidth(row.command()) > WIDTH - 34) {
-			context.drawTooltip(renderer, Text.literal(row.command()), mouseX, mouseY);
+			context.drawTooltip(renderer, Component.literal(row.command()), mouseX, mouseY);
 		} else if (hover && row.dangerous()) {
 			context.drawTooltip(renderer,
-					Text.translatable("chat_canvas.command.dangerous"),
+					Component.translatable("chat_canvas.command.dangerous"),
 					mouseX, mouseY);
 		}
 	}
 
 	private void renderDialog(
-			DrawContext context, TextRenderer renderer,
+			GuiGraphicsExtractor context, Font renderer,
 			int mouseX, int mouseY, float delta) {
 		int px = visualX;
 		int dx = px + 8;
@@ -535,8 +535,8 @@ public final class CommandToolPanel {
 		context.fill(px + 1, y + 18, px + WIDTH - 1, y + HEIGHT - 1,
 				0xFF10131B);
 		context.fill(dx, dy, dx + dialogWidth, y + HEIGHT - 8, 0xFF171B25);
-		context.drawBorder(dx, dy, dialogWidth, HEIGHT - 30, 0xFF73809A);
-		context.drawTextWithShadow(renderer, Text.translatable(dialog.titleKey),
+		context.renderOutline(dx, dy, dialogWidth, HEIGHT - 30, 0xFF73809A);
+		context.drawString(renderer, Component.translatable(dialog.titleKey),
 				dx + 8, dy + 8, 0xFFFFFFFF);
 		if (dialog == Dialog.ADD_FAVORITE
 				|| dialog == Dialog.EDIT_FAVORITE) {
@@ -546,26 +546,26 @@ public final class CommandToolPanel {
 			favoriteCommandField.setX(dx + 8);
 			favoriteCommandField.setY(dy + 76);
 			favoriteCommandField.setWidth(dialogWidth - 16);
-			context.drawTextWithShadow(renderer,
-					Text.translatable("chat_canvas.command.name"),
+			context.drawString(renderer,
+					Component.translatable("chat_canvas.command.name"),
 					dx + 8, dy + 23, 0xFF9FAABD);
-			context.drawTextWithShadow(renderer,
-					Text.translatable("chat_canvas.command.command"),
+			context.drawString(renderer,
+					Component.translatable("chat_canvas.command.command"),
 					dx + 8, dy + 65, 0xFF9FAABD);
 			nameField.render(context, mouseX, mouseY, delta);
 			favoriteCommandField.render(context, mouseX, mouseY, delta);
 		} else {
 			context.drawTextWrapped(renderer,
-					Text.translatable(dialog == Dialog.CONFIRM_SENSITIVE
+					Component.translatable(dialog == Dialog.CONFIRM_SENSITIVE
 							? "chat_canvas.command.plaintext_warning"
 							: "chat_canvas.command.cannot_restore"),
 					dx + 8, dy + 34, dialogWidth - 16, 0xFFFFB0B0);
 		}
 		fillButton(context, dx + 8, y + HEIGHT - 32, 100, 18, false);
 		fillButton(context, px + WIDTH - 108, y + HEIGHT - 32, 100, 18, true);
-		context.drawCenteredTextWithShadow(renderer, Text.translatable("gui.cancel"),
+		context.drawCenteredString(renderer, Component.translatable("gui.cancel"),
 				dx + 58, y + HEIGHT - 27, 0xFFFFFF);
-		context.drawCenteredTextWithShadow(renderer, Text.translatable("gui.ok"),
+		context.drawCenteredString(renderer, Component.translatable("gui.ok"),
 				px + WIDTH - 58, y + HEIGHT - 27, 0xFFFFFF);
 	}
 
@@ -623,9 +623,9 @@ public final class CommandToolPanel {
 			return;
 		}
 		pendingId = entry == null ? null : entry.entryId();
-		nameField.setText(entry == null
+		nameField.setValue(entry == null
 				? CommandTextSanitizer.commandName(command) : entry.name());
-		favoriteCommandField.setText(entry == null ? command : entry.command());
+		favoriteCommandField.setValue(entry == null ? command : entry.command());
 		focusDialogField(nameField);
 		dialog = entry == null ? Dialog.ADD_FAVORITE : Dialog.EDIT_FAVORITE;
 	}
@@ -636,17 +636,17 @@ public final class CommandToolPanel {
 		if (!sensitiveConfirmed
 				&& ChatCanvasConfig.instance().commandClipboard().sensitiveWarning()
 				&& SensitiveCommandDetector.isSensitive(
-						favoriteCommandField.getText())) {
+						favoriteCommandField.getValue())) {
 			pendingFavoriteDialog = operation;
 			dialog = Dialog.CONFIRM_SENSITIVE;
 			return;
 		}
 		CommandToolManager.MutationResult result =
 				operation == Dialog.EDIT_FAVORITE
-						? manager.editFavorite(pendingId, nameField.getText(),
-								favoriteCommandField.getText(), now)
-						: manager.addFavorite(nameField.getText(),
-								favoriteCommandField.getText(), now);
+						? manager.editFavorite(pendingId, nameField.getValue(),
+								favoriteCommandField.getValue(), now)
+						: manager.addFavorite(nameField.getValue(),
+								favoriteCommandField.getValue(), now);
 		statusKey = switch (result) {
 			case INVALID -> "chat_canvas.command.not_command";
 			case LIMIT_REACHED -> "chat_canvas.command.limit";
@@ -665,12 +665,12 @@ public final class CommandToolPanel {
 		favoriteCommandField.setFocused(false);
 	}
 
-	private TextFieldWidget focusedDialogField() {
+	private EditBox focusedDialogField() {
 		return favoriteCommandField.isFocused()
 				? favoriteCommandField : nameField;
 	}
 
-	private void focusDialogField(TextFieldWidget selected) {
+	private void focusDialogField(EditBox selected) {
 		nameField.setFocused(selected == nameField);
 		favoriteCommandField.setFocused(selected == favoriteCommandField);
 	}
@@ -689,7 +689,7 @@ public final class CommandToolPanel {
 
 	private void refreshClipboard() {
 		try {
-			String text = MinecraftClient.getInstance().keyboard.getClipboard();
+			String text = Minecraft.getInstance().keyboardHandler.getClipboard();
 			clipboard = ClipboardCommandParser.parse(text);
 			clipboardLoaded = true;
 			statusKey = null;
@@ -703,7 +703,7 @@ public final class CommandToolPanel {
 	}
 
 	private void insert(
-			TextFieldWidget field, ChatInputSuggestor suggestor,
+			EditBox field, CommandSuggestions suggestor,
 			String command, boolean opposite) {
 		CommandInsertMode mode =
 				ChatCanvasConfig.instance().commandClipboard().insertMode();
@@ -715,7 +715,7 @@ public final class CommandToolPanel {
 	}
 
 	private List<Row> rows() {
-		String query = searchField == null ? "" : searchField.getText();
+		String query = searchField == null ? "" : searchField.getValue();
 		long revision = manager.revision();
 		if (cachedTab == tab && cachedRevision == revision
 				&& cachedQuery.equals(query)) return cachedRows;
@@ -740,7 +740,7 @@ public final class CommandToolPanel {
 					String title = CommandTextSanitizer.commandName(
 							candidate.command());
 					if (!candidate.hadLeadingSlash()) {
-						title = Text.translatable(
+						title = Component.translatable(
 								"chat_canvas.command.clipboard.as_command",
 								title).getString();
 					}
@@ -775,7 +775,7 @@ public final class CommandToolPanel {
 	}
 
 	private String emptyStateKey() {
-		if (!searchField.getText().isEmpty()) {
+		if (!searchField.getValue().isEmpty()) {
 			return "chat_canvas.command.search.empty";
 		}
 		return switch (tab) {
@@ -785,7 +785,7 @@ public final class CommandToolPanel {
 		};
 	}
 
-	private int buttonX(ChatScreen screen, TextFieldWidget field) {
+	private int buttonX(ChatScreen screen, EditBox field) {
 		int right = field.getX() + field.getWidth() + 4;
 		if (right + 54 <= screen.width - 2) return right;
 		return Math.max(2, field.getX() - 58);
@@ -809,11 +809,11 @@ public final class CommandToolPanel {
 	}
 
 	private static void fillButton(
-			DrawContext context, int x, int y,
+			GuiGraphicsExtractor context, int x, int y,
 			int width, int height, boolean active) {
 		context.fill(x, y, x + width, y + height,
 				active ? 0xFF405C82 : 0xCC30394B);
-		context.drawBorder(x, y, width, height, 0xFF5D6A82);
+		context.renderOutline(x, y, width, height, 0xFF5D6A82);
 	}
 
 	private static String shorten(String value, int limit) {

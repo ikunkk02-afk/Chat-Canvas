@@ -4,12 +4,12 @@ import io.github.ikunkk02.chatcanvas.ChatCanvas;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasChannel;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessage;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.hud.ChatHudLine;
-import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.text.OrderedText;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.multiplayer.chat.GuiMessage;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.util.FormattedCharSequence;
 
 import java.lang.reflect.Method;
 
@@ -55,7 +55,7 @@ public final class ChatHeadsCompat {
 	}
 
 	public static int channelHeadWidth(
-			ChatCanvasMessage message, MinecraftClient client) {
+			ChatCanvasMessage message, Minecraft client) {
 		if (!channelMessageSupported(message, client)
 				|| !channelAdapterAvailable()) {
 			return 0;
@@ -69,9 +69,9 @@ public final class ChatHeadsCompat {
 	}
 
 	public static boolean renderChannelHead(
-			DrawContext context,
+			GuiGraphicsExtractor context,
 			ChatCanvasMessage message,
-			MinecraftClient client,
+			Minecraft client,
 			int x,
 			int y,
 			float opacity
@@ -94,12 +94,12 @@ public final class ChatHeadsCompat {
 		}
 	}
 
-	public static int extraWidth(ChatHudLine.Visible line) {
+	public static int extraWidth(GuiMessage.Visible line) {
 		HeadGeometry geometry = geometry(line);
 		return geometry == null ? 0 : geometry.width();
 	}
 
-	public static int widthBeforeCodePoint(ChatHudLine.Visible line, int codePointIndex) {
+	public static int widthBeforeCodePoint(GuiMessage.Visible line, int codePointIndex) {
 		HeadGeometry geometry = geometry(line);
 		return geometry != null && geometry.insertionCodePoint() <= codePointIndex
 				? geometry.width()
@@ -107,13 +107,13 @@ public final class ChatHeadsCompat {
 	}
 
 	/**
-	 * Converts a visual x coordinate back to the underlying OrderedText x.
+	 * Converts a visual x coordinate back to the underlying FormattedCharSequence x.
 	 * NaN identifies the avatar itself, which must not behave like player-name
 	 * text or expose a Style.
 	 */
 	public static double textXAt(
-			TextRenderer renderer, OrderedText text, double spacing,
-			ChatHudLine.Visible line, double visualX) {
+			Font renderer, FormattedCharSequence text, double spacing,
+			GuiMessage.Visible line, double visualX) {
 		HeadGeometry geometry = geometry(line);
 		if (geometry == null) return visualX;
 		double insertionX = SpacedTextMetrics.xAtCodePoint(
@@ -126,7 +126,7 @@ public final class ChatHeadsCompat {
 				: visualX;
 	}
 
-	private static synchronized HeadGeometry geometry(ChatHudLine.Visible line) {
+	private static synchronized HeadGeometry geometry(GuiMessage.Visible line) {
 		if (!ACTIVE || visibleReflectionFailed || line == null) return null;
 		try {
 			resolveVisibleApi(line.getClass());
@@ -170,7 +170,7 @@ public final class ChatHeadsCompat {
 		Class<?> chatHeads = Class.forName("dzwdz.chat_heads.ChatHeads");
 		renderChatHead = chatHeads.getMethod(
 				"renderChatHead",
-				DrawContext.class,
+				GuiGraphicsExtractor.class,
 				int.class,
 				int.class,
 				PlayerListEntry.class,
@@ -179,7 +179,7 @@ public final class ChatHeadsCompat {
 	}
 
 	private static boolean channelMessageSupported(
-			ChatCanvasMessage message, MinecraftClient client) {
+			ChatCanvasMessage message, Minecraft client) {
 		return ACTIVE
 				&& message != null
 				&& message.channel() == ChatCanvasChannel.PLAYER_CHAT

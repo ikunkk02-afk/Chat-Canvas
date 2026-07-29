@@ -19,12 +19,12 @@ import io.github.ikunkk02.chatcanvas.chat.text.ChatHeadsCompat;
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextMetrics;
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextRenderer;
 import io.github.ikunkk02.chatcanvas.config.*;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Style;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.network.chat.Style;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -42,7 +42,7 @@ public final class DualChatHudRenderer {
 		return INSTANCE;
 	}
 
-	public boolean render(DrawContext context, int mouseX, int mouseY, boolean focused) {
+	public boolean render(GuiGraphicsExtractor context, int mouseX, int mouseY, boolean focused) {
 		if (!ChatCanvasConfig.instance().enabled() || !healthy) {
 			active = false;
 			return false;
@@ -51,7 +51,7 @@ public final class DualChatHudRenderer {
 			active = true;
 			hitLines.clear();
 			PlayerNameHitboxRegistry.beginFrame();
-			MinecraftClient client = MinecraftClient.getInstance();
+			Minecraft client = Minecraft.getInstance();
 			if (ChatCanvasConfig.instance().playerChatEnabled()) {
 				renderChannel(context, client, ChatCanvasChannel.PLAYER_CHAT,
 						ChatCanvasConfig.instance().layout(),
@@ -78,7 +78,7 @@ public final class DualChatHudRenderer {
 		}
 	}
 
-	private void renderChannel(DrawContext context, MinecraftClient client,
+	private void renderChannel(GuiGraphicsExtractor context, Minecraft client,
 							   ChatCanvasChannel channel, LayoutConfig layoutConfig,
 							   ChatTextConfig text, ChatBackgroundConfig background,
 							   int rgb, int fadeSeconds, int messageSpacing) {
@@ -88,7 +88,7 @@ public final class DualChatHudRenderer {
 		int padding = background.horizontalPadding();
 		int available = Math.max(1, box.width() - padding * 2 - 2);
 		int lineHeight = Math.max(1, (int) Math.ceil(
-				client.textRenderer.fontHeight * text.fontScale() * text.lineSpacing()));
+				client.font.lineHeight * text.fontScale() * text.lineSpacing()));
 		ChatChannelHistory history = ChatCanvasMessageManager.instance().history(channel);
 		List<ChatCanvasMessage> messages = history.messages();
 		boolean open = client.currentScreen instanceof ChatScreen;
@@ -122,7 +122,7 @@ public final class DualChatHudRenderer {
 					: available;
 			int visualSafety = text.shadow() ? 2 : 1;
 			ChannelMessageLayoutEngine.Layout layout = ChannelMessageLayoutEngine.instance().layout(
-					message, client.textRenderer, wrapWidth,
+					message, client.font, wrapWidth,
 					text, lineHeight,
 					messageSpacing, history.layoutEpoch(), layoutMode, splitRatio,
 					visualSafety, client.getWindow().getScaleFactor());
@@ -141,7 +141,7 @@ public final class DualChatHudRenderer {
 		if (history.scrollOffsetPixels() > maximum) history.setScrollOffset(maximum, maximum);
 	}
 
-	private void drawMessage(DrawContext context, MinecraftClient client,
+	private void drawMessage(GuiGraphicsExtractor context, Minecraft client,
 							 ChatCanvasChannel channel, ChatCanvasMessage message, int messageIndex,
 							 ChannelMessageLayoutEngine.Layout layout,
 							 int contentLeft, int contentRight, int top,
@@ -180,16 +180,16 @@ public final class DualChatHudRenderer {
 				int outlineAlpha = Math.max(0, Math.min(255, (int) Math.round(
 						alpha * command.outlineOpacity() * 255)));
 				int outlineColor = (outlineAlpha << 24) | command.outlineColor();
-				SpacedTextRenderer.draw(context, client.textRenderer, layoutLine.text(), -1, 0,
+				SpacedTextRenderer.draw(context, client.font, layoutLine.text(), -1, 0,
 						outlineColor, false, text.characterSpacing());
-				SpacedTextRenderer.draw(context, client.textRenderer, layoutLine.text(), 1, 0,
+				SpacedTextRenderer.draw(context, client.font, layoutLine.text(), 1, 0,
 						outlineColor, false, text.characterSpacing());
-				SpacedTextRenderer.draw(context, client.textRenderer, layoutLine.text(), 0, -1,
+				SpacedTextRenderer.draw(context, client.font, layoutLine.text(), 0, -1,
 						outlineColor, false, text.characterSpacing());
-				SpacedTextRenderer.draw(context, client.textRenderer, layoutLine.text(), 0, 1,
+				SpacedTextRenderer.draw(context, client.font, layoutLine.text(), 0, 1,
 						outlineColor, false, text.characterSpacing());
 			}
-			SpacedTextRenderer.draw(context, client.textRenderer, layoutLine.text(), 0, 0,
+			SpacedTextRenderer.draw(context, client.font, layoutLine.text(), 0, 0,
 					color, text.shadow(), text.characterSpacing());
 			context.getMatrices().pop();
 			if (lineIndex == 0 && headWidth > 0) {
@@ -215,17 +215,17 @@ public final class DualChatHudRenderer {
 		}
 	}
 
-	private void addPlayerNameHitbox(MinecraftClient client, ChatCanvasMessage message,
+	private void addPlayerNameHitbox(Minecraft client, ChatCanvasMessage message,
 									 int messageIndex,
 									 ChannelMessageLayoutEngine.Line layoutLine,
 									 HitLine line) {
 		if (message.senderName() == null) return;
 		String name = message.senderName().getString();
 		double start = SpacedTextMetrics.xAtCodePoint(
-				client.textRenderer, layoutLine.text(), line.spacing(),
+				client.font, layoutLine.text(), line.spacing(),
 				layoutLine.playerNameRange().startCodePoint()) * line.scale();
 		double end = SpacedTextMetrics.xAtCodePoint(
-				client.textRenderer, layoutLine.text(), line.spacing(),
+				client.font, layoutLine.text(), line.spacing(),
 				layoutLine.playerNameRange().endCodePoint()) * line.scale();
 		double width = Math.max(0.0, end - start);
 		PlayerNameHitboxRegistry.add(new PlayerNameHitbox(
@@ -248,7 +248,7 @@ public final class DualChatHudRenderer {
 	public boolean copyCommandAt(double mouseX, double mouseY) {
 		HitLine line = hitAt(mouseX, mouseY);
 		if (line == null || line.channel() != ChatCanvasChannel.COMMAND_SYSTEM) return false;
-		MinecraftClient.getInstance().keyboard.setClipboard(line.message().content().getString());
+		Minecraft.getInstance().keyboardHandler.setClipboard(line.message().content().getString());
 		return true;
 	}
 
@@ -256,7 +256,7 @@ public final class DualChatHudRenderer {
 	public Style styleAt(double mouseX, double mouseY) {
 		HitLine line = hitAt(mouseX, mouseY);
 		if (line == null) return null;
-		return SpacedTextHitTester.styleAt(MinecraftClient.getInstance().textRenderer,
+		return SpacedTextHitTester.styleAt(Minecraft.getInstance().font,
 				line.text(), line.spacing(), (mouseX - line.x()) / line.scale());
 	}
 
@@ -293,7 +293,7 @@ public final class DualChatHudRenderer {
 	}
 
 	private ChatCanvasChannel channelAt(double x, double y) {
-		MinecraftClient client = MinecraftClient.getInstance();
+		Minecraft client = Minecraft.getInstance();
 		CommandSystemConfig command = ChatCanvasConfig.instance().commandSystem();
 		if (command.enabled() && contains(command.layout().toPixels(
 				client.getWindow().getScaledWidth(), client.getWindow().getScaledHeight()), x, y)) {
@@ -308,7 +308,7 @@ public final class DualChatHudRenderer {
 	}
 
 	private double maximumScroll(ChatCanvasChannel channel) {
-		MinecraftClient client = MinecraftClient.getInstance();
+		Minecraft client = Minecraft.getInstance();
 		LayoutConfig layout = channel == ChatCanvasChannel.PLAYER_CHAT
 				? ChatCanvasConfig.instance().layout() : ChatCanvasConfig.instance().commandSystem().layout();
 		ChatTextConfig text = channel == ChatCanvasChannel.PLAYER_CHAT
@@ -321,7 +321,7 @@ public final class DualChatHudRenderer {
 		int renderBottom = messageBottom(client, channel, box, text);
 		int available = Math.max(1, box.width() - background.horizontalPadding() * 2 - 2);
 		int lineHeight = Math.max(1, (int) Math.ceil(
-				client.textRenderer.fontHeight * text.fontScale() * text.lineSpacing()));
+				client.font.lineHeight * text.fontScale() * text.lineSpacing()));
 		int total = 0;
 		ChatChannelHistory history = ChatCanvasMessageManager.instance().history(channel);
 		for (ChatCanvasMessage message : history.messages()) {
@@ -343,7 +343,7 @@ public final class DualChatHudRenderer {
 					? strategy.wrapWidth(
 							available, headWidth, splitRatio, message.selfMessage())
 					: available;
-			total += ChannelMessageLayoutEngine.instance().layout(message, client.textRenderer,
+			total += ChannelMessageLayoutEngine.instance().layout(message, client.font,
 					wrapWidth, text, lineHeight,
 					spacing, history.layoutEpoch(), layoutMode, splitRatio,
 					text.shadow() ? 2 : 1,
@@ -352,19 +352,19 @@ public final class DualChatHudRenderer {
 		return Math.max(0, total - (renderBottom - box.y()) + background.verticalPadding() * 2);
 	}
 
-	private static int messageBottom(MinecraftClient client, ChatCanvasChannel channel,
+	private static int messageBottom(Minecraft client, ChatCanvasChannel channel,
 									 PixelLayout box, ChatTextConfig text) {
 		if (!(client.currentScreen instanceof ChatCanvasInputScreenBridge bridge)) {
 			return box.bottom();
 		}
-		TextFieldWidget field = bridge.chat_canvas$activeInputField();
+		EditBox field = bridge.chat_canvas$activeInputField();
 		if (field == null) return box.bottom();
 		boolean belongsHere = channel == ChatCanvasChannel.COMMAND_SYSTEM
 				? bridge.chat_canvas$inputMode() == ChatCanvasInputMode.COMMAND
 				: bridge.chat_canvas$inputMode() == ChatCanvasInputMode.PLAYER_CHAT;
 		if (!belongsHere) return box.bottom();
 		int minimum = Math.max(1, (int) Math.ceil(
-				client.textRenderer.fontHeight * text.fontScale()));
+				client.font.lineHeight * text.fontScale()));
 		return RuntimeChatBounds.calculate(
 				box, true, field.getHeight(), RuntimeChatBounds.DEFAULT_INPUT_GAP, minimum)
 				.messageBottom();
@@ -381,6 +381,6 @@ public final class DualChatHudRenderer {
 	}
 
 	private record HitLine(ChatCanvasChannel channel, ChatCanvasMessage message,
-						   OrderedText text, int x, int y, int width, int height,
+						   FormattedCharSequence text, int x, int y, int width, int height,
 						   double scale, double spacing) {}
 }

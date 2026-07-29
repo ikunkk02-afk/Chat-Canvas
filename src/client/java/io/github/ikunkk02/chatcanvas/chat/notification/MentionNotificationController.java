@@ -8,8 +8,8 @@ import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
 import java.util.UUID;
 
@@ -37,7 +37,7 @@ public final class MentionNotificationController {
 	}
 
 	public void receive(ChatCanvasMessage message) {
-		MinecraftClient client = MinecraftClient.getInstance();
+		Minecraft client = Minecraft.getInstance();
 		boolean debugSelfMention = MentionDebugPolicy.allowsSelfMention(client);
 		if (client.player == null || message == null
 				|| message.channel() != ChatCanvasChannel.PLAYER_CHAT

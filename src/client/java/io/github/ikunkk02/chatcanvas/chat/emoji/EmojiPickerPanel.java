@@ -15,14 +15,14 @@ import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.OwoUIAdapter;
 import io.wispforest.owo.ui.core.Sizing;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.ParentElement;
-import net.minecraft.client.gui.screen.ChatInputSuggestor;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.util.math.Rect2i;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.events.AbstractContainerEventHandler;
+import net.minecraft.client.gui.components.CommandSuggestions;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
+import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -42,8 +42,8 @@ public final class EmojiPickerPanel {
 	private final Map<EmojiCategory, ButtonComponent> categoryButtons =
 			new EnumMap<>(EmojiCategory.class);
 	private ChatScreen owner;
-	private TextFieldWidget playerField;
-	private ChatInputSuggestor suggestor;
+	private EditBox playerField;
+	private CommandSuggestions suggestor;
 	private OwoUIAdapter<FlowLayout> adapter;
 	private TextBoxComponent searchField;
 	private VirtualizedEmojiGrid grid;
@@ -68,8 +68,8 @@ public final class EmojiPickerPanel {
 	private long statusUntil;
 
 	public void init(
-			ChatScreen screen, TextFieldWidget field,
-			ChatInputSuggestor inputSuggestor) {
+			ChatScreen screen, EditBox field,
+			CommandSuggestions inputSuggestor) {
 		dispose();
 		owner = screen;
 		playerField = field;
@@ -99,8 +99,8 @@ public final class EmojiPickerPanel {
 
 	public void close() {
 		open = false;
-		if (searchField != null && !searchField.getText().isEmpty()) {
-			searchField.setText("");
+		if (searchField != null && !searchField.getValue().isEmpty()) {
+			searchField.setValue("");
 		}
 		focusChat();
 	}
@@ -166,8 +166,8 @@ public final class EmojiPickerPanel {
 		}
 		if (!open) return false;
 		if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-			if (searchField != null && !searchField.getText().isEmpty()) {
-				searchField.setText("");
+			if (searchField != null && !searchField.getValue().isEmpty()) {
+				searchField.setValue("");
 				updateGrid();
 			} else {
 				close();
@@ -213,7 +213,7 @@ public final class EmojiPickerPanel {
 	}
 
 	public void render(
-			DrawContext context, int mouseX, int mouseY, float delta) {
+			GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
 		if (owner == null || playerField == null) return;
 		if (fontEpoch != EmojiFontSupport.epoch()) {
 			refreshFontEntries();
@@ -243,16 +243,16 @@ public final class EmojiPickerPanel {
 		if (hovered != null) {
 			context.getMatrices().push();
 			context.getMatrices().translate(0.0f, 0.0f, 360.0f);
-			context.drawTooltip(MinecraftClient.getInstance().textRenderer,
-					Text.literal(hovered.unicode() + "  "
+			context.drawTooltip(Minecraft.getInstance().font,
+					Component.literal(hovered.unicode() + "  "
 							+ hovered.chineseName() + " / " + hovered.englishName()),
 					mouseX, mouseY);
 			context.getMatrices().pop();
 		}
 		if (statusKey != null && System.currentTimeMillis() < statusUntil) {
-			context.drawTextWithShadow(
-					MinecraftClient.getInstance().textRenderer,
-					Text.translatable(statusKey), x + 7, y + height - 12,
+			context.drawString(
+					Minecraft.getInstance().font,
+					Component.translatable(statusKey), x + 7, y + height - 12,
 					0xFFFF858D);
 		}
 	}
@@ -272,19 +272,19 @@ public final class EmojiPickerPanel {
 		root.padding(Insets.of(6));
 		root.gap(4);
 
-		searchField = Components.textBox(Sizing.fill(100));
+		searchField = UIComponents.textBox(Sizing.fill(100));
 		searchField.setMaxLength(64);
-		searchField.setPlaceholder(Text.translatable("chat_canvas.emoji.search"));
+		searchField.setHint(Component.translatable("chat_canvas.emoji.search"));
 		searchField.sizing(Sizing.fill(100), Sizing.fixed(18));
 		searchField.onChanged().subscribe(value -> updateGrid());
 		root.child(searchField);
 
-		FlowLayout categoryRows = Containers.verticalFlow(
+		FlowLayout categoryRows = UIContainers.verticalFlow(
 				Sizing.fill(100), Sizing.fixed(44));
 		categoryRows.gap(2);
 		int categoryWidth = Math.max(20, (width - 20) / 5);
 		for (int rowIndex = 0; rowIndex < 2; rowIndex++) {
-			FlowLayout row = Containers.horizontalFlow(
+			FlowLayout row = UIContainers.horizontalFlow(
 					Sizing.fill(100), Sizing.fixed(21));
 			row.gap(2);
 			for (int column = 0; column < 5; column++) {
@@ -316,7 +316,7 @@ public final class EmojiPickerPanel {
 
 	private void updateGrid() {
 		if (grid == null) return;
-		String query = searchField == null ? "" : searchField.getText();
+		String query = searchField == null ? "" : searchField.getValue();
 		List<EmojiEntry> values;
 		if (!query.isBlank()) {
 			values = EmojiRegistry.instance().search(query).stream()
@@ -337,7 +337,7 @@ public final class EmojiPickerPanel {
 
 	private void refreshFontEntries() {
 		supported = EmojiFontSupport.supportedEntries(
-				MinecraftClient.getInstance().textRenderer);
+				Minecraft.getInstance().font);
 		List<EmojiCategory> categories = new ArrayList<>();
 		categories.add(EmojiCategory.RECENT);
 		for (EmojiCategory candidate : EmojiCategory.values()) {
@@ -359,7 +359,7 @@ public final class EmojiPickerPanel {
 		inputController.capture(
 				io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputMode.PLAYER_CHAT,
 				new ChatInputSnapshot(
-						playerField.getText(), playerField.getCursor(),
+						playerField.getValue(), playerField.getCursor(),
 						accessor.chat_canvas$selectionEnd()));
 		UnicodeTextNavigator.EditResult result =
 				inputController.insertPlayerText(entry.unicode(), 256);
@@ -369,7 +369,7 @@ public final class EmojiPickerPanel {
 			focusChat();
 			return;
 		}
-		playerField.setText(result.text());
+		playerField.setValue(result.text());
 		playerField.setSelectionStart(result.cursor());
 		playerField.setSelectionEnd(result.selectionEnd());
 		inputController.capture(
@@ -395,7 +395,7 @@ public final class EmojiPickerPanel {
 			width = nextWidth;
 			height = nextHeight;
 		}
-		Rect2i suggestions = suggestionArea();
+		ScreenRectangle suggestions = suggestionArea();
 		int[][] candidates = {
 				{buttonX + BUTTON_WIDTH - width, playerField.getY() - height - 18},
 				{playerField.getX() + playerField.getWidth() + BUTTON_SPACE + 2,
@@ -417,17 +417,17 @@ public final class EmojiPickerPanel {
 		}
 	}
 
-	private void renderButton(DrawContext context, int mouseX, int mouseY) {
+	private void renderButton(GuiGraphicsExtractor context, int mouseX, int mouseY) {
 		boolean hovered = hit(mouseX, mouseY,
 				buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT);
 		context.fill(buttonX, buttonY,
 				buttonX + BUTTON_WIDTH, buttonY + BUTTON_HEIGHT,
 				open ? 0xE0526684 : hovered ? 0xD0445066 : 0xB02A3240);
-		context.drawBorder(buttonX, buttonY,
+		context.renderOutline(buttonX, buttonY,
 				BUTTON_WIDTH, BUTTON_HEIGHT, open ? 0xFFF6C85F : 0xFF71809A);
-		context.drawCenteredTextWithShadow(
-				MinecraftClient.getInstance().textRenderer,
-				Text.literal("😀"), buttonX + BUTTON_WIDTH / 2,
+		context.drawCenteredString(
+				Minecraft.getInstance().font,
+				Component.literal("😀"), buttonX + BUTTON_WIDTH / 2,
 				buttonY + 3, 0xFFFFFF);
 	}
 
@@ -478,19 +478,19 @@ public final class EmojiPickerPanel {
 				button.setMessage(categoryText(candidate)));
 	}
 
-	private Text categoryText(EmojiCategory candidate) {
+	private Component categoryText(EmojiCategory candidate) {
 		String marker = candidate == category ? "▶ " : "";
-		return Text.literal(marker).append(
-				Text.translatable(candidate.translationKey() + ".short"));
+		return Component.literal(marker).append(
+				Component.translatable(candidate.translationKey() + ".short"));
 	}
 
 	private void setSearchFocused(boolean focused) {
 		if (searchField != null) searchField.setFocused(focused);
 	}
 
-	private Rect2i suggestionArea() {
+	private ScreenRectangle suggestionArea() {
 		if (suggestor == null) return null;
-		ChatInputSuggestor.SuggestionWindow window =
+		CommandSuggestions.SuggestionWindow window =
 				((ChatInputSuggestorAccessor) suggestor).chat_canvas$window();
 		return window == null ? null
 				: ((SuggestionWindowAccessor) window).chat_canvas$area();
@@ -501,7 +501,7 @@ public final class EmojiPickerPanel {
 	}
 
 	private static long overlap(
-			int x, int y, int width, int height, Rect2i other) {
+			int x, int y, int width, int height, ScreenRectangle other) {
 		if (other == null) return 0L;
 		int overlapWidth = Math.max(0,
 				Math.min(x + width, other.getX() + other.getWidth())
