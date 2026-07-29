@@ -87,7 +87,7 @@ public final class ChatCanvasMessageIngress {
 				"Mention trace id={} ingress={} channel={} source={} sender={} local={} self={} matched={} debugSelf={}",
 				id, context.ingress(), classified.channel(), classified.source(),
 				classified.senderName() == null ? "<unknown>" : classified.senderName().getString(),
-				client.player == null ? "<none>" : client.player.getGameProfile().getName(),
+				client.player == null ? "<none>" : client.player.getGameProfile().name(),
 				classified.selfMessage(), mentionMatched, debugSelfMention);
 		ChatCanvasMessage result = new ChatCanvasMessage(
 				id,
@@ -110,10 +110,10 @@ public final class ChatCanvasMessageIngress {
 
 	private void mirrorToVanilla(Component message) {
 		Minecraft client = Minecraft.getInstance();
-		if (client.inGameHud == null) return;
+		if (client.gui == null) return;
 		try {
 			fallbackBridge = true;
-			client.inGameHud.getChat().addMessage(message);
+			client.gui.getChat().addMessage(message);
 		} finally {
 			fallbackBridge = false;
 		}
@@ -124,7 +124,7 @@ public final class ChatCanvasMessageIngress {
 		if (client.player == null) return false;
 		return !MentionMatcher.findMentions(
 				message.getString(),
-				client.player.getGameProfile().getName(),
+				client.player.getGameProfile().name(),
 				ChatCanvasConfig.instance().mention().requireAtSymbol()).isEmpty();
 	}
 
@@ -132,9 +132,9 @@ public final class ChatCanvasMessageIngress {
 			MessageIngress ingress, MessageSignature signature,
 			PlayerChatIdentity sender, Component senderName, boolean overlay) {
 		Minecraft client = Minecraft.getInstance();
-		UUID localUuid = client.player == null ? null : client.player.getUuid();
+		UUID localUuid = client.player == null ? null : client.player.uuid();
 		String localName = client.player == null
-				? "" : client.player.getGameProfile().getName();
+				? "" : client.player.getGameProfile().name();
 		List<PlayerChatIdentity> online = List.copyOf(PlayerRosterTracker.onlinePlayers());
 		return new MessageContext(
 				ingress, signature, sender, senderName, online,

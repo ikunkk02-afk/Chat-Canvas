@@ -11,7 +11,7 @@ import net.minecraft.network.chat.Component;
 
 public record ChatRenderContext(
 		OwoUIGraphics drawContext,
-		Font textRenderer,
+		font font,
 		int x,
 		int y,
 		int width,

@@ -83,7 +83,7 @@ public final class DualChatHudRenderer {
 							   ChatTextConfig text, ChatBackgroundConfig background,
 							   int rgb, int fadeSeconds, int messageSpacing) {
 		PixelLayout box = layoutConfig.toPixels(
-				client.getWindow().getScaledWidth(), client.getWindow().getScaledHeight());
+				client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight());
 		int renderBottom = messageBottom(client, channel, box, text);
 		int padding = background.horizontalPadding();
 		int available = Math.max(1, box.width() - padding * 2 - 2);
@@ -91,7 +91,7 @@ public final class DualChatHudRenderer {
 				client.font.lineHeight * text.fontScale() * text.lineSpacing()));
 		ChatChannelHistory history = ChatCanvasMessageManager.instance().history(channel);
 		List<ChatCanvasMessage> messages = history.messages();
-		boolean open = client.currentScreen instanceof ChatScreen;
+		boolean open = client.screen instanceof ChatScreen;
 		long now = System.currentTimeMillis();
 		double scroll = history.scrollOffsetPixels();
 		int cursorBottom = renderBottom + (int) Math.round(scroll) - padding;
@@ -296,12 +296,12 @@ public final class DualChatHudRenderer {
 		Minecraft client = Minecraft.getInstance();
 		CommandSystemConfig command = ChatCanvasConfig.instance().commandSystem();
 		if (command.enabled() && contains(command.layout().toPixels(
-				client.getWindow().getScaledWidth(), client.getWindow().getScaledHeight()), x, y)) {
+				client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight()), x, y)) {
 			return ChatCanvasChannel.COMMAND_SYSTEM;
 		}
 		if (ChatCanvasConfig.instance().playerChatEnabled() && contains(
 				ChatCanvasConfig.instance().layout().toPixels(
-						client.getWindow().getScaledWidth(), client.getWindow().getScaledHeight()), x, y)) {
+						client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight()), x, y)) {
 			return ChatCanvasChannel.PLAYER_CHAT;
 		}
 		return null;
@@ -317,7 +317,7 @@ public final class DualChatHudRenderer {
 				? ChatCanvasConfig.instance().background() : ChatCanvasConfig.instance().commandSystem().background();
 		int spacing = channel == ChatCanvasChannel.PLAYER_CHAT ? 1
 				: (int) Math.round(ChatCanvasConfig.instance().commandSystem().messageSpacing());
-		PixelLayout box = layout.toPixels(client.getWindow().getScaledWidth(), client.getWindow().getScaledHeight());
+		PixelLayout box = layout.toPixels(client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight());
 		int renderBottom = messageBottom(client, channel, box, text);
 		int available = Math.max(1, box.width() - background.horizontalPadding() * 2 - 2);
 		int lineHeight = Math.max(1, (int) Math.ceil(
@@ -354,7 +354,7 @@ public final class DualChatHudRenderer {
 
 	private static int messageBottom(Minecraft client, ChatCanvasChannel channel,
 									 PixelLayout box, ChatTextConfig text) {
-		if (!(client.currentScreen instanceof ChatCanvasInputScreenBridge bridge)) {
+		if (!(client.screen instanceof ChatCanvasInputScreenBridge bridge)) {
 			return box.bottom();
 		}
 		EditBox field = bridge.chat_canvas$activeInputField();

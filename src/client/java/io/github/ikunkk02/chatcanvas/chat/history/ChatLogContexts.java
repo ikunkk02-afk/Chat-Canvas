@@ -8,8 +8,8 @@ public final class ChatLogContexts {
 
     public static ChatLogContext current(Minecraft client) {
         if (client == null) return null;
-        if (client.hasSingleplayerServer() && client.getServer() != null) {
-            String worldLabel = client.getServer().getSaveProperties().getLevelName();
+        if (client.hasSingleplayerServer() && client.getSingleplayerServer() != null) {
+            String worldLabel = client.getSingleplayerServer().getLevelSource().getLevelId();
             return ChatLogContext.singleplayer(worldLabel, worldLabel);
         }
         var entry = client.getCurrentServer();

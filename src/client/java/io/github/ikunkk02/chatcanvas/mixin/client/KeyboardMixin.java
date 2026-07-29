@@ -39,7 +39,7 @@ public abstract class KeyboardMixin {
             return;
         }
 
-        if (!(client.currentScreen instanceof ChatScreen chatScreen)) {
+        if (!(client.screen instanceof ChatScreen chatScreen)) {
             return;
         }
 

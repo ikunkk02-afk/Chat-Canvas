@@ -28,7 +28,7 @@ public final class ChatFieldActions {
 		}
 		field.setCursor(insertion.cursorUtf16(), false);
 		field.setFocused(true);
-		suggestor.refresh();
+		suggestor.updateCommandInfo();
 		return true;
 	}
 
@@ -40,7 +40,7 @@ public final class ChatFieldActions {
 		field.setValue(replacement);
 		field.setCursorToEnd(false);
 		field.setFocused(true);
-		suggestor.refresh();
+		suggestor.updateCommandInfo();
 		return previous;
 	}
 
@@ -53,7 +53,7 @@ public final class ChatFieldActions {
 			field.insertText(command);
 		}
 		field.setFocused(true);
-		suggestor.refresh();
+		suggestor.updateCommandInfo();
 	}
 
 	public static void restore(
@@ -62,7 +62,7 @@ public final class ChatFieldActions {
 		field.setCursorPosition(snapshot.cursor());
 		field.setHighlightPos(snapshot.selectionEnd());
 		field.setFocused(true);
-		suggestor.refresh();
+		suggestor.updateCommandInfo();
 	}
 
 	public record InputSnapshot(String text, int cursor, int selectionEnd) {

@@ -72,7 +72,7 @@ public final class PlayerQuickActionMenu {
 	public void render(ChatScreen screen, GuiGraphicsExtractor context, int mouseX, int mouseY) {
 		if (owner != screen || target == null) return;
 		context.fill(x, y, x + WIDTH, y + HEIGHT, 0xEE171B24);
-		context.renderOutline(x, y, WIDTH, HEIGHT, 0xFF59677C);
+		context.outline(x, y, WIDTH, HEIGHT, 0xFF59677C);
 		for (int row = 0; row < 3; row++) {
 			int rowY = y + row * ROW_HEIGHT;
 			if (mouseX >= x && mouseX < x + WIDTH

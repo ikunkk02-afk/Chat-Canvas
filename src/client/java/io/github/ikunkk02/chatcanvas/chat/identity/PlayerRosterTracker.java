@@ -25,8 +25,8 @@ public final class PlayerRosterTracker {
 			clear();
 			return;
 		}
-		List<PlayerChatIdentity> updated = handler.getListedPlayerListEntries().stream()
-				.map(PlayerListEntry::getProfile)
+		List<PlayerChatIdentity> updated = handler.getListedPlayers().stream()
+				.map(PlayerInfo::getProfile)
 				.map(PlayerRosterTracker::fromProfile)
 				.sorted(Comparator.comparing(PlayerChatIdentity::playerName,
 						String.CASE_INSENSITIVE_ORDER))
@@ -38,7 +38,7 @@ public final class PlayerRosterTracker {
 	}
 
 	public static void refreshFromClient() {
-		refresh(Minecraft.getInstance().getNetworkHandler());
+		refresh(Minecraft.getInstance().getConnection());
 	}
 
 	public static void clear() {
@@ -65,7 +65,7 @@ public final class PlayerRosterTracker {
 	}
 
 	private static PlayerChatIdentity fromProfile(GameProfile profile) {
-		return new PlayerChatIdentity(profile.getId(), profile.getName(), true);
+		return new PlayerChatIdentity(profile.uuid(), profile.name(), true);
 	}
 
 	private static PlayerChatIdentity preview(String name) {

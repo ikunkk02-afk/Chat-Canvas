@@ -80,7 +80,7 @@ public final class ChatHeadsCompat {
 				|| !channelAdapterAvailable()) {
 			return false;
 		}
-		PlayerListEntry player = client.getNetworkHandler()
+		PlayerInfo player = client.getConnection()
 				.getPlayerListEntry(message.senderUuid());
 		if (player == null) return false;
 		try {
@@ -151,8 +151,8 @@ public final class ChatHeadsCompat {
 					|| !method.getParameterTypes()[0].isAssignableFrom(visibleClass)) {
 				continue;
 			}
-			if (method.getName().equals("getHeadData")) getHeadData = method;
-			if (method.getName().equals("getTextWidthDifference")) {
+			if (method.name().equals("getHeadData")) getHeadData = method;
+			if (method.name().equals("getTextWidthDifference")) {
 				getTextWidthDifference = method;
 			}
 		}
@@ -173,7 +173,7 @@ public final class ChatHeadsCompat {
 				GuiGraphicsExtractor.class,
 				int.class,
 				int.class,
-				PlayerListEntry.class,
+				PlayerInfo.class,
 				float.class);
 		channelHeadWidth = chatHeads.getMethod("headWidth");
 	}
@@ -185,8 +185,8 @@ public final class ChatHeadsCompat {
 				&& message.channel() == ChatCanvasChannel.PLAYER_CHAT
 				&& message.senderUuid() != null
 				&& client != null
-				&& client.getNetworkHandler() != null
-				&& client.getNetworkHandler()
+				&& client.getConnection() != null
+				&& client.getConnection()
 				.getPlayerListEntry(message.senderUuid()) != null;
 	}
 

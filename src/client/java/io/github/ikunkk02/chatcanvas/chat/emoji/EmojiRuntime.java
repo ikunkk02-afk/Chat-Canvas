@@ -41,7 +41,7 @@ public final class EmojiRuntime {
 
 	public static void tick(Minecraft client) {
 		if (!pendingCorruptNotice || client == null
-				|| client.player == null || client.inGameHud == null) return;
+				|| client.player == null || client.gui == null) return;
 		pendingCorruptNotice = false;
 		ChatCanvasMessageIngress.instance().reportError(
 				Component.translatable("chat_canvas.emoji.recent_corrupt"), null);

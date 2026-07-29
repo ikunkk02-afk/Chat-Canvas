@@ -48,7 +48,7 @@ public final class MentionNotificationController {
 				: new PlayerChatIdentity(
 						message.senderUuid(), message.senderName().getString(), true);
 		if (!debugSelfMention && config.ignoreOwnMessages() && isOwn(
-				identity, client.player.getGameProfile().getName(), client.player.getUuid())) return;
+				identity, client.player.getGameProfile().name(), client.player.uuid())) return;
 		if (!deduplicator.accept(message.messageId(), message.receivedAt())) {
 			ChatCanvas.LOGGER.debug("Mention notification suppressed as duplicate: id={}",
 					message.messageId());

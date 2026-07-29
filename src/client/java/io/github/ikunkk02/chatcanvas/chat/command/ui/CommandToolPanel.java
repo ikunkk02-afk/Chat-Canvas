@@ -403,7 +403,7 @@ public final class CommandToolPanel {
 		if (config.showPanelButton() && !open && openProgress <= 0.01f) {
 			int bx = buttonX(screen, commandField);
 			fillButton(context, bx, commandField.getY(), 54, 14, false);
-			context.drawCenteredString(
+			context.centeredText(
 					Minecraft.getInstance().font,
 					Component.translatable("chat_canvas.command.tools"),
 					bx + 27, commandField.getY() + 3, 0xFFFFFF);
@@ -415,8 +415,8 @@ public final class CommandToolPanel {
 		int px = visualX;
 		Font renderer = Minecraft.getInstance().font;
 		context.fill(px, y, px + WIDTH, y + HEIGHT, 0xF0181B25);
-		context.renderOutline(px, y, WIDTH, HEIGHT, 0xFF59647A);
-		context.drawString(renderer,
+		context.outline(px, y, WIDTH, HEIGHT, 0xFF59647A);
+		context.text(renderer,
 				Component.translatable("chat_canvas.command.tools"),
 				px + 8, y + 5, 0xFFFFFF);
 		if (dialog != Dialog.NONE) {
@@ -429,13 +429,13 @@ public final class CommandToolPanel {
 		searchField.setWidth(WIDTH - 46);
 		searchField.render(context, mouseX, mouseY, delta);
 		fillButton(context, px + WIDTH - 32, y + 43, 24, 18, false);
-		context.drawCenteredString(renderer,
+		context.centeredText(renderer,
 				Component.literal(tab == CommandToolTab.CLIPBOARD ? "↻" : "×"),
 				px + WIDTH - 20, y + 48, 0xFFFFFF);
 		renderToolbar(context, renderer, px);
 		List<Row> rows = rows();
 		if (rows.isEmpty()) {
-			context.drawCenteredString(renderer,
+			context.centeredText(renderer,
 					Component.translatable(emptyStateKey()), px + WIDTH / 2,
 					y + 139, 0xFFADB6C7);
 		} else {
@@ -447,10 +447,10 @@ public final class CommandToolPanel {
 			}
 		}
 		if (statusKey != null) {
-			context.drawString(renderer, Component.translatable(statusKey),
+			context.text(renderer, Component.translatable(statusKey),
 					px + 8, y + HEIGHT - 14, 0xFFFFCC66);
 		} else if (tab == CommandToolTab.CLIPBOARD && clipboard.multipleLines()) {
-			context.drawString(renderer,
+			context.text(renderer,
 					Component.translatable("chat_canvas.command.clipboard.multiple"),
 					px + 8, y + HEIGHT - 14, 0xFFFFCC66);
 		}
@@ -466,7 +466,7 @@ public final class CommandToolPanel {
 			boolean active = tab.ordinal() == i;
 			int tabX = px + 8 + i * 92;
 			fillButton(context, tabX, y + 20, 88, 18, active);
-			context.drawCenteredString(renderer,
+			context.centeredText(renderer,
 					Component.translatable(keys[i]), tabX + 44, y + 25, 0xFFFFFF);
 			if (active) context.fill(tabX + 6, y + 36, tabX + 82, y + 38,
 					0xFF9CC8FF);
@@ -479,11 +479,11 @@ public final class CommandToolPanel {
 			case RECENT, FAVORITES -> "chat_canvas.command.favorite_current";
 			case CLIPBOARD -> "chat_canvas.command.clipboard.refresh";
 		};
-		context.drawCenteredString(renderer, Component.translatable(primary),
+		context.centeredText(renderer, Component.translatable(primary),
 				px + 66, y + 71, 0xFFFFFF);
 		if (tab == CommandToolTab.RECENT) {
 			fillButton(context, px + WIDTH - 124, y + 66, 116, 18, false);
-			context.drawCenteredString(renderer,
+			context.centeredText(renderer,
 					Component.translatable("chat_canvas.command.clear_all"),
 					px + WIDTH - 66, y + 71, 0xFFFFB0B0);
 		}
@@ -498,11 +498,11 @@ public final class CommandToolPanel {
 		boolean active = listFocused && index == selected;
 		context.fill(px + 8, rowY, px + WIDTH - 8, rowY + ROW_HEIGHT - 2,
 				active ? 0xDD40516B : hover ? 0xCC354157 : 0xAA252B39);
-		context.drawString(renderer,
+		context.text(renderer,
 				Component.literal(shorten(row.title(), 30)), px + 12, rowY + 3,
 				0xFFFFFFFF);
 		int commandColor = row.dangerous() ? 0xFFFFB36A : 0xFFB7BFCE;
-		context.drawString(renderer,
+		context.text(renderer,
 				Component.literal((row.dangerous() ? "⚠ " : "")
 						+ shorten(row.command(), 34)),
 				px + 12, rowY + 16, commandColor);
@@ -512,14 +512,14 @@ public final class CommandToolPanel {
 			case CLIPBOARD -> "C";
 		};
 		if (!actions.isEmpty()) {
-			context.drawString(renderer, Component.literal(actions),
+			context.text(renderer, Component.literal(actions),
 					px + WIDTH - renderer.width(actions) - 12,
 					rowY + 7, 0xFFFFD36A);
 		}
 		if (hover && renderer.width(row.command()) > WIDTH - 34) {
-			context.drawTooltip(renderer, Component.literal(row.command()), mouseX, mouseY);
+			context.setTooltipForNextFrame(renderer, Component.literal(row.command()), mouseX, mouseY);
 		} else if (hover && row.dangerous()) {
-			context.drawTooltip(renderer,
+			context.setTooltipForNextFrame(renderer,
 					Component.translatable("chat_canvas.command.dangerous"),
 					mouseX, mouseY);
 		}
@@ -535,8 +535,8 @@ public final class CommandToolPanel {
 		context.fill(px + 1, y + 18, px + WIDTH - 1, y + HEIGHT - 1,
 				0xFF10131B);
 		context.fill(dx, dy, dx + dialogWidth, y + HEIGHT - 8, 0xFF171B25);
-		context.renderOutline(dx, dy, dialogWidth, HEIGHT - 30, 0xFF73809A);
-		context.drawString(renderer, Component.translatable(dialog.titleKey),
+		context.outline(dx, dy, dialogWidth, HEIGHT - 30, 0xFF73809A);
+		context.text(renderer, Component.translatable(dialog.titleKey),
 				dx + 8, dy + 8, 0xFFFFFFFF);
 		if (dialog == Dialog.ADD_FAVORITE
 				|| dialog == Dialog.EDIT_FAVORITE) {
@@ -546,16 +546,16 @@ public final class CommandToolPanel {
 			favoriteCommandField.setX(dx + 8);
 			favoriteCommandField.setY(dy + 76);
 			favoriteCommandField.setWidth(dialogWidth - 16);
-			context.drawString(renderer,
+			context.text(renderer,
 					Component.translatable("chat_canvas.command.name"),
 					dx + 8, dy + 23, 0xFF9FAABD);
-			context.drawString(renderer,
+			context.text(renderer,
 					Component.translatable("chat_canvas.command.command"),
 					dx + 8, dy + 65, 0xFF9FAABD);
 			nameField.render(context, mouseX, mouseY, delta);
 			favoriteCommandField.render(context, mouseX, mouseY, delta);
 		} else {
-			context.drawTextWrapped(renderer,
+			context.textWithWordWrap(renderer,
 					Component.translatable(dialog == Dialog.CONFIRM_SENSITIVE
 							? "chat_canvas.command.plaintext_warning"
 							: "chat_canvas.command.cannot_restore"),
@@ -563,9 +563,9 @@ public final class CommandToolPanel {
 		}
 		fillButton(context, dx + 8, y + HEIGHT - 32, 100, 18, false);
 		fillButton(context, px + WIDTH - 108, y + HEIGHT - 32, 100, 18, true);
-		context.drawCenteredString(renderer, Component.translatable("gui.cancel"),
+		context.centeredText(renderer, Component.translatable("gui.cancel"),
 				dx + 58, y + HEIGHT - 27, 0xFFFFFF);
-		context.drawCenteredString(renderer, Component.translatable("gui.ok"),
+		context.centeredText(renderer, Component.translatable("gui.ok"),
 				px + WIDTH - 58, y + HEIGHT - 27, 0xFFFFFF);
 	}
 
@@ -813,7 +813,7 @@ public final class CommandToolPanel {
 			int width, int height, boolean active) {
 		context.fill(x, y, x + width, y + height,
 				active ? 0xFF405C82 : 0xCC30394B);
-		context.renderOutline(x, y, width, height, 0xFF5D6A82);
+		context.outline(x, y, width, height, 0xFF5D6A82);
 	}
 
 	private static String shorten(String value, int limit) {

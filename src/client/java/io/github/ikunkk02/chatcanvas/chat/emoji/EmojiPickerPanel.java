@@ -243,14 +243,14 @@ public final class EmojiPickerPanel {
 		if (hovered != null) {
 			context.pose().pushMatrix();
 			context.pose().translate(0.0f, 0.0f, 360.0f);
-			context.drawTooltip(Minecraft.getInstance().font,
+			context.setTooltipForNextFrame(Minecraft.getInstance().font,
 					Component.literal(hovered.unicode() + "  "
 							+ hovered.chineseName() + " / " + hovered.englishName()),
 					mouseX, mouseY);
 			context.pose().popMatrix();
 		}
 		if (statusKey != null && System.currentTimeMillis() < statusUntil) {
-			context.drawString(
+			context.text(
 					Minecraft.getInstance().font,
 					Component.translatable(statusKey), x + 7, y + height - 12,
 					0xFFFF858D);
@@ -379,7 +379,7 @@ public final class EmojiPickerPanel {
 		EmojiRuntime.recent().recordSelected(entry.unicode());
 		if (suggestor != null) {
 			suggestor.setWindowActive(!result.text().isEmpty());
-			suggestor.refresh();
+			suggestor.updateCommandInfo();
 		}
 		updateGrid();
 		focusChat();
@@ -423,9 +423,9 @@ public final class EmojiPickerPanel {
 		context.fill(buttonX, buttonY,
 				buttonX + BUTTON_WIDTH, buttonY + BUTTON_HEIGHT,
 				open ? 0xE0526684 : hovered ? 0xD0445066 : 0xB02A3240);
-		context.renderOutline(buttonX, buttonY,
+		context.outline(buttonX, buttonY,
 				BUTTON_WIDTH, BUTTON_HEIGHT, open ? 0xFFF6C85F : 0xFF71809A);
-		context.drawCenteredString(
+		context.centeredText(
 				Minecraft.getInstance().font,
 				Component.literal("😀"), buttonX + BUTTON_WIDTH / 2,
 				buttonY + 3, 0xFFFFFF);

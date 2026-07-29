@@ -151,7 +151,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	}
 
 	@Override
-	public void render(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+	public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
 		double deltaSeconds = animationClock.tick();
 		if (settingsPanel != null) {
 			settingsPanel.update(deltaSeconds);
@@ -275,7 +275,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	@Override
 	public void tick() {
 		super.tick();
-		if (client != null && !client.isWindowFocused()) {
+		if (client != null && !client.isWindowActive()) {
 			pointerCapture.cancel();
 		}
 	}

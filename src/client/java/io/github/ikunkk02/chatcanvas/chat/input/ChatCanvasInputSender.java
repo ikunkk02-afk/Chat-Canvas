@@ -10,27 +10,27 @@ public final class ChatCanvasInputSender {
 
 	public static boolean sendPlayerChat(
 			Minecraft client, ChatScreen screen, String input) {
-		String message = screen.normalize(
+		String message = screen.normalizeChatMessage(
 				UnicodeTextNavigator.truncateAtGraphemeBoundary(input, 256));
 		if (message.isEmpty() || message.startsWith("/") || client.player == null) {
 			return false;
 		}
-		client.inGameHud.getChat().addToMessageHistory(message);
-		client.player.networkHandler.sendChatMessage(message);
+		client.gui.getChat().addRecentChat(message);
+		client.player.connection.sendChat(message);
 		return true;
 	}
 
 	public static boolean executeCommand(
 			Minecraft client, ChatScreen screen, String input) {
-		String normalized = screen.normalize(
+		String normalized = screen.normalizeChatMessage(
 				UnicodeTextNavigator.truncateAtGraphemeBoundary(input, 256));
 		if (client.player == null) return false;
 		String command = normalized.startsWith("/")
 				? normalized.substring(1) : normalized;
 		if (command.isBlank()) return false;
 		String historyEntry = "/" + command;
-		client.inGameHud.getChat().addToMessageHistory(historyEntry);
-		client.player.networkHandler.sendChatCommand(command);
+		client.gui.getChat().addRecentChat(historyEntry);
+		client.player.connection.sendCommand(command);
 		return true;
 	}
 }

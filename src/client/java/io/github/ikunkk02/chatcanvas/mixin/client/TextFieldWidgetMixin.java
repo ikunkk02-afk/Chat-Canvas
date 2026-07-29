@@ -33,7 +33,7 @@ import java.util.function.BiFunction;
 @Mixin(EditBox.class)
 public abstract class TextFieldWidgetMixin {
 	@Shadow @Final
-	private Font textRenderer;
+	private font font;
 	@Shadow
 	private String text;
 	@Shadow
@@ -240,7 +240,7 @@ public abstract class TextFieldWidgetMixin {
 						cursorX, textY - 1, cursorX + 1, textY + 10,
 						-3092272);
 			} else {
-				context.drawString(textRenderer, "_", cursorX, textY, color);
+				context.text(textRenderer, "_", cursorX, textY, color);
 			}
 		}
 		if (selectionOffset != cursorOffset) {

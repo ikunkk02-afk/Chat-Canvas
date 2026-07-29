@@ -210,13 +210,13 @@ public final class ChatRenderEngine {
 		int textX = context.x() + HORIZONTAL_PADDING;
 		SpacedTextRenderer.draw(
 				context.drawContext(), context.font(),
-				context.inputPlaceholder().asOrderedText(),
+				context.inputPlaceholder().getVisualOrderText(),
 				textX, textY, color, true,
 				context.textConfig().characterSpacing());
 		int cursorX = Math.min(context.right() - 2,
 				textX + SpacedTextMetrics.width(
 						context.font(),
-						context.inputPlaceholder().asOrderedText(),
+						context.inputPlaceholder().getVisualOrderText(),
 						context.textConfig().characterSpacing()) + 2);
 		context.drawContext().fill(cursorX, textY, cursorX + 1,
 				Math.min(bounds.inputBottom() - 1, textY + context.font().lineHeight),

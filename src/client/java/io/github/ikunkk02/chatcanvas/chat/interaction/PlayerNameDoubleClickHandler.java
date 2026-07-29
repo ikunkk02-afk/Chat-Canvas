@@ -96,7 +96,7 @@ public final class PlayerNameDoubleClickHandler {
 		}
 		chatField.setCursor(insertion.cursorUtf16(), false);
 		chatField.setFocused(true);
-		suggestor.refresh();
+		suggestor.updateCommandInfo();
 		clearFeedback();
 		return true;
 	}
@@ -105,8 +105,8 @@ public final class PlayerNameDoubleClickHandler {
 		MentionConfig config = ChatCanvasConfig.instance().mention();
 		long now = Util.getMillis();
 		if (!config.doubleClickEnabled()
-				|| Minecraft.getInstance().currentScreen != screen
-				|| !Minecraft.getInstance().isWindowFocused()) {
+				|| Minecraft.getInstance().screen != screen
+				|| !Minecraft.getInstance().isWindowActive()) {
 			state.reset();
 		} else {
 			state.expire(now, config.doubleClickIntervalMs());
@@ -139,10 +139,10 @@ public final class PlayerNameDoubleClickHandler {
 		Minecraft client = Minecraft.getInstance();
 		if (client.player == null) return false;
 		if (hitbox.playerUuid() != null) {
-			return hitbox.playerUuid().equals(client.player.getUuid());
+			return hitbox.playerUuid().equals(client.player.uuid());
 		}
 		return PlayerColorConfig.normalizeName(hitbox.playerName()).equals(
-				PlayerColorConfig.normalizeName(client.player.getGameProfile().getName()));
+				PlayerColorConfig.normalizeName(client.player.getGameProfile().name()));
 	}
 
 	private void showFeedback(String translationKey, long now) {

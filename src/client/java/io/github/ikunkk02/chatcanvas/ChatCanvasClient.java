@@ -102,19 +102,19 @@ public final class ChatCanvasClient implements ClientModInitializer {
 			ChatLayoutRuntime.tick(client);
 			CommandToolRuntime.manager().tick(System.currentTimeMillis());
 			EmojiRuntime.tick(client);
-			if (client.currentScreen instanceof ChatCanvasInputScreenBridge bridge) {
+			if (client.screen instanceof ChatCanvasInputScreenBridge bridge) {
 				bridge.chat_canvas$voiceTick();
 			} else if (VoiceInputManager.instance().isBusy()) {
 				VoiceInputManager.instance().cancel();
 			}
-			if (client.currentScreen instanceof net.minecraft.client.gui.screen.ChatScreen chatScreen) {
+			if (client.screen instanceof net.minecraft.client.gui.screen.ChatScreen chatScreen) {
 				PlayerNameDoubleClickHandler.instance().tick(chatScreen);
 			} else {
 				PlayerNameDoubleClickHandler.instance().reset();
 			}
 			while (openEditor.wasPressed()) {
-				if (!(client.currentScreen instanceof ChatCanvasEditorScreen)) {
-					client.setScreen(EditorScreenFactory.create(client.currentScreen));
+				if (!(client.screen instanceof ChatCanvasEditorScreen)) {
+					client.setScreen(EditorScreenFactory.create(client.screen));
 				}
 			}
 		});

@@ -85,7 +85,7 @@ public final class VoiceInputOverlay {
 			mouseHolding = false;
 			manager.finish();
 		}
-		if (keyboardHolding && !Minecraft.getInstance().isWindowFocused()) {
+		if (keyboardHolding && !Minecraft.getInstance().isWindowActive()) {
 			cancel();
 		}
 	}
@@ -115,7 +115,7 @@ public final class VoiceInputOverlay {
 		installPrompt = false;
 	}
 
-	public void render(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+	public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
 		if (owner == null || field == null) return;
 		buttonX = field.getX() + field.width() + EmojiOffset.TOTAL_SPACE + 1;
 		buttonY = field.getY() - 1;
@@ -132,7 +132,7 @@ public final class VoiceInputOverlay {
 				: state == VoiceInputState.MODEL_MISSING || state == VoiceInputState.ERROR
 				? 0xE06B4430 : hovered ? 0xD0445066 : 0xB02A3240;
 		context.fill(buttonX, buttonY, buttonX + BUTTON_WIDTH, buttonY + BUTTON_HEIGHT, fill);
-		context.renderOutline(buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT,
+		context.outline(buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT,
 				state == VoiceInputState.LISTENING ? 0xFFFF858D : 0xFF71809A);
 		int cx = buttonX + 9;
 		context.fill(cx - 2, buttonY + 3, cx + 3, buttonY + 9, 0xFFE7ECF5);
@@ -168,8 +168,8 @@ public final class VoiceInputOverlay {
 		int x = Math.max(4, buttonX + BUTTON_WIDTH - width);
 		int y = Math.max(4, field.getY() - 34);
 		context.fill(x, y, x + width, y + 20, 0xD0202632);
-		context.renderOutline(x, y, width, 20, 0xFF71809A);
-		context.drawString(Minecraft.getInstance().font,
+		context.outline(x, y, width, 20, 0xFF71809A);
+		context.text(Minecraft.getInstance().font,
 				label, x + 5, y + 4, 0xFFFFFFFF);
 		if (state == VoiceInputState.LISTENING && manager.settings().showInputLevel()) {
 			int meter = (int) Math.round((width - 10) * Math.min(1.0, manager.level() * 8.0));
@@ -183,7 +183,7 @@ public final class VoiceInputOverlay {
 		int x = (owner.width - width) / 2;
 		int y = Math.max(8, (owner.height - height) / 2);
 		context.fill(x, y, x + width, y + height, 0xF0181D27);
-		context.renderOutline(x, y, width, height, 0xFF71809A);
+		context.outline(x, y, width, height, 0xFF71809A);
 		draw(context, "chat_canvas.voice.model.title", x + 10, y + 10, 0xFFFFFFFF);
 		draw(context, "chat_canvas.voice.model.details", x + 10, y + 28, 0xFFADB6C7);
 		draw(context, "chat_canvas.voice.model.privacy", x + 10, y + 44, 0xFFADB6C7);
@@ -215,13 +215,13 @@ public final class VoiceInputOverlay {
 	private static void button(GuiGraphicsExtractor context, int x, int y, int width, int height,
 							   String key) {
 		context.fill(x, y, x + width, y + height, 0xFF343D50);
-		context.renderOutline(x, y, width, height, 0xFF71809A);
-		context.drawCenteredString(Minecraft.getInstance().font,
+		context.outline(x, y, width, height, 0xFF71809A);
+		context.centeredText(Minecraft.getInstance().font,
 				Component.translatable(key), x + width / 2, y + 6, 0xFFFFFFFF);
 	}
 
 	private static void draw(GuiGraphicsExtractor context, String key, int x, int y, int color) {
-		context.drawString(Minecraft.getInstance().font,
+		context.text(Minecraft.getInstance().font,
 				Component.translatable(key), x, y, color);
 	}
 

@@ -324,7 +324,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 					chat_canvas$snapshot(activeField));
 			chat_canvas$restoreField(activeField, next);
 			activeSuggestor.setWindowActive(false);
-			activeSuggestor.refresh();
+			activeSuggestor.updateCommandInfo();
 			cir.setReturnValue(true);
 			return;
 		}
@@ -351,7 +351,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 			if (VoiceInputManager.instance().isBusy()) chat_canvas$voiceOverlay.cancel();
 			return;
 		}
-		if (!Minecraft.getInstance().isWindowFocused()
+		if (!Minecraft.getInstance().isWindowActive()
 				&& VoiceInputManager.instance().isBusy()) {
 			chat_canvas$voiceOverlay.cancel();
 			return;
@@ -388,7 +388,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 			chat_canvas$playerChatField.render(context, mouseX, mouseY, delta);
 		}
 		EditBox activeField = chat_canvas$activeInputField();
-		context.drawString(
+		context.text(
 				Minecraft.getInstance().font,
 				Component.translatable(chat_canvas$inputMode == ChatCanvasInputMode.COMMAND
 						? "chat_canvas.input.mode.command"
@@ -542,7 +542,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		}
 		chat_canvas$inputController.capture(ChatCanvasInputMode.PLAYER_CHAT, changed);
 		chat_canvas$playerChatSuggestor.setWindowActive(!text.isEmpty());
-		chat_canvas$playerChatSuggestor.refresh();
+		chat_canvas$playerChatSuggestor.updateCommandInfo();
 	}
 
 	@Unique
@@ -552,7 +552,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 				ChatCanvasInputMode.COMMAND, chat_canvas$snapshot(chatField));
 		chatInputSuggestor.setWindowActive(
 				chat_canvas$inputMode == ChatCanvasInputMode.COMMAND);
-		chatInputSuggestor.refresh();
+		chatInputSuggestor.updateCommandInfo();
 	}
 
 	@Unique
@@ -575,7 +575,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		}
 		chat_canvas$applyInputPlacement();
 		chat_canvas$focusActiveField();
-		chat_canvas$activeInputSuggestor().refresh();
+		chat_canvas$activeInputSuggestor().updateCommandInfo();
 	}
 
 	@Unique
@@ -611,11 +611,11 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		Minecraft client = Minecraft.getInstance();
 		PixelLayout layout = mode == ChatCanvasInputMode.COMMAND
 				? ChatCanvasConfig.instance().commandSystem().layout().toPixels(
-						client.getWindow().getScaledWidth(),
-						client.getWindow().getScaledHeight())
+						client.getWindow().getGuiScaledWidth(),
+						client.getWindow().getGuiScaledHeight())
 				: ChatCanvasConfig.instance().layout().toPixels(
-						client.getWindow().getScaledWidth(),
-						client.getWindow().getScaledHeight());
+						client.getWindow().getGuiScaledWidth(),
+						client.getWindow().getGuiScaledHeight());
 		double fontScale = mode == ChatCanvasInputMode.COMMAND
 				? ChatCanvasConfig.instance().commandSystem().text().fontScale()
 				: ChatCanvasConfig.instance().text().fontScale();
@@ -704,7 +704,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		int counterY = activeField.width() < width + modeWidth + 8
 				? Math.max(2, activeField.getY() - 20)
 				: Math.max(2, activeField.getY() - 10);
-		context.drawString(
+		context.text(
 				Minecraft.getInstance().font, counter,
 				Math.max(activeField.getX(),
 						activeField.getX() + activeField.width() - width),
@@ -714,7 +714,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 	@Unique
 	private void chat_canvas$insertVoiceResult(VoiceRecognitionResult recognition) {
 		Minecraft client = Minecraft.getInstance();
-		if (client.currentScreen != (Object) this
+		if (client.screen != (Object) this
 				|| chat_canvas$inputMode != ChatCanvasInputMode.PLAYER_CHAT
 				|| chat_canvas$playerChatField == null) return;
 		String value = VoiceTextSanitizer.sanitize(
@@ -745,7 +745,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 				ChatCanvasInputMode.PLAYER_CHAT,
 				new ChatInputSnapshot(result.text(), result.cursor(), result.selectionEnd()));
 		chat_canvas$playerChatSuggestor.setWindowActive(!result.text().isEmpty());
-		chat_canvas$playerChatSuggestor.refresh();
+		chat_canvas$playerChatSuggestor.updateCommandInfo();
 		chat_canvas$focusActiveField();
 	}
 }

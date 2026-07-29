@@ -315,7 +315,7 @@ public abstract class ChatHudMixin {
 		float fontScale = (float) config.fontScale();
 		context.pose().scale(fontScale, fontScale, 1.0f);
 		int result = SpacedTextRenderer.draw(
-				context, renderer, text.asOrderedText(), 0.0, 0, configuredColor,
+				context, renderer, text.getVisualOrderText(), 0.0, 0, configuredColor,
 				config.shadow(), config.characterSpacing());
 		context.pose().popMatrix();
 		return result;
@@ -502,7 +502,7 @@ public abstract class ChatHudMixin {
 
 	@Unique
 	private int chat_canvas$vanillaTextOffset() {
-		double spacing = client.options.getChatLineSpacing().getValue();
+		double spacing = client.options.chatLineSpacing().getValue();
 		return (int) Math.round(-8.0 * (spacing + 1.0) + 4.0 * spacing);
 	}
 
@@ -561,7 +561,7 @@ public abstract class ChatHudMixin {
 				Math.max(topLeft.y, bottomRight.y)
 		));
 		if (ChatCanvasConfig.instance().playerColors().showNameHitboxes()) {
-			context.renderOutline(
+			context.outline(
 					(int) Math.floor(drawX + prefixWidth * fontScale), y,
 					(int) Math.ceil(nameWidth * fontScale),
 					(int) Math.ceil(renderer.lineHeight * fontScale), 0xFFE66B6B);

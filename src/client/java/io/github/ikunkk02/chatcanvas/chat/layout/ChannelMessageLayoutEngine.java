@@ -92,7 +92,7 @@ public final class ChannelMessageLayoutEngine {
 	}
 
 	private StyledMessage styled(ChatCanvasMessage message) {
-		FormattedCharSequence original = message.content().asOrderedText();
+		FormattedCharSequence original = message.content().getVisualOrderText();
 		if (message.channel() != ChatCanvasChannel.PLAYER_CHAT) {
 			return new StyledMessage(original, null);
 		}
@@ -110,7 +110,7 @@ public final class ChannelMessageLayoutEngine {
 				plain,
 				net.minecraft.client.Minecraft.getInstance().player == null ? ""
 						: net.minecraft.client.Minecraft.getInstance().player
-						.getGameProfile().getName(),
+						.getGameProfile().name(),
 				ChatCanvasConfig.instance().mention().requireAtSymbol());
 		return new StyledMessage(
 				styles.apply(original, nameRange, color, mentions,

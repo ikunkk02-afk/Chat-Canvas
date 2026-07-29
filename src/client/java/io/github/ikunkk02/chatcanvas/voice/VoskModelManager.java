@@ -38,9 +38,9 @@ public final class VoskModelManager {
 	public boolean validate(Path root) {
 		if (root == null || !Files.isDirectory(root)) return false;
 		for (String required : REQUIRED) {
-			Path file = root.resolve(required).normalize();
+			Path file = root.resolve(required).normalizeChatMessage();
 			try {
-				if (!file.startsWith(root.normalize()) || !Files.isRegularFile(file)
+				if (!file.startsWith(root.normalizeChatMessage()) || !Files.isRegularFile(file)
 						|| Files.size(file) <= 0L) return false;
 			} catch (IOException exception) {
 				return false;

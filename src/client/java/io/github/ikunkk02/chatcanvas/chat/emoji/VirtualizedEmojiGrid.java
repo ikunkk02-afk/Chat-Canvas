@@ -100,7 +100,7 @@ public final class VirtualizedEmojiGrid extends BaseUIComponent {
 		hoveredEntry = null;
 		if (entries.isEmpty()) {
 			Component empty = Component.translatable(emptyMessageKey);
-			context.drawCenteredString(
+			context.centeredText(
 					Minecraft.getInstance().font,
 					empty, x() + width() / 2,
 					y() + Math.max(2, height() / 2 - 4), 0xFFADB6C7);
@@ -125,14 +125,14 @@ public final class VirtualizedEmojiGrid extends BaseUIComponent {
 						0xB04B5970);
 			}
 			if (index == selected) {
-				context.renderOutline(cellX, cellY,
+				context.outline(cellX, cellY,
 						CELL_WIDTH, CELL_HEIGHT, 0xFFF6C85F);
 				context.fill(cellX + 3, cellY + CELL_HEIGHT - 3,
 						cellX + CELL_WIDTH - 3, cellY + CELL_HEIGHT - 1,
 						0xFFF6C85F);
 			}
 			String emoji = entries.get(index).unicode();
-			context.drawString(renderer, emoji,
+			context.text(renderer, emoji,
 					cellX + (CELL_WIDTH - renderer.width(emoji)) / 2,
 					cellY + (CELL_HEIGHT - renderer.lineHeight) / 2,
 					0xFFFFFFFF);

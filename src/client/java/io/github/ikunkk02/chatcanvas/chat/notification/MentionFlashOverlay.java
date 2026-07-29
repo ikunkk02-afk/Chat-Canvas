@@ -36,7 +36,7 @@ public final class MentionFlashOverlay {
 	private void render(net.minecraft.client.gui.GuiGraphicsExtractor context) {
 		Minecraft client = Minecraft.getInstance();
 		if (client.world == null) return;
-		if (client.currentScreen != null && !(client.currentScreen instanceof ChatScreen)) return;
+		if (client.screen != null && !(client.screen instanceof ChatScreen)) return;
 		long now = Util.getMillis();
 		if (now >= endsAtMs || endsAtMs <= startedAtMs) return;
 		double duration = Math.max(1.0, endsAtMs - startedAtMs);
