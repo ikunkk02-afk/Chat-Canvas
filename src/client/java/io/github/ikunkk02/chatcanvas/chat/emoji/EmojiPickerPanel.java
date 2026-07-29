@@ -427,7 +427,7 @@ public final class EmojiPickerPanel {
 		context.drawCenteredTextWithShadow(
 				MinecraftClient.getInstance().textRenderer,
 				Text.literal("😀"), buttonX + BUTTON_WIDTH / 2,
-				buttonY + 3, 0xFFFFFF);
+				buttonY + 3, 0xFFFFFFFF);
 	}
 
 	private void focusSearch() {
