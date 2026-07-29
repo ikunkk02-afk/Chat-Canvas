@@ -296,12 +296,6 @@ public abstract class ChatHudMixin {
 	}
 	*/
 
-	@Inject(method = "getIndicatorX", at = @At("HEAD"), cancellable = true)
-	private void chat_canvas$getAlignedIndicatorX(ChatHudLine.Visible line,
-												  CallbackInfoReturnable<Integer> cir) {
-		cir.setReturnValue((int) Math.round(chat_canvas$metrics(line).indicatorX()));
-	}
-
 	@Inject(method = "refresh", at = @At("HEAD"))
 	private void chat_canvas$clearLineMetrics(CallbackInfo ci) {
 		chat_canvas$lineLookup.clear();
@@ -334,26 +328,6 @@ public abstract class ChatHudMixin {
 	)
 	private void chat_canvas$pruneMessageMetadata(ChatHudLine message, CallbackInfo ci) {
 		ChatMessageMetadataRegistry.instance().retainMessages(messages);
-	}
-
-	@ModifyVariable(method = "toChatLineX", at = @At("HEAD"), argsOnly = true, ordinal = 0)
-	private double chat_canvas$screenToChatX(double screenX) {
-		return ChatLayoutRuntime.currentTransform().screenToChatX(screenX);
-	}
-
-	@ModifyVariable(method = "toChatLineY", at = @At("HEAD"), argsOnly = true, ordinal = 0)
-	private double chat_canvas$screenToChatY(double screenY) {
-		return ChatLayoutRuntime.currentTransform().screenToChatY(screenY);
-	}
-
-	@ModifyVariable(method = "mouseClicked", at = @At("HEAD"), argsOnly = true, ordinal = 0)
-	private double chat_canvas$queueClickX(double screenX) {
-		return ChatLayoutRuntime.currentTransform().screenToChatX(screenX);
-	}
-
-	@ModifyVariable(method = "mouseClicked", at = @At("HEAD"), argsOnly = true, ordinal = 1)
-	private double chat_canvas$queueClickY(double screenY) {
-		return ChatLayoutRuntime.currentTransform().screenToChatY(screenY);
 	}
 
 	@Unique
@@ -516,24 +490,5 @@ public abstract class ChatHudMixin {
 	@Unique
 	private int chat_canvas$glyphSafetyPixels() {
 		return ChatCanvasConfig.instance().text().shadow() ? 2 : 1;
-	}
-
-	@Unique
-	private static Style chat_canvas$styleAtPixel(
-			TextRenderer renderer, OrderedText text, int pixelX) {
-		final float[] accumulated = {0};
-		final Style[] found = {Style.EMPTY};
-		text.accept((index, style, codePoint) -> {
-			String charStr = new String(Character.toChars(codePoint));
-			float advance = renderer.getWidth(
-					OrderedText.styledForwardsVisitedString(charStr, style));
-			if (accumulated[0] + advance > pixelX) {
-				found[0] = style;
-				return false;
-			}
-			accumulated[0] += advance;
-			return true;
-		});
-		return found[0];
 	}
 }
