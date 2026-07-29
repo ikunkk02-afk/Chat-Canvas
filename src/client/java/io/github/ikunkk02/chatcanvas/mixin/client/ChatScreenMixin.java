@@ -340,7 +340,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		if (!chat_canvas$inputHealthy) return;
 		EditBox field = chat_canvas$activeInputField();
 		if (override) field.setValue(text);
-		else field.write(text);
+		else field.insertText(text);
 		ci.cancel();
 	}
 
@@ -370,7 +370,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		if (chat_canvas$voiceOverlay == null) {
 			return;
 		}
-		KeyBinding voiceKey = io.github.ikunkk02.chatcanvas.ChatCanvasClient.voiceInputKey();
+		KeyMapping voiceKey = io.github.ikunkk02.chatcanvas.ChatCanvasClient.voiceInputKey();
 		if (voiceKey == null) {
 			return;
 		}
@@ -395,10 +395,10 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 						: "chat_canvas.input.mode.player"),
 				activeField.getX(), Math.max(2, activeField.getY() - 10), 0xFFE7ECF5);
 		if (chat_canvas$inputMode == ChatCanvasInputMode.PLAYER_CHAT) {
-			context.getMatrices().push();
-			context.getMatrices().translate(0.0f, 0.0f, 200.0f);
+			context.pose().pushMatrix();
+			context.pose().translate(0.0f, 0.0f, 200.0f);
 			chat_canvas$playerChatSuggestor.render(context, mouseX, mouseY);
-			context.getMatrices().pop();
+			context.pose().popMatrix();
 		}
 		PlayerNameDoubleClickHandler.instance().feedback().ifPresent(message -> {
 			ChatHudTransform transform = ChatLayoutRuntime.currentTransform();
@@ -514,7 +514,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 			chat_canvas$pendingHighSurrogate = 0;
 			if (chat_canvas$inputMode == ChatCanvasInputMode.PLAYER_CHAT
 					&& chat_canvas$emojiPicker.writeComposedText(pair)) return true;
-			chat_canvas$activeInputField().write(pair);
+			chat_canvas$activeInputField().insertText(pair);
 			return true;
 		}
 		chat_canvas$pendingHighSurrogate = 0;
@@ -668,7 +668,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		if (field == null) return ChatInputSnapshot.EMPTY;
 		TextFieldWidgetAccessor accessor = (TextFieldWidgetAccessor) field;
 		return new ChatInputSnapshot(
-				field.getValue(), field.getCursor(),
+				field.getValue(), field.getCursorPosition(),
 				accessor.chat_canvas$selectionEnd());
 	}
 
@@ -680,8 +680,8 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		chat_canvas$suppressInputUpdates = true;
 		try {
 			field.setValue(snapshot.text());
-			field.setSelectionStart(snapshot.cursor());
-			field.setSelectionEnd(snapshot.selectionEnd());
+			field.setCursorPosition(snapshot.cursor());
+			field.setHighlightPos(snapshot.selectionEnd());
 		} finally {
 			chat_canvas$suppressInputUpdates = previousSuppression;
 		}
@@ -698,16 +698,16 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 				"chat_canvas.emoji.length", graphemes, text.length(), 256);
 		int color = text.length() >= 256 ? 0xFFFF6B6B
 				: text.length() >= 230 ? 0xFFF6C85F : 0xFFADB6C7;
-		int width = Minecraft.getInstance().font.getWidth(counter);
-		int modeWidth = Minecraft.getInstance().font.getWidth(
+		int width = Minecraft.getInstance().font.width(counter);
+		int modeWidth = Minecraft.getInstance().font.width(
 				Component.translatable("chat_canvas.input.mode.player"));
-		int counterY = activeField.getWidth() < width + modeWidth + 8
+		int counterY = activeField.width() < width + modeWidth + 8
 				? Math.max(2, activeField.getY() - 20)
 				: Math.max(2, activeField.getY() - 10);
 		context.drawString(
 				Minecraft.getInstance().font, counter,
 				Math.max(activeField.getX(),
-						activeField.getX() + activeField.getWidth() - width),
+						activeField.getX() + activeField.width() - width),
 				counterY, color);
 	}
 

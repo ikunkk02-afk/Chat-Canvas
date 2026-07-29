@@ -3,7 +3,7 @@ package io.github.ikunkk02.chatcanvas.ui;
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
 import io.github.ikunkk02.chatcanvas.editor.EditorUiStyle;
 import io.wispforest.owo.ui.component.ButtonComponent;
-import io.wispforest.owo.ui.component.Components;
+import io.wispforest.owo.ui.component.UIComponents;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Surface;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -123,14 +123,14 @@ public final class ModernUiTheme {
         boolean pressed = pressedAt != null && System.nanoTime() - pressedAt < 90_000_000L;
         int inset = pressed ? 1 : 0;
         roundedRect(context, button.getX() + inset, button.getY() + inset,
-                button.getWidth() - inset * 2, button.getHeight() - inset * 2, 5, color);
+                button.width() - inset * 2, button.getHeight() - inset * 2, 5, color);
         border(context, button.getX() + inset, button.getY() + inset,
-                button.getWidth() - inset * 2, button.getHeight() - inset * 2,
+                button.width() - inset * 2, button.getHeight() - inset * 2,
                 button.active() ? 0x554F6079 : 0x223C4452);
     }
 
     private static void drawVanillaButton(OwoUIGraphics context, ButtonComponent button) {
-        int w = button.getWidth();
+        int w = button.width();
         int h = button.getHeight();
         int x = button.getX();
         int y = button.getY();

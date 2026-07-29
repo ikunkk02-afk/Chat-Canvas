@@ -3,7 +3,7 @@ package io.github.ikunkk02.chatcanvas.ui;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.core.Component;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
-import io.wispforest.owo.ui.core.ParentComponent;
+import io.wispforest.owo.ui.core.ParentUIComponent;
 import io.wispforest.owo.ui.core.Sizing;
 
 import java.util.ArrayList;
@@ -159,8 +159,8 @@ public final class ClippedPageViewport extends FlowLayout {
 
         // Let the active page's own component tree resolve the
         // deepest interactable child.  Works for FlowLayout,
-        // StackLayout, ScrollContainer, and any ParentComponent.
-        if (active instanceof ParentComponent parent) {
+        // StackLayout, ScrollContainer, and any ParentUIComponent.
+        if (active instanceof ParentUIComponent parent) {
             Component deepest = parent.childAt(x, y);
             if (deepest != null) return deepest;
         }

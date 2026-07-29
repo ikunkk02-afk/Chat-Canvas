@@ -117,7 +117,7 @@ public final class VoiceInputOverlay {
 
 	public void render(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
 		if (owner == null || field == null) return;
-		buttonX = field.getX() + field.getWidth() + EmojiOffset.TOTAL_SPACE + 1;
+		buttonX = field.getX() + field.width() + EmojiOffset.TOTAL_SPACE + 1;
 		buttonY = field.getY() - 1;
 		renderButton(context, mouseX, mouseY);
 		renderStatus(context);
@@ -164,7 +164,7 @@ public final class VoiceInputOverlay {
 			label = Component.translatable(key).append(Component.literal(": " + manager.partial()));
 		}
 		int width = Math.min(240,
-				Minecraft.getInstance().font.getWidth(label) + 20);
+				Minecraft.getInstance().font.width(label) + 20);
 		int x = Math.max(4, buttonX + BUTTON_WIDTH - width);
 		int y = Math.max(4, field.getY() - 34);
 		context.fill(x, y, x + width, y + 20, 0xD0202632);

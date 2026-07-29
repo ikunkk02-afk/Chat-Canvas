@@ -13,8 +13,8 @@ import io.github.ikunkk02.chatcanvas.ui.NumericScrubberComponent;
 import io.github.ikunkk02.chatcanvas.ui.PreviewChatWidget;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.ButtonComponent;
-import io.wispforest.owo.ui.component.Components;
-import io.wispforest.owo.ui.container.Containers;
+import io.wispforest.owo.ui.component.UIComponents;
+import io.wispforest.owo.ui.container.UIContainers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.core.HorizontalAlignment;
 import io.wispforest.owo.ui.core.Insets;
@@ -58,7 +58,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 			session = new EditorSession(ChatCanvasConfig.instance().settings(), width, height);
 		}
 		ModernUiTheme.setStyle(ChatCanvasConfig.instance().editorUiStyle());
-		return OwoUIAdapter.create(this, Containers::verticalFlow);
+		return OwoUIAdapter.create(this, UIContainers::verticalFlow);
 	}
 
 	@Override
@@ -187,11 +187,11 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 			super.keyPressed(keyCode, scanCode, modifiers);
 			return true;
 		}
-		if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_Z) {
+		if (hasControlDown() && keyCode == GLFW.GLFW_KEY_Z) {
 			undo();
 			return true;
 		}
-		if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_Y) {
+		if (hasControlDown() && keyCode == GLFW.GLFW_KEY_Y) {
 			redo();
 			return true;
 		}
@@ -214,7 +214,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		if (scrubber != null) {
 			if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
 				return pointerCapture.begin(scrubber, mouseX, mouseY, button,
-						Screen.hasShiftDown(), Screen.hasControlDown());
+						hasShiftDown(), hasControlDown());
 			}
 			if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
 				return scrubber.restoreDefault();
@@ -224,12 +224,12 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && commandPreviewCanReceive(mouseX, mouseY)) {
 			selectChannel(EditorChannel.COMMAND_SYSTEM);
 			return pointerCapture.begin(commandPreview, mouseX, mouseY, button,
-					Screen.hasShiftDown(), Screen.hasControlDown());
+					hasShiftDown(), hasControlDown());
 		}
 		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && previewCanReceive(mouseX, mouseY)) {
 			selectChannel(EditorChannel.PLAYER_CHAT);
 			return pointerCapture.begin(preview, mouseX, mouseY, button,
-					Screen.hasShiftDown(), Screen.hasControlDown());
+					hasShiftDown(), hasControlDown());
 		}
 		return super.mouseClicked(mouseX, mouseY, button);
 	}
@@ -441,7 +441,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		int maxY = Math.max(4, height - ModernColorPickerPopup.POPUP_HEIGHT - 4);
 		int anchorY = clamp(anchor.getY(), 4, maxY);
 		int[][] candidates = new int[][]{
-				{anchor.getX() + anchor.getWidth() + margin, anchorY},
+				{anchor.getX() + anchor.width() + margin, anchorY},
 				{anchor.getX() - ModernColorPickerPopup.POPUP_WIDTH - margin, anchorY},
 				{anchor.getX(), anchor.getY() - ModernColorPickerPopup.POPUP_HEIGHT - margin}
 		};

@@ -133,7 +133,7 @@ public final class VirtualizedEmojiGrid extends BaseUIComponent {
 			}
 			String emoji = entries.get(index).unicode();
 			context.drawString(renderer, emoji,
-					cellX + (CELL_WIDTH - renderer.getWidth(emoji)) / 2,
+					cellX + (CELL_WIDTH - renderer.width(emoji)) / 2,
 					cellY + (CELL_HEIGHT - renderer.lineHeight) / 2,
 					0xFFFFFFFF);
 		}

@@ -61,7 +61,7 @@ public final class PlayerQuickActionMenu {
 			closeMenu();
 			return true;
 		}
-		if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_Z && replacedInput != null) {
+		if (hasControlDown() && keyCode == GLFW.GLFW_KEY_Z && replacedInput != null) {
 			ChatFieldActions.restore(field, suggestor, replacedInput);
 			replacedInput = null;
 			return true;
@@ -148,7 +148,7 @@ public final class PlayerQuickActionMenu {
 	}
 
 	private static Optional<ScreenRectangle> suggestionArea(CommandSuggestions suggestor) {
-		CommandSuggestions.SuggestionWindow window =
+		CommandSuggestions.SuggestionsWindow window =
 				((ChatInputSuggestorAccessor) suggestor).chat_canvas$window();
 		return window == null
 				? Optional.empty()
@@ -156,7 +156,7 @@ public final class PlayerQuickActionMenu {
 	}
 
 	private static boolean intersects(int x, int y, int width, int height, ScreenRectangle area) {
-		return x < area.getX() + area.getWidth() && x + width > area.getX()
+		return x < area.getX() + area.width() && x + width > area.getX()
 				&& y < area.getY() + area.getHeight() && y + height > area.getY();
 	}
 

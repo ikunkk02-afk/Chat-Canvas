@@ -8,9 +8,9 @@ import io.github.ikunkk02.chatcanvas.mixin.client.SuggestionWindowAccessor;
 import io.github.ikunkk02.chatcanvas.mixin.client.TextFieldWidgetAccessor;
 import io.github.ikunkk02.chatcanvas.ui.ModernUiTheme;
 import io.wispforest.owo.ui.component.ButtonComponent;
-import io.wispforest.owo.ui.component.Components;
+import io.wispforest.owo.ui.component.UIComponents;
 import io.wispforest.owo.ui.component.TextBoxComponent;
-import io.wispforest.owo.ui.container.Containers;
+import io.wispforest.owo.ui.container.UIContainers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.OwoUIAdapter;
@@ -208,7 +208,7 @@ public final class EmojiPickerPanel {
 	public boolean writeComposedText(String text) {
 		if (!open || focus != FocusTarget.SEARCH
 				|| searchField == null || text == null || text.isEmpty()) return false;
-		searchField.write(text);
+		searchField.insertText(text);
 		return true;
 	}
 
@@ -234,20 +234,20 @@ public final class EmojiPickerPanel {
 			adapterWidth = width;
 			adapterHeight = height;
 		}
-		context.getMatrices().push();
-		context.getMatrices().translate(0.0f,
+		context.pose().pushMatrix();
+		context.pose().translate(0.0f,
 				Math.round((1.0f - openProgress) * 8.0f), 300.0f);
 		adapter.render(context, mouseX, mouseY, delta);
-		context.getMatrices().pop();
+		context.pose().popMatrix();
 		EmojiEntry hovered = grid == null ? null : grid.hoveredEntry();
 		if (hovered != null) {
-			context.getMatrices().push();
-			context.getMatrices().translate(0.0f, 0.0f, 360.0f);
+			context.pose().pushMatrix();
+			context.pose().translate(0.0f, 0.0f, 360.0f);
 			context.drawTooltip(Minecraft.getInstance().font,
 					Component.literal(hovered.unicode() + "  "
 							+ hovered.chineseName() + " / " + hovered.englishName()),
 					mouseX, mouseY);
-			context.getMatrices().pop();
+			context.pose().popMatrix();
 		}
 		if (statusKey != null && System.currentTimeMillis() < statusUntil) {
 			context.drawString(
@@ -262,7 +262,7 @@ public final class EmojiPickerPanel {
 		if (adapter != null) adapter.dispose();
 		categoryButtons.clear();
 		adapter = OwoUIAdapter.createWithoutScreen(
-				x, y, width, height, Containers::verticalFlow);
+				x, y, width, height, UIContainers::verticalFlow);
 		adapterX = x;
 		adapterY = y;
 		adapterWidth = width;
@@ -359,7 +359,7 @@ public final class EmojiPickerPanel {
 		inputController.capture(
 				io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputMode.PLAYER_CHAT,
 				new ChatInputSnapshot(
-						playerField.getValue(), playerField.getCursor(),
+						playerField.getValue(), playerField.getCursorPosition(),
 						accessor.chat_canvas$selectionEnd()));
 		UnicodeTextNavigator.EditResult result =
 				inputController.insertPlayerText(entry.unicode(), 256);
@@ -370,8 +370,8 @@ public final class EmojiPickerPanel {
 			return;
 		}
 		playerField.setValue(result.text());
-		playerField.setSelectionStart(result.cursor());
-		playerField.setSelectionEnd(result.selectionEnd());
+		playerField.setCursorPosition(result.cursor());
+		playerField.setHighlightPos(result.selectionEnd());
 		inputController.capture(
 				io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputMode.PLAYER_CHAT,
 				new ChatInputSnapshot(
@@ -387,7 +387,7 @@ public final class EmojiPickerPanel {
 
 	private void position() {
 		if (owner == null || playerField == null) return;
-		buttonX = playerField.getX() + playerField.getWidth() + 1;
+		buttonX = playerField.getX() + playerField.width() + 1;
 		buttonY = playerField.getY() - 1;
 		int nextWidth = Math.max(80, Math.min(MAX_WIDTH, owner.width - 8));
 		int nextHeight = Math.max(90, Math.min(MAX_HEIGHT, owner.height - 8));
@@ -398,7 +398,7 @@ public final class EmojiPickerPanel {
 		ScreenRectangle suggestions = suggestionArea();
 		int[][] candidates = {
 				{buttonX + BUTTON_WIDTH - width, playerField.getY() - height - 18},
-				{playerField.getX() + playerField.getWidth() + BUTTON_SPACE + 2,
+				{playerField.getX() + playerField.width() + BUTTON_SPACE + 2,
 						playerField.getY() - height / 2},
 				{playerField.getX() - width - 4, playerField.getY() - height / 2},
 				{buttonX + BUTTON_WIDTH - width, playerField.getY() + 20}
@@ -490,7 +490,7 @@ public final class EmojiPickerPanel {
 
 	private ScreenRectangle suggestionArea() {
 		if (suggestor == null) return null;
-		CommandSuggestions.SuggestionWindow window =
+		CommandSuggestions.SuggestionsWindow window =
 				((ChatInputSuggestorAccessor) suggestor).chat_canvas$window();
 		return window == null ? null
 				: ((SuggestionWindowAccessor) window).chat_canvas$area();
@@ -504,7 +504,7 @@ public final class EmojiPickerPanel {
 			int x, int y, int width, int height, ScreenRectangle other) {
 		if (other == null) return 0L;
 		int overlapWidth = Math.max(0,
-				Math.min(x + width, other.getX() + other.getWidth())
+				Math.min(x + width, other.getX() + other.width())
 						- Math.max(x, other.getX()));
 		int overlapHeight = Math.max(0,
 				Math.min(y + height, other.getY() + other.getHeight())

@@ -73,10 +73,10 @@ public final class ModernColorPickerPopup extends BaseUIComponent {
 		float scale = 0.98f + 0.02f * eased;
 		float centerX = x() + width() * 0.5f;
 		float centerY = y() + height() * 0.5f;
-		context.getMatrices().push();
-		context.getMatrices().translate(centerX, centerY - 4.0f * (1.0f - eased), 0.0f);
-		context.getMatrices().scale(scale, scale, 1.0f);
-		context.getMatrices().translate(-centerX, -centerY, 0.0f);
+		context.pose().pushMatrix();
+		context.pose().translate(centerX, centerY - 4.0f * (1.0f - eased), 0.0f);
+		context.pose().scale(scale, scale, 1.0f);
+		context.pose().translate(-centerX, -centerY, 0.0f);
 
 		ModernUiTheme.shadow(context, x(), y(), width(), height());
 		ModernUiTheme.roundedRect(context, x(), y(), width(), height(), 7, 0xF21A1E28);
@@ -104,7 +104,7 @@ public final class ModernColorPickerPopup extends BaseUIComponent {
 		drawHexInput(context, renderer);
 		drawRecentColors(context, renderer);
 		drawActions(context, renderer, mouseX, mouseY);
-		context.getMatrices().pop();
+		context.pose().popMatrix();
 	}
 
 	private void drawCurrentPreview(OwoUIGraphics context) {
@@ -131,7 +131,7 @@ public final class ModernColorPickerPopup extends BaseUIComponent {
 				state.hexValid() ? 0xFFF0F3F8 : 0xFFFFA3A8, false);
 		if (hexFocused && (System.currentTimeMillis() / 350L) % 2L == 0L) {
 			int cursorX = Math.min(x() + HEX_X + HEX_WIDTH - 5,
-					x() + HEX_X + 6 + renderer.getWidth(visible));
+					x() + HEX_X + 6 + renderer.width(visible));
 			context.fill(cursorX, y() + HEX_Y + 5, cursorX + 1,
 					y() + HEX_Y + HEX_HEIGHT - 5, 0xFFFFFFFF);
 		}
@@ -178,7 +178,7 @@ public final class ModernColorPickerPopup extends BaseUIComponent {
 				: hovered ? 0xE04B5970 : 0xC8374256;
 		ModernUiTheme.roundedRect(context, x, y, width, height, 5, background);
 		int color = active ? 0xFFF0F3F8 : 0xFF737C8C;
-		int textX = x + Math.max(3, (width - renderer.getWidth(label)) / 2);
+		int textX = x + Math.max(3, (width - renderer.width(label)) / 2);
 		int textY = y + (height - renderer.lineHeight) / 2;
 		context.drawText(renderer, label, textX, textY, color, false);
 	}

@@ -2,8 +2,8 @@ package io.github.ikunkk02.chatcanvas.chat.emoji;
 
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
 import io.github.ikunkk02.chatcanvas.mixin.client.TextRendererAccessor;
-import net.minecraft.client.font.BuiltinEmptyGlyph;
-import net.minecraft.client.font.FontStorage;
+import net.minecraft.client.font.EmptyArea;
+import net.minecraft.client.font.FontSet;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Style;
 
@@ -27,13 +27,13 @@ public final class EmojiFontSupport {
 		if (cached != null) return cached;
 		boolean supported;
 		try {
-			FontStorage storage = ((TextRendererAccessor) renderer)
-					.chat_canvas$getFontStorage(Style.DEFAULT_FONT_ID);
+			FontSet storage = ((TextRendererAccessor) renderer)
+					.chat_canvas$getFontStorage(Style.Font.DEFAULT_FONT);
 			supported = entry.unicode().codePoints()
 					.filter(codePoint -> !ignorable(codePoint))
 					.allMatch(codePoint ->
 							storage.getGlyph(codePoint, false)
-									!= BuiltinEmptyGlyph.MISSING);
+									!= EmptyArea.MISSING);
 		} catch (RuntimeException failure) {
 			supported = false;
 			if (!loggedFailure) {

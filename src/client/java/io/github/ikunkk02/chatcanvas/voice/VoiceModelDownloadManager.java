@@ -101,7 +101,7 @@ public final class VoiceModelDownloadManager {
 			for (int read; (read = input.read(buffer)) >= 0;) {
 				checkCancelled();
 				if (read == 0) continue;
-				output.write(buffer, 0, read);
+				output.insertText(buffer, 0, read);
 				downloaded += read;
 				if (downloaded > metadata.expectedSize() + 1_048_576L) {
 					throw new IOException("Model download is larger than expected");
@@ -146,7 +146,7 @@ public final class VoiceModelDownloadManager {
 						if (written > MAX_EXTRACTED_BYTES) {
 							throw new IOException("Extracted model is too large");
 						}
-						stream.write(buffer, 0, read);
+						stream.insertText(buffer, 0, read);
 						listener.progress(written,
 								VoiceModelMetadata.CHINESE_SMALL.expectedExtractedSize());
 					}

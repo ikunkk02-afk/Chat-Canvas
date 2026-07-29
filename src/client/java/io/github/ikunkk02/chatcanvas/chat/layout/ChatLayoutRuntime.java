@@ -93,7 +93,7 @@ public final class ChatLayoutRuntime {
 		}
 	}
 
-	private static void refresh(ChatHud chatHud) {
+	private static void refresh(ChatComponent chatHud) {
 		((ChatHudAccessor) chatHud).chat_canvas$refresh();
 	}
 

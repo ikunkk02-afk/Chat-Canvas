@@ -1,7 +1,7 @@
 package io.github.ikunkk02.chatcanvas.chat.notification;
 
 import io.github.ikunkk02.chatcanvas.config.MentionConfig;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.HudLayer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.Util;
@@ -14,7 +14,7 @@ public final class MentionFlashOverlay {
 	private double maximumOpacity;
 
 	public void register() {
-		HudRenderCallback.EVENT.register((context, tickCounter) -> render(context));
+		HudLayer.EVENT.register((context, tickCounter) -> render(context));
 	}
 
 	public void trigger(MentionConfig source) {

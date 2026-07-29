@@ -82,7 +82,7 @@ public final class NumericScrubberComponent extends BaseUIComponent implements N
 		int labelColor = vanilla ? 0xFFFFFFFF : 0xFFC7CEDA;
 		context.drawText(renderer, label, x() + 2, textY, labelColor, false);
 		String value = Integer.toString(currentValue());
-		int valueX = x() + width() - 8 - renderer.getWidth(value);
+		int valueX = x() + width() - 8 - renderer.width(value);
 		context.drawText(renderer, value, valueX, textY, dragging ? 0xFFFFFFFF : (vanilla ? 0xFFFFFFFF : 0xFFE9EDF4), false);
 		if (valueHovered || dragging) {
 			context.drawText(renderer, "\u2194", valueLeft + 6, textY, vanilla ? 0xFFFFFFFF : 0xFFA9B9CF, false);
@@ -172,7 +172,7 @@ public final class NumericScrubberComponent extends BaseUIComponent implements N
 
 	private void applyValue(int value) {
 		PixelLayout before = session.layout();
-		PixelLayout next = property.write(before, value);
+		PixelLayout next = property.insertText(before, value);
 		session.setLayout(next);
 		if (!before.equals(session.layout())) {
 			changed = true;

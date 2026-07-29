@@ -39,7 +39,7 @@ public final class CommandToolRuntime {
 			serverIdentifier = "singleplayer";
 		} else {
 			String address = client.getCurrentServer() == null
-					? "unknown" : client.getCurrentServer().address;
+					? "unknown" : client.getCurrentServer().ip;
 			serverIdentifier = "server-"
 					+ UUID.nameUUIDFromBytes(address.getBytes(StandardCharsets.UTF_8));
 		}

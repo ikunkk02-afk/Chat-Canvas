@@ -64,7 +64,7 @@ public abstract class ChatInputSuggestorMixin {
 				&& x == 0
 				&& width == owner.width) {
 			x = textField.getX();
-			width = textField.getWidth();
+			width = textField.width();
 		}
 	}
 

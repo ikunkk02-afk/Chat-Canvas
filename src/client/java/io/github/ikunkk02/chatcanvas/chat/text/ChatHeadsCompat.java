@@ -94,12 +94,12 @@ public final class ChatHeadsCompat {
 		}
 	}
 
-	public static int extraWidth(GuiMessage.Visible line) {
+	public static int extraWidth(GuiMessage.Line line) {
 		HeadGeometry geometry = geometry(line);
 		return geometry == null ? 0 : geometry.width();
 	}
 
-	public static int widthBeforeCodePoint(GuiMessage.Visible line, int codePointIndex) {
+	public static int widthBeforeCodePoint(GuiMessage.Line line, int codePointIndex) {
 		HeadGeometry geometry = geometry(line);
 		return geometry != null && geometry.insertionCodePoint() <= codePointIndex
 				? geometry.width()
@@ -113,7 +113,7 @@ public final class ChatHeadsCompat {
 	 */
 	public static double textXAt(
 			Font renderer, FormattedCharSequence text, double spacing,
-			GuiMessage.Visible line, double visualX) {
+			GuiMessage.Line line, double visualX) {
 		HeadGeometry geometry = geometry(line);
 		if (geometry == null) return visualX;
 		double insertionX = SpacedTextMetrics.xAtCodePoint(
@@ -126,7 +126,7 @@ public final class ChatHeadsCompat {
 				: visualX;
 	}
 
-	private static synchronized HeadGeometry geometry(GuiMessage.Visible line) {
+	private static synchronized HeadGeometry geometry(GuiMessage.Line line) {
 		if (!ACTIVE || visibleReflectionFailed || line == null) return null;
 		try {
 			resolveVisibleApi(line.getClass());

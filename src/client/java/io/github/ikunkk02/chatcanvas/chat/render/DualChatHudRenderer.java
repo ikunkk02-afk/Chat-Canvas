@@ -73,7 +73,7 @@ public final class DualChatHudRenderer {
 			active = false;
 			hitLines.clear();
 			PlayerNameHitboxRegistry.clear();
-			ChatCanvas.LOGGER.error("Chat Canvas dual chat renderer failed; restoring vanilla ChatHud", throwable);
+			ChatCanvas.LOGGER.error("Chat Canvas dual chat renderer failed; restoring vanilla ChatComponent", throwable);
 			return false;
 		}
 	}
@@ -171,9 +171,9 @@ public final class DualChatHudRenderer {
 			int color = ((Math.max(4, Math.min(255,
 					(int) Math.round(alpha * text.textOpacity() * 255)))) << 24)
 					| (rgb & 0xFFFFFF);
-			context.getMatrices().push();
-			context.getMatrices().translate(textX, y, 0);
-			context.getMatrices().scale((float) text.fontScale(), (float) text.fontScale(), 1);
+			context.pose().pushMatrix();
+			context.pose().translate(textX, y, 0);
+			context.pose().scale((float) text.fontScale(), (float) text.fontScale(), 1);
 			if (channel == ChatCanvasChannel.COMMAND_SYSTEM
 					&& ChatCanvasConfig.instance().commandSystem().outline()) {
 				CommandSystemConfig command = ChatCanvasConfig.instance().commandSystem();
@@ -191,17 +191,17 @@ public final class DualChatHudRenderer {
 			}
 			SpacedTextRenderer.draw(context, client.font, layoutLine.text(), 0, 0,
 					color, text.shadow(), text.characterSpacing());
-			context.getMatrices().pop();
+			context.pose().popMatrix();
 			if (lineIndex == 0 && headWidth > 0) {
 				int headX = strategy.headX(
 						contentLeft, textX, headWidth, message.selfMessage());
-				context.getMatrices().push();
-				context.getMatrices().translate(headX, y, 0);
-				context.getMatrices().scale(
+				context.pose().pushMatrix();
+				context.pose().translate(headX, y, 0);
+				context.pose().scale(
 						(float) text.fontScale(), (float) text.fontScale(), 1);
 				ChatHeadsCompat.renderChannelHead(
 						context, message, client, 0, 0, alpha);
-				context.getMatrices().pop();
+				context.pose().popMatrix();
 			}
 			HitLine hit = new HitLine(channel, message, layoutLine.text(),
 					textX, y, lineWidth, lineHeight,

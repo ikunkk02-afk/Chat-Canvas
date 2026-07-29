@@ -28,9 +28,9 @@ import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameColorProvider;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerRosterTracker;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.wispforest.owo.ui.component.ButtonComponent;
-import io.wispforest.owo.ui.component.Components;
+import io.wispforest.owo.ui.component.UIComponents;
 import io.wispforest.owo.ui.component.TextBoxComponent;
-import io.wispforest.owo.ui.container.Containers;
+import io.wispforest.owo.ui.container.UIContainers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.container.StackLayout;
@@ -429,9 +429,9 @@ public final class AnimatedSettingsPanel {
 					? component.isHovered() ? 0xE04B5970 : 0xC8374256
 					: 0x55343A48;
 			ModernUiTheme.roundedRect(context, component.getX(), component.getY(),
-					component.getWidth(), component.getHeight(), 5, background);
+					component.width(), component.getHeight(), 5, background);
 			ModernUiTheme.border(context, component.getX(), component.getY(),
-					component.getWidth(), component.getHeight(), 0x554F6079);
+					component.width(), component.getHeight(), 0x554F6079);
 			ModernUiTheme.roundedRect(context, component.getX() + 5, component.getY() + 4,
 					14, component.getHeight() - 8, 3,
 					0xFF000000 | session.mention().highlightColor());
@@ -950,9 +950,9 @@ public final class AnimatedSettingsPanel {
 				int color = session.playerColors().palette().get(
 						Math.min(paletteIndex, session.playerColors().palette().size() - 1));
 				ModernUiTheme.roundedRect(context, component.getX(), component.getY(),
-						component.getWidth(), component.getHeight(), 4, 0xFF000000 | color);
+						component.width(), component.getHeight(), 4, 0xFF000000 | color);
 				ModernUiTheme.border(context, component.getX(), component.getY(),
-						component.getWidth(), component.getHeight(), 0xAAFFFFFF);
+						component.width(), component.getHeight(), 0xAAFFFFFF);
 			});
 			registerPageButton(Category.PLAYER_COLORS, swatch);
 			paletteRow.child(swatch);
@@ -1279,7 +1279,7 @@ public final class AnimatedSettingsPanel {
 					defaultColor,
 					session.recentColors().colors(),
 					color -> {
-						session.setBackground(target.write(session.background(), color));
+						session.setBackground(target.insertText(session.background(), color));
 						geometryChanged.run();
 						syncFromSession();
 					},
@@ -1298,9 +1298,9 @@ public final class AnimatedSettingsPanel {
 					? component.isHovered() ? 0xE04B5970 : 0xC8374256
 					: 0x55343A48;
 			ModernUiTheme.roundedRect(context, component.getX(), component.getY(),
-					component.getWidth(), component.getHeight(), 5, background);
+					component.width(), component.getHeight(), 5, background);
 			ModernUiTheme.border(context, component.getX(), component.getY(),
-					component.getWidth(), component.getHeight(), 0x554F6079);
+					component.width(), component.getHeight(), 0x554F6079);
 			int color = target.read(session.background());
 			ModernUiTheme.roundedRect(context, component.getX() + 5, component.getY() + 4,
 					14, component.getHeight() - 8, 3, 0xFF000000 | color);
@@ -1383,9 +1383,9 @@ public final class AnimatedSettingsPanel {
 			playerColorProvider.updateConfig(session.playerColors());
 			int rgb = playerColorProvider.colorFor(player).orElse(0xFFFFFF);
 			ModernUiTheme.roundedRect(context, component.getX(), component.getY(),
-					component.getWidth(), component.getHeight(), 4, 0xFF000000 | rgb);
+					component.width(), component.getHeight(), 4, 0xFF000000 | rgb);
 			ModernUiTheme.border(context, component.getX(), component.getY(),
-					component.getWidth(), component.getHeight(), 0xAAFFFFFF);
+					component.width(), component.getHeight(), 0xAAFFFFFF);
 		});
 		color.mouseDown().subscribe((mouseX, mouseY, button) -> {
 			if (button != 1) return false;

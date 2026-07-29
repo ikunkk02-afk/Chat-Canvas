@@ -49,7 +49,7 @@ public final class CommandMaxScrubberComponent extends BaseUIComponent implement
 		context.drawText(renderer, Component.translatable("chat_canvas.command.max_commands"),
 				x() + 2, ty, 0xFFC7CEDA, false);
 		String value = Integer.toString(session.commandClipboard().maxCommands());
-		context.drawText(renderer, value, x() + width() - 8 - renderer.getWidth(value),
+		context.drawText(renderer, value, x() + width() - 8 - renderer.width(value),
 				ty, 0xFFE9EDF4, false);
 	}
 
@@ -73,7 +73,7 @@ public final class CommandMaxScrubberComponent extends BaseUIComponent implement
 	@Override
 	public boolean dragPointer(double mouseX, double mouseY, int button) {
 		if (!dragging || button != 0) return false;
-		double step = Screen.hasShiftDown() ? 1.0 : Screen.hasControlDown() ? 20.0 : 5.0;
+		double step = hasShiftDown() ? 1.0 : hasControlDown() ? 20.0 : 5.0;
 		apply((int) Math.round(startValue + (mouseX - startX) * step));
 		return true;
 	}
@@ -101,7 +101,7 @@ public final class CommandMaxScrubberComponent extends BaseUIComponent implement
 	@Override
 	public boolean scroll(double amount) {
 		if (!hovered || amount == 0) return false;
-		int step = Screen.hasShiftDown() ? 1 : Screen.hasControlDown() ? 100 : 20;
+		int step = hasShiftDown() ? 1 : hasControlDown() ? 100 : 20;
 		apply(session.commandClipboard().maxCommands() + (amount > 0 ? step : -step));
 		session.commit();
 		committed.run();

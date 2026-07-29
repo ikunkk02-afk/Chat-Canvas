@@ -14,7 +14,7 @@ public final class ChatLogContexts {
         }
         var entry = client.getCurrentServer();
         if (entry != null) {
-            String address = entry.address != null ? entry.address : "unknown";
+            String address = entry.ip != null ? entry.ip : "unknown";
             String label = entry.name != null ? entry.name : address;
             return ChatLogContext.multiplayer(address, label);
         }

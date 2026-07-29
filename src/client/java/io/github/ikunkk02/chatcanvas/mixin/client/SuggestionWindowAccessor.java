@@ -5,7 +5,7 @@ import net.minecraft.client.gui.navigation.ScreenRectangle;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(CommandSuggestions.SuggestionWindow.class)
+@Mixin(CommandSuggestions.SuggestionsWindow.class)
 public interface SuggestionWindowAccessor {
 	@Accessor("area")
 	ScreenRectangle chat_canvas$area();

@@ -13,17 +13,17 @@ public final class ChatFieldActions {
 			EditBox field, CommandSuggestions suggestor, String playerName) {
 		TextFieldWidgetAccessor accessor = (TextFieldWidgetAccessor) field;
 		MentionInsertionController.Result insertion = MentionInsertionController.plan(
-				field.getValue(), field.getCursor(), accessor.chat_canvas$selectionEnd(),
+				field.getValue(), field.getCursorPosition(), accessor.chat_canvas$selectionEnd(),
 				accessor.chat_canvas$maxLength(), playerName);
 		if (!insertion.successful()) return false;
 		String previous = field.getValue();
-		int previousCursor = field.getCursor();
+		int previousCursor = field.getCursorPosition();
 		int previousSelection = accessor.chat_canvas$selectionEnd();
 		field.setValue(insertion.text());
 		if (!insertion.text().equals(field.getValue())) {
 			field.setValue(previous);
-			field.setSelectionStart(previousCursor);
-			field.setSelectionEnd(previousSelection);
+			field.setCursorPosition(previousCursor);
+			field.setHighlightPos(previousSelection);
 			return false;
 		}
 		field.setCursor(insertion.cursorUtf16(), false);
@@ -36,7 +36,7 @@ public final class ChatFieldActions {
 			EditBox field, CommandSuggestions suggestor, String replacement) {
 		TextFieldWidgetAccessor accessor = (TextFieldWidgetAccessor) field;
 		InputSnapshot previous = new InputSnapshot(
-				field.getValue(), field.getCursor(), accessor.chat_canvas$selectionEnd());
+				field.getValue(), field.getCursorPosition(), accessor.chat_canvas$selectionEnd());
 		field.setValue(replacement);
 		field.setCursorToEnd(false);
 		field.setFocused(true);
@@ -50,7 +50,7 @@ public final class ChatFieldActions {
 			field.setValue(command);
 			field.setCursorToEnd(false);
 		} else {
-			field.write(command);
+			field.insertText(command);
 		}
 		field.setFocused(true);
 		suggestor.refresh();
@@ -59,8 +59,8 @@ public final class ChatFieldActions {
 	public static void restore(
 			EditBox field, CommandSuggestions suggestor, InputSnapshot snapshot) {
 		field.setValue(snapshot.text());
-		field.setSelectionStart(snapshot.cursor());
-		field.setSelectionEnd(snapshot.selectionEnd());
+		field.setCursorPosition(snapshot.cursor());
+		field.setHighlightPos(snapshot.selectionEnd());
 		field.setFocused(true);
 		suggestor.refresh();
 	}

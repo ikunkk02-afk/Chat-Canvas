@@ -77,7 +77,7 @@ public final class BackgroundNumericScrubberComponent extends BaseUIComponent im
 		int labelColor = vanilla ? 0xFFFFFFFF : 0xFFC7CEDA;
 		context.drawText(renderer, label, x() + 2, textY, labelColor, false);
 		String value = displayValue();
-		int valueX = x() + width() - 8 - renderer.getWidth(value);
+		int valueX = x() + width() - 8 - renderer.width(value);
 		context.drawText(renderer, value, valueX, textY,
 				dragging ? 0xFFFFFFFF : (vanilla ? 0xFFFFFFFF : 0xFFE9EDF4), false);
 		if (valueHovered || dragging) {
@@ -173,7 +173,7 @@ public final class BackgroundNumericScrubberComponent extends BaseUIComponent im
 
 	private void applyValue(double value) {
 		ChatBackgroundConfig before = session.background();
-		session.setBackground(property.write(before, value));
+		session.setBackground(property.insertText(before, value));
 		if (!before.equals(session.background())) {
 			changed = true;
 			previewChanged.run();

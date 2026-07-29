@@ -11,12 +11,12 @@ public final class SpacedTextMetrics {
 	}
 
 	public static int width(Font renderer, FormattedCharSequence text, double spacing) {
-		if (Math.abs(spacing) < EPSILON) return renderer.getWidth(text);
+		if (Math.abs(spacing) < EPSILON) return renderer.width(text);
 		return GlyphAdvanceCache.layout(renderer, text, spacing).roundedWidth();
 	}
 
 	public static int width(Font renderer, String text, double spacing) {
-		if (Math.abs(spacing) < EPSILON) return renderer.getWidth(text);
+		if (Math.abs(spacing) < EPSILON) return renderer.width(text);
 		return width(renderer, FormattedCharSequence.styledForwardsVisitedString(text, Style.EMPTY), spacing);
 	}
 

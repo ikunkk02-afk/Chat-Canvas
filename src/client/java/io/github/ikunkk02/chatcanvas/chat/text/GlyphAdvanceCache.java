@@ -60,7 +60,7 @@ public final class GlyphAdvanceCache {
 		int[] utf16 = {0};
 		text.accept((sourceIndex, style, codePoint) -> {
 			Style safeStyle = style == null ? Style.EMPTY : style;
-			float vanilla = renderer.getTextHandler().getWidth(
+			float vanilla = renderer.getTextHandler().width(
 					FormattedCharSequence.styled(codePoint, safeStyle));
 			captured.add(new MutableGlyph(
 					sourceIndex, utf16[0], codePoint, safeStyle,

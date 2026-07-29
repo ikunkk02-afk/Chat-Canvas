@@ -65,7 +65,7 @@ public final class MentionNumericScrubberComponent extends BaseUIComponent imple
 		int labelColor = vanilla ? 0xFFFFFFFF : 0xFFC7CEDA;
 		context.drawText(renderer, label, x() + 2, textY, labelColor, false);
 		String value = property.format(property.read(session.mention()));
-		context.drawText(renderer, value, x() + width() - 8 - renderer.getWidth(value),
+		context.drawText(renderer, value, x() + width() - 8 - renderer.width(value),
 				textY, vanilla ? 0xFFFFFFFF : 0xFFE9EDF4, false);
 	}
 
@@ -90,7 +90,7 @@ public final class MentionNumericScrubberComponent extends BaseUIComponent imple
 	@Override
 	public boolean dragPointer(double mouseX, double mouseY, int button) {
 		if (!dragging || button != 0 || dragStart == null) return false;
-		double modifier = Screen.hasShiftDown() ? 0.2 : Screen.hasControlDown() ? 5.0 : 1.0;
+		double modifier = hasShiftDown() ? 0.2 : hasControlDown() ? 5.0 : 1.0;
 		applyValue(dragStartValue + (mouseX - dragStartMouseX) * property.dragStep * modifier);
 		return true;
 	}
@@ -123,7 +123,7 @@ public final class MentionNumericScrubberComponent extends BaseUIComponent imple
 	@Override
 	public boolean scroll(double amount) {
 		if (!valueHovered || amount == 0.0) return false;
-		double modifier = Screen.hasShiftDown() ? 0.2 : Screen.hasControlDown() ? 5.0 : 1.0;
+		double modifier = hasShiftDown() ? 0.2 : hasControlDown() ? 5.0 : 1.0;
 		MentionConfig before = session.mention();
 		applyValue(property.read(before) + Math.signum(amount) * property.scrollStep * modifier);
 		if (!before.equals(session.mention())) {
@@ -152,7 +152,7 @@ public final class MentionNumericScrubberComponent extends BaseUIComponent imple
 
 	private void applyValue(double value) {
 		MentionConfig before = session.mention();
-		session.setMention(property.write(before, value));
+		session.setMention(property.insertText(before, value));
 		if (!before.equals(session.mention())) {
 			changed = true;
 			previewChanged.run();

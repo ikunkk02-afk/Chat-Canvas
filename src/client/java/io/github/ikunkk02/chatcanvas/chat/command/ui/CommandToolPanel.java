@@ -86,9 +86,9 @@ public final class CommandToolPanel {
 		favoriteCommandField.setHint(Component.translatable(
 				"chat_canvas.command.command"));
 		favoriteCommandField.setMaxLength(CommandTextSanitizer.MAX_COMMAND_LENGTH);
-		int rightSpace = screen.width - commandField.getX() - commandField.getWidth();
+		int rightSpace = screen.width - commandField.getX() - commandField.width();
 		x = rightSpace >= WIDTH + 8
-				? commandField.getX() + commandField.getWidth() + 4
+				? commandField.getX() + commandField.width() + 4
 				: Math.max(4, commandField.getX() - WIDTH - 4);
 		y = Math.max(4, commandField.getY() - HEIGHT - 4);
 		clamp(screen);
@@ -223,7 +223,7 @@ public final class CommandToolPanel {
 		} else if (tab == CommandToolTab.CLIPBOARD && mouseX >= right - 20) {
 			Minecraft.getInstance().keyboardHandler.setClipboard(row.command());
 		} else {
-			insert(commandField, suggestor, row.command(), Screen.hasShiftDown());
+			insert(commandField, suggestor, row.command(), hasShiftDown());
 		}
 		return true;
 	}
@@ -280,7 +280,7 @@ public final class CommandToolPanel {
 			int keyCode, int scanCode, int modifiers,
 			EditBox commandField, CommandSuggestions suggestor) {
 		if (!open) {
-			if (keyCode == GLFW.GLFW_KEY_F && Screen.hasControlDown()) {
+			if (keyCode == GLFW.GLFW_KEY_F && hasControlDown()) {
 				open = true;
 				setSearchFocused(true);
 				return true;
@@ -316,7 +316,7 @@ public final class CommandToolPanel {
 			} else close();
 			return true;
 		}
-		if (keyCode == GLFW.GLFW_KEY_F && Screen.hasControlDown()) {
+		if (keyCode == GLFW.GLFW_KEY_F && hasControlDown()) {
 			setSearchFocused(true);
 			listFocused = false;
 			return true;
@@ -356,7 +356,7 @@ public final class CommandToolPanel {
 			if (!rows.isEmpty()) {
 				insert(commandField, suggestor,
 						rows.get(Math.min(selected, rows.size() - 1)).command(),
-						Screen.hasShiftDown());
+						hasShiftDown());
 			}
 			return true;
 		}
@@ -513,10 +513,10 @@ public final class CommandToolPanel {
 		};
 		if (!actions.isEmpty()) {
 			context.drawString(renderer, Component.literal(actions),
-					px + WIDTH - renderer.getWidth(actions) - 12,
+					px + WIDTH - renderer.width(actions) - 12,
 					rowY + 7, 0xFFFFD36A);
 		}
-		if (hover && renderer.getWidth(row.command()) > WIDTH - 34) {
+		if (hover && renderer.width(row.command()) > WIDTH - 34) {
 			context.drawTooltip(renderer, Component.literal(row.command()), mouseX, mouseY);
 		} else if (hover && row.dangerous()) {
 			context.drawTooltip(renderer,
@@ -786,7 +786,7 @@ public final class CommandToolPanel {
 	}
 
 	private int buttonX(ChatScreen screen, EditBox field) {
-		int right = field.getX() + field.getWidth() + 4;
+		int right = field.getX() + field.width() + 4;
 		if (right + 54 <= screen.width - 2) return right;
 		return Math.max(2, field.getX() - 58);
 	}

@@ -68,7 +68,7 @@ public final class SplitMessageRatioScrubberComponent
 				enabled ? 0xFFC7CEDA : 0xFF777777, false);
 		String value = Math.round(session.splitMessageMaxWidthRatio() * 100.0) + "%";
 		context.drawText(renderer, value,
-				x() + width() - 8 - renderer.getWidth(value), textY,
+				x() + width() - 8 - renderer.width(value), textY,
 				enabled ? 0xFFE9EDF4 : 0xFF777777, false);
 	}
 

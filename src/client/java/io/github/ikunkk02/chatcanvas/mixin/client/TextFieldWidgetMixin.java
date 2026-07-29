@@ -85,7 +85,7 @@ public abstract class TextFieldWidgetMixin {
 		int localIndex = SpacedTextHitTester.utf16IndexAt(
 				textRenderer, visible, spacing, localX);
 		setCursor(UnicodeTextNavigator.nearestGraphemeBoundary(
-				text, firstCharacterIndex + localIndex), Screen.hasShiftDown());
+				text, firstCharacterIndex + localIndex), hasShiftDown());
 		ci.cancel();
 	}
 
@@ -96,8 +96,8 @@ public abstract class TextFieldWidgetMixin {
 		EditBox self = (EditBox) (Object) this;
 		if (!ChatCanvasTextFieldRegistry.isChatField(self)
 				|| !self.isFocused()) return;
-		boolean shift = Screen.hasShiftDown();
-		boolean control = Screen.hasControlDown();
+		boolean shift = hasShiftDown();
+		boolean control = hasControlDown();
 		if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT
 				|| keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT) {
 			boolean right = keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT;
@@ -277,6 +277,6 @@ public abstract class TextFieldWidgetMixin {
 		}
 		field.setValue(result.text());
 		field.setCursor(result.cursor(), false);
-		field.setSelectionEnd(result.selectionEnd());
+		field.setHighlightPos(result.selectionEnd());
 	}
 }

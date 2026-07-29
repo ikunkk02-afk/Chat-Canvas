@@ -24,7 +24,7 @@ public final class AlignmentGuideRenderer {
 
 		Component geometry = Component.translatable("chat_canvas.editor.geometry",
 				layout.x(), layout.y(), layout.width(), layout.height());
-		int textWidth = Minecraft.getInstance().font.getWidth(geometry);
+		int textWidth = Minecraft.getInstance().font.width(geometry);
 		int x = Math.max(4, Math.min(screenWidth - textWidth - 8, layout.x()));
 		int y = Math.max(4, layout.y() - 18);
 		ModernUiTheme.roundedRect(context, x, y, textWidth + 8, 15, 4, 0xD91A1E28);

@@ -144,10 +144,10 @@ public final class ChatRenderEngine {
 			int lineX = PlayerChatLayoutStrategies
 					.forMode(context.playerChatLayoutMode())
 					.textX(0, wrapWidth, line.width(), 0, line.selfMessage());
-			context.drawContext().getMatrices().push();
-			context.drawContext().getMatrices().translate(
+			context.drawContext().pose().pushMatrix();
+			context.drawContext().pose().translate(
 					context.x() + backgroundConfig.horizontalPadding(), (float) lineY, 0.0f);
-			context.drawContext().getMatrices().scale((float) fontScale, (float) fontScale, 1.0f);
+			context.drawContext().pose().scale((float) fontScale, (float) fontScale, 1.0f);
 			backgroundRenderer.drawMessageBackground(
 					new ChatRenderContext(
 							context.drawContext(),
@@ -194,7 +194,7 @@ public final class ChatRenderEngine {
 					line.mentionRanges(),
 					context.mentionConfig());
 			lineRenderer.draw(context, renderedLine, lineX, 0, lineOpacity, textConfig.shadow());
-			context.drawContext().getMatrices().pop();
+			context.drawContext().pose().popMatrix();
 			lineY -= screenLineHeight;
 			depth++;
 		}

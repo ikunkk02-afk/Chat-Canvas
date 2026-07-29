@@ -75,7 +75,7 @@ public final class PlayerNameDoubleClickHandler {
 		TextFieldWidgetAccessor accessor = (TextFieldWidgetAccessor) chatField;
 		MentionInsertionController.Result insertion = MentionInsertionController.plan(
 				chatField.getValue(),
-				chatField.getCursor(),
+				chatField.getCursorPosition(),
 				accessor.chat_canvas$selectionEnd(),
 				accessor.chat_canvas$maxLength(),
 				hitbox.get().playerName());
@@ -84,13 +84,13 @@ public final class PlayerNameDoubleClickHandler {
 			return true;
 		}
 		String previous = chatField.getValue();
-		int previousCursor = chatField.getCursor();
+		int previousCursor = chatField.getCursorPosition();
 		int previousSelectionEnd = accessor.chat_canvas$selectionEnd();
 		chatField.setValue(insertion.text());
 		if (!insertion.text().equals(chatField.getValue())) {
 			chatField.setValue(previous);
-			chatField.setSelectionStart(previousCursor);
-			chatField.setSelectionEnd(previousSelectionEnd);
+			chatField.setCursorPosition(previousCursor);
+			chatField.setHighlightPos(previousSelectionEnd);
 			showFeedback("chat_canvas.mention.input_too_long", now);
 			return true;
 		}
@@ -129,7 +129,7 @@ public final class PlayerNameDoubleClickHandler {
 
 	private static boolean isSuggestionWindowAt(
 			CommandSuggestions suggestor, double mouseX, double mouseY) {
-		CommandSuggestions.SuggestionWindow window =
+		CommandSuggestions.SuggestionsWindow window =
 				((ChatInputSuggestorAccessor) suggestor).chat_canvas$window();
 		return window != null && ((SuggestionWindowAccessor) window).chat_canvas$area()
 				.contains((int) Math.floor(mouseX), (int) Math.floor(mouseY));
