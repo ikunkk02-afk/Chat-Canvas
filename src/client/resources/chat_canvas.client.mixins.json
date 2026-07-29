@@ -17,7 +17,6 @@
     "SuggestionWindowAccessor",
     "TextFieldWidgetAccessor",
     "TextFieldWidgetMixin",
-    "TextRendererAccessor",
     "TextRendererDrawerMixin"
   ],
   "injectors": {

@@ -1,11 +1,7 @@
 package io.github.ikunkk02.chatcanvas.chat.emoji;
 
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
-import io.github.ikunkk02.chatcanvas.mixin.client.TextRendererAccessor;
-import net.minecraft.client.font.BuiltinEmptyGlyph;
-import net.minecraft.client.font.FontStorage;
 import net.minecraft.client.font.TextRenderer;
-import net.minecraft.text.Style;
 
 import java.util.HashMap;
 import java.util.List;
@@ -25,15 +21,12 @@ public final class EmojiFontSupport {
 		if (renderer == null || entry == null) return false;
 		Boolean cached = CACHE.get(entry.unicode());
 		if (cached != null) return cached;
+		// In MC 1.21.9, TextRenderer.getFontStorage() was removed.
+		// Use getWidth() as a heuristic — if the emoji has measurable width,
+		// the font supports it.
 		boolean supported;
 		try {
-			FontStorage storage = ((TextRendererAccessor) renderer)
-					.chat_canvas$getFontStorage(net.minecraft.client.MinecraftClient.DEFAULT_FONT_ID);
-			supported = entry.unicode().codePoints()
-					.filter(codePoint -> !ignorable(codePoint))
-					.allMatch(codePoint ->
-							false // FIXME: FontStorage.getGlyph API changed in 1.21.9
-					);
+			supported = renderer.getWidth(entry.unicode()) > 0;
 		} catch (RuntimeException failure) {
 			supported = false;
 			if (!loggedFailure) {
