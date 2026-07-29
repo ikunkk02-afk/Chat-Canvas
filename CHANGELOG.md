@@ -2,6 +2,19 @@
 
 All notable changes to Chat Canvas will be documented in this file.
 
+## [1.2.0-mc1.21.10] - 2026-07-29
+
+### Ported
+
+- Ported Chat Canvas 1.2.0 to Minecraft 1.21.10 (Fabric).
+- Source baseline: `mc/1.21.9` branch (same Fabric API generation, minimal port).
+
+### Changed
+
+- Updated dependency versions: Fabric API 0.138.4+1.21.10, Yarn 1.21.10+build.3.
+- owo-lib 0.12.24+1.21.9 (cross-version compatible, no 1.21.10-specific build available).
+- No code changes needed — all 15 Mixin targets verified identical between 1.21.9 and 1.21.10.
+
 ## [1.2.0-mc1.21.9] - 2026-07-29
 
 ### Ported

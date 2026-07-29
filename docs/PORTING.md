@@ -27,6 +27,7 @@ How to port Chat Canvas to newer Minecraft versions.
 | `mc/1.21.6` | 1.21.6 | ✅ Stable |
 | `mc/1.21.8` | 1.21.8 | ✅ Stable |
 | `mc/1.21.9` | 1.21.9 | ✅ Stable |
+| `mc/1.21.10` | 1.21.10 | ✅ Stable |
 
 ## High-Risk Porting Areas
 
@@ -125,10 +126,11 @@ These require the most attention during porting:
 > Each maintenance branch is created from its release tag and receives only
 > targeted fixes for that Minecraft version.
 
-## mc/1.21.8 Port Notes
+## mc/1.21.10 Port Notes
 
-- Source baseline: `mc/1.21.6` (closest stable port with 1.21.6+ adaptations)
+- Source baseline: `mc/1.21.9` (closest stable port, same Fabric API generation)
 - Key changes:
-  - `TextFieldWidget.drawSelectionHighlight` removed in 1.21.7 → replaced with `DrawContext.drawSelection()`
-  - All other Mixin targets identical to 1.21.6
-  - Dependencies: Fabric API 0.136.1+1.21.8, owo-lib 0.12.23+1.21.8, ModMenu 15.0.2
+  - No code changes needed — 1.21.9→1.21.10 is a minimal minor bump
+  - Input API refactoring (KeyInput/Click/CharInput records) already adopted in 1.21.9 baseline
+  - All 15 Mixin targets identical to 1.21.9
+  - Dependencies: Fabric API 0.138.4+1.21.10, owo-lib 0.12.24+1.21.9 (cross-version compatible), ModMenu 16.0.1

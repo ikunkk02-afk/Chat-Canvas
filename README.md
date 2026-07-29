@@ -6,14 +6,14 @@
 
 # Chat Canvas｜聊天画布
 
-![Minecraft](https://img.shields.io/badge/Minecraft-1.21.9-green)
+![Minecraft](https://img.shields.io/badge/Minecraft-1.21.10-green)
 ![Loader](https://img.shields.io/badge/Loader-Fabric-lightyellow)
 ![Side](https://img.shields.io/badge/Side-Client--only-blue)
 ![Java](https://img.shields.io/badge/Java-21%2B-orange)
 ![Version](https://img.shields.io/badge/Version-1.2.0-informational)
 ![License](https://img.shields.io/badge/License-MIT-brightgreen)
 
-Chat Canvas 是一款适用于 **Minecraft 1.21.1 Fabric** 的纯客户端聊天增强模组。
+Chat Canvas 是一款适用于 **Minecraft 1.21.10 Fabric** 的纯客户端聊天增强模组。
 
 玩家可以在实时游戏画面中直接拖拽、缩放并预览聊天栏，同时自定义文字样式、背景、玩家名字颜色、艾特提醒、Emoji 表情、命令工具和语音输入等功能。
 
