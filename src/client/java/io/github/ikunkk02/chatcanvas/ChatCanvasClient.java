@@ -73,13 +73,13 @@ public final class ChatCanvasClient implements ClientModInitializer {
 				"key.chat_canvas.open_editor",
 				InputUtil.Type.KEYSYM,
 				GLFW.GLFW_KEY_K,
-				"key.category.chat_canvas"
+				net.minecraft.client.option.KeyBinding.Category.MISC
 		));
 		voiceInput = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 				"key.chat_canvas.voice_input",
 				InputUtil.Type.KEYSYM,
 				GLFW.GLFW_KEY_V,
-				"key.category.chat_canvas"
+				net.minecraft.client.option.KeyBinding.Category.MISC
 		));
 		ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES)
 				.registerReloadListener(new SimpleSynchronousResourceReloadListener() {

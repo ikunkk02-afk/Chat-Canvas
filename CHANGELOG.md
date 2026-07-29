@@ -2,6 +2,25 @@
 
 All notable changes to Chat Canvas will be documented in this file.
 
+## [1.2.0-mc1.21.9] - 2026-07-29
+
+### Ported
+
+- Ported Chat Canvas 1.2.0 to Minecraft 1.21.9 (Fabric).
+- Source baseline: `mc/1.21.8` branch.
+
+### Changed
+
+- Updated all Mixin targets for MC 1.21.9 input API refactoring: `KeyInput`, `CharInput`, and `Click` wrapper types replace primitive parameters.
+- `Keyboard.onKey` signature changed from `(long, int, int, int, int)` → `(long, int, KeyInput)`, visibility `public` → `private`.
+- `Screen`/`Element`/`ParentElement` input methods refactored: `keyPressed(KeyInput)`, `charTyped(CharInput)`, `mouseClicked(Click, boolean)`, `mouseReleased(Click)`, `mouseDragged(Click, double, double)`.
+- `Screen.hasShiftDown()`/`hasControlDown()` → `MinecraftClient.getInstance().isShiftPressed()`/`isCtrlPressed()`.
+- `Screen.isSelectAll()`/`isPaste()`/`isCopy()` → `KeyInput.isSelectAll()`/`isPaste()`/`isCopy()`.
+- `Style.DEFAULT_FONT_ID` → `MinecraftClient.DEFAULT_FONT_ID`.
+- `GameProfile.getName()`/`getId()` → `name()`/`id()` (record accessors in authlib).
+- `DrawContext.drawBorder()` replaced with fill-based helper (removed from API).
+- Updated dependencies: Fabric API 0.134.1+1.21.9, owo-lib 0.12.24+1.21.9, ModMenu 16.0.1, Fabric Loom 1.17.17.
+
 ## [1.2.0-mc1.21.8] - 2026-07-29
 
 ### Ported

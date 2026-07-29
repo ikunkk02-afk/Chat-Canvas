@@ -73,7 +73,7 @@ public final class CommandMaxScrubberComponent extends BaseComponent implements 
 	@Override
 	public boolean dragPointer(double mouseX, double mouseY, int button) {
 		if (!dragging || button != 0) return false;
-		double step = Screen.hasShiftDown() ? 1.0 : Screen.hasControlDown() ? 20.0 : 5.0;
+		double step = MinecraftClient.getInstance().isShiftPressed() ? 1.0 : MinecraftClient.getInstance().isCtrlPressed() ? 20.0 : 5.0;
 		apply((int) Math.round(startValue + (mouseX - startX) * step));
 		return true;
 	}
@@ -101,7 +101,7 @@ public final class CommandMaxScrubberComponent extends BaseComponent implements 
 	@Override
 	public boolean scroll(double amount) {
 		if (!hovered || amount == 0) return false;
-		int step = Screen.hasShiftDown() ? 1 : Screen.hasControlDown() ? 100 : 20;
+		int step = MinecraftClient.getInstance().isShiftPressed() ? 1 : MinecraftClient.getInstance().isCtrlPressed() ? 100 : 20;
 		apply(session.commandClipboard().maxCommands() + (amount > 0 ? step : -step));
 		session.commit();
 		committed.run();

@@ -16,6 +16,7 @@ import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.Optional;
+import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
 
 public final class PlayerQuickActionMenu {
 	private static final int WIDTH = 116;
@@ -61,7 +62,7 @@ public final class PlayerQuickActionMenu {
 			closeMenu();
 			return true;
 		}
-		if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_Z && replacedInput != null) {
+		if (MinecraftClient.getInstance().isCtrlPressed() && keyCode == GLFW.GLFW_KEY_Z && replacedInput != null) {
 			ChatFieldActions.restore(field, suggestor, replacedInput);
 			replacedInput = null;
 			return true;
@@ -72,7 +73,7 @@ public final class PlayerQuickActionMenu {
 	public void render(ChatScreen screen, DrawContext context, int mouseX, int mouseY) {
 		if (owner != screen || target == null) return;
 		context.fill(x, y, x + WIDTH, y + HEIGHT, 0xEE171B24);
-		context.drawBorder(x, y, WIDTH, HEIGHT, 0xFF59677C);
+		ChatBackgroundDraw.drawBorder(context, x, y, WIDTH, HEIGHT, 0xFF59677C);
 		for (int row = 0; row < 3; row++) {
 			int rowY = y + row * ROW_HEIGHT;
 			if (mouseX >= x && mouseX < x + WIDTH

@@ -8,6 +8,7 @@ import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.function.Consumer;
+import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
 
 public final class VoiceInputOverlay {
 	public static final int BUTTON_SPACE = 20;
@@ -132,7 +133,7 @@ public final class VoiceInputOverlay {
 				: state == VoiceInputState.MODEL_MISSING || state == VoiceInputState.ERROR
 				? 0xE06B4430 : hovered ? 0xD0445066 : 0xB02A3240;
 		context.fill(buttonX, buttonY, buttonX + BUTTON_WIDTH, buttonY + BUTTON_HEIGHT, fill);
-		context.drawBorder(buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT,
+		ChatBackgroundDraw.drawBorder(context, buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT,
 				state == VoiceInputState.LISTENING ? 0xFFFF858D : 0xFF71809A);
 		int cx = buttonX + 9;
 		context.fill(cx - 2, buttonY + 3, cx + 3, buttonY + 9, 0xFFE7ECF5);
@@ -168,7 +169,7 @@ public final class VoiceInputOverlay {
 		int x = Math.max(4, buttonX + BUTTON_WIDTH - width);
 		int y = Math.max(4, field.getY() - 34);
 		context.fill(x, y, x + width, y + 20, 0xD0202632);
-		context.drawBorder(x, y, width, 20, 0xFF71809A);
+		ChatBackgroundDraw.drawBorder(context, x, y, width, 20, 0xFF71809A);
 		context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer,
 				label, x + 5, y + 4, 0xFFFFFFFF);
 		if (state == VoiceInputState.LISTENING && manager.settings().showInputLevel()) {
@@ -183,7 +184,7 @@ public final class VoiceInputOverlay {
 		int x = (owner.width - width) / 2;
 		int y = Math.max(8, (owner.height - height) / 2);
 		context.fill(x, y, x + width, y + height, 0xF0181D27);
-		context.drawBorder(x, y, width, height, 0xFF71809A);
+		ChatBackgroundDraw.drawBorder(context, x, y, width, height, 0xFF71809A);
 		draw(context, "chat_canvas.voice.model.title", x + 10, y + 10, 0xFFFFFFFF);
 		draw(context, "chat_canvas.voice.model.details", x + 10, y + 28, 0xFFADB6C7);
 		draw(context, "chat_canvas.voice.model.privacy", x + 10, y + 44, 0xFFADB6C7);
@@ -215,7 +216,7 @@ public final class VoiceInputOverlay {
 	private static void button(DrawContext context, int x, int y, int width, int height,
 							   String key) {
 		context.fill(x, y, x + width, y + height, 0xFF343D50);
-		context.drawBorder(x, y, width, height, 0xFF71809A);
+		ChatBackgroundDraw.drawBorder(context, x, y, width, height, 0xFF71809A);
 		context.drawCenteredTextWithShadow(MinecraftClient.getInstance().textRenderer,
 				Text.translatable(key), x + width / 2, y + 6, 0xFFFFFFFF);
 	}

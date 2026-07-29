@@ -68,11 +68,9 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 		preview = new PreviewChatWidget(session, width, height,
 				this::onGeometryChanged, this::commitCurrent);
-		preview.zIndex(10);
 		root.child(preview);
 		commandPreview = new PreviewChatWidget(session, EditorChannel.COMMAND_SYSTEM,
 				width, height, this::onGeometryChanged, this::commitCurrent);
-		commandPreview.zIndex(11);
 		root.child(commandPreview);
 
 		settingsPanel = new AnimatedSettingsPanel(session, width, height,
@@ -95,7 +93,6 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		bar.surface(ModernUiTheme.PANEL_SURFACE);
 		bar.horizontalAlignment(HorizontalAlignment.RIGHT);
 		bar.verticalAlignment(VerticalAlignment.CENTER);
-		bar.zIndex(30);
 
 		var title = Components.label(Text.translatable("chat_canvas.editor.title")
 				.formatted(Formatting.WHITE, Formatting.BOLD));
@@ -178,34 +175,39 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	}
 
 	@Override
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+	public boolean keyPressed(net.minecraft.client.input.KeyInput input) {
+		int keyCode = input.key();
+		int scanCode = input.scancode();
 		if (colorPickerPopup != null) {
 			if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
 				colorPickerPopup.cancel();
 				return true;
 			}
-			super.keyPressed(keyCode, scanCode, modifiers);
+			super.keyPressed(input);
 			return true;
 		}
-		if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_Z) {
+		if (MinecraftClient.getInstance().isCtrlPressed() && keyCode == GLFW.GLFW_KEY_Z) {
 			undo();
 			return true;
 		}
-		if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_Y) {
+		if (MinecraftClient.getInstance().isCtrlPressed() && keyCode == GLFW.GLFW_KEY_Y) {
 			redo();
 			return true;
 		}
-		return super.keyPressed(keyCode, scanCode, modifiers);
+		return super.keyPressed(input);
 	}
 
 	@Override
-	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+	public boolean mouseClicked(net.minecraft.client.gui.Click click, boolean doubled) {
+		double mouseX = click.x();
+		double mouseY = click.y();
+		int button = click.button();
 		if (colorPickerPopup != null) {
 			if (!colorPickerPopup.containsScreen(mouseX, mouseY)) {
 				colorPickerPopup.cancel();
 				return true;
 			}
-			super.mouseClicked(mouseX, mouseY, button);
+			super.mouseClicked(click, doubled);
 			return true;
 		}
 		NumericScrubber scrubber = settingsPanel == null
@@ -214,7 +216,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		if (scrubber != null) {
 			if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
 				return pointerCapture.begin(scrubber, mouseX, mouseY, button,
-						Screen.hasShiftDown(), Screen.hasControlDown());
+						MinecraftClient.getInstance().isShiftPressed(), MinecraftClient.getInstance().isCtrlPressed());
 			}
 			if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
 				return scrubber.restoreDefault();
@@ -224,38 +226,44 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && commandPreviewCanReceive(mouseX, mouseY)) {
 			selectChannel(EditorChannel.COMMAND_SYSTEM);
 			return pointerCapture.begin(commandPreview, mouseX, mouseY, button,
-					Screen.hasShiftDown(), Screen.hasControlDown());
+					MinecraftClient.getInstance().isShiftPressed(), MinecraftClient.getInstance().isCtrlPressed());
 		}
 		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && previewCanReceive(mouseX, mouseY)) {
 			selectChannel(EditorChannel.PLAYER_CHAT);
 			return pointerCapture.begin(preview, mouseX, mouseY, button,
-					Screen.hasShiftDown(), Screen.hasControlDown());
+					MinecraftClient.getInstance().isShiftPressed(), MinecraftClient.getInstance().isCtrlPressed());
 		}
-		return super.mouseClicked(mouseX, mouseY, button);
+		return super.mouseClicked(click, doubled);
 	}
 
 	@Override
-	public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+	public boolean mouseDragged(net.minecraft.client.gui.Click click, double deltaX, double deltaY) {
+		double mouseX = click.x();
+		double mouseY = click.y();
+		int button = click.button();
 		if (colorPickerPopup != null) {
-			super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+			super.mouseDragged(click, deltaX, deltaY);
 			return true;
 		}
 		if (pointerCapture.active()) {
 			return pointerCapture.drag(mouseX, mouseY, button);
 		}
-		return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+		return super.mouseDragged(click, deltaX, deltaY);
 	}
 
 	@Override
-	public boolean mouseReleased(double mouseX, double mouseY, int button) {
+	public boolean mouseReleased(net.minecraft.client.gui.Click click) {
+		double mouseX = click.x();
+		double mouseY = click.y();
+		int button = click.button();
 		if (colorPickerPopup != null) {
-			super.mouseReleased(mouseX, mouseY, button);
+			super.mouseReleased(click);
 			return true;
 		}
 		if (pointerCapture.active()) {
 			return pointerCapture.release(mouseX, mouseY, button);
 		}
-		return super.mouseReleased(mouseX, mouseY, button);
+		return super.mouseReleased(click);
 	}
 
 	@Override
@@ -352,9 +360,9 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 	private void selectChannel(EditorChannel channel) {
 		session.select(channel);
-		if (preview != null) preview.zIndex(channel == EditorChannel.PLAYER_CHAT ? 12 : 10);
-		if (commandPreview != null) commandPreview.zIndex(
-				channel == EditorChannel.COMMAND_SYSTEM ? 12 : 11);
+		// zIndex removed in owo-lib 0.12.24+1.21.9
+// if (commandPreview != null) commandPreview.zIndex( // zIndex removed in owo-lib 0.12.24+1.21.9
+// channel == EditorChannel.COMMAND_SYSTEM ? 12 : 11);
 		onGeometryChanged();
 	}
 

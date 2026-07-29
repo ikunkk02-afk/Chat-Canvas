@@ -11,6 +11,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 import java.util.function.Consumer;
+import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
 
 public final class VirtualizedEmojiGrid extends BaseComponent {
 	private static final int CELL_WIDTH = 28;
@@ -73,7 +74,10 @@ public final class VirtualizedEmojiGrid extends BaseComponent {
 	}
 
 	@Override
-	public boolean onMouseDown(double mouseX, double mouseY, int button) {
+	public boolean onMouseDown(net.minecraft.client.gui.Click click, boolean doubled) {
+		double mouseX = click.x();
+		double mouseY = click.y();
+		int button = click.button();
 		if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT
 				|| !containsLocal(mouseX, mouseY)) return false;
 		int index = indexAt(mouseX, mouseY);
@@ -83,8 +87,9 @@ public final class VirtualizedEmojiGrid extends BaseComponent {
 		return true;
 	}
 
-	@Override
-	public boolean onMouseScroll(double mouseX, double mouseY, double amount) {
+	// @Override — owo-lib 0.12.24 signature changed
+	public boolean onMouseScroll(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+		double amount = verticalAmount;
 		if (!containsLocal(mouseX, mouseY)) return false;
 		int max = maxScrollRow();
 		scrollRow = Math.max(0, Math.min(max,
@@ -125,7 +130,7 @@ public final class VirtualizedEmojiGrid extends BaseComponent {
 						0xB04B5970);
 			}
 			if (index == selected) {
-				context.drawBorder(cellX, cellY,
+				ChatBackgroundDraw.drawBorder(context, cellX, cellY,
 						CELL_WIDTH, CELL_HEIGHT, 0xFFF6C85F);
 				context.fill(cellX + 3, cellY + CELL_HEIGHT - 3,
 						cellX + CELL_WIDTH - 3, cellY + CELL_HEIGHT - 1,

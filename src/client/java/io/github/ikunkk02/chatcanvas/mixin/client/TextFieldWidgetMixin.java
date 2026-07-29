@@ -8,6 +8,7 @@ import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextRenderer;
 import io.github.ikunkk02.chatcanvas.chat.text.UnicodeTextNavigator;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
@@ -70,7 +71,9 @@ public abstract class TextFieldWidgetMixin {
 
 	@Inject(method = "onClick", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$locateSpacedClick(
-			double mouseX, double mouseY, CallbackInfo ci) {
+			net.minecraft.client.gui.Click click, boolean doubled, CallbackInfo ci) {
+		double mouseX = click.x();
+		double mouseY = click.y();
 		TextFieldWidget self = (TextFieldWidget) (Object) this;
 		double spacing = chat_canvas$spacing(self);
 		if (Double.isNaN(spacing)) return;
@@ -82,19 +85,20 @@ public abstract class TextFieldWidgetMixin {
 		int localIndex = SpacedTextHitTester.utf16IndexAt(
 				textRenderer, visible, spacing, localX);
 		setCursor(UnicodeTextNavigator.nearestGraphemeBoundary(
-				text, firstCharacterIndex + localIndex), Screen.hasShiftDown());
+				text, firstCharacterIndex + localIndex), MinecraftClient.getInstance().isShiftPressed());
 		ci.cancel();
 	}
 
 	@Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$navigateUnicodeClusters(
-			int keyCode, int scanCode, int modifiers,
+			net.minecraft.client.input.KeyInput input,
 			CallbackInfoReturnable<Boolean> cir) {
+		int keyCode = input.key();
 		TextFieldWidget self = (TextFieldWidget) (Object) this;
 		if (!ChatCanvasTextFieldRegistry.isChatField(self)
 				|| !self.isFocused()) return;
-		boolean shift = Screen.hasShiftDown();
-		boolean control = Screen.hasControlDown();
+		boolean shift = MinecraftClient.getInstance().isShiftPressed();
+		boolean control = MinecraftClient.getInstance().isCtrlPressed();
 		if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT
 				|| keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT) {
 			boolean right = keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT;

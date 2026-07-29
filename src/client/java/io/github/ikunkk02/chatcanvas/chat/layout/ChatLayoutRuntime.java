@@ -107,7 +107,7 @@ public final class ChatLayoutRuntime {
 			MinecraftClient client = MinecraftClient.getInstance();
 			String localPlayerName = client.player == null
 					? ""
-					: client.player.getGameProfile().getName().toLowerCase(java.util.Locale.ROOT);
+					: client.player.getGameProfile().name().toLowerCase(java.util.Locale.ROOT);
 			return new RefreshSignature(
 					ChatTextLayout.glyphWrapWidth(
 							transform.configuredWidth(),

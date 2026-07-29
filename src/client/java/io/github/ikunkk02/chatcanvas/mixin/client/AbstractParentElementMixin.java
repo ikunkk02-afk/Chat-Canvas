@@ -14,8 +14,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public interface AbstractParentElementMixin {
 	@Inject(method = "mouseDragged", at = @At("HEAD"))
 	private void chat_canvas$resetDoubleClickOnDrag(
-			double mouseX, double mouseY, int button, double deltaX, double deltaY,
+			net.minecraft.client.gui.Click click, double deltaX, double deltaY,
 			CallbackInfoReturnable<Boolean> cir) {
+		double mouseX = click.x();
+		double mouseY = click.y();
+		int button = click.button();
 		if ((Object) this instanceof ChatScreen screen) {
 			PlayerNameDoubleClickHandler.instance().reset();
 			if (CommandToolPanel.dispatchMouseDragged(screen, mouseX, mouseY, button)) {
@@ -26,24 +29,24 @@ public interface AbstractParentElementMixin {
 
 	@Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$commandClipboardMouseReleased(
-			double mouseX, double mouseY, int button,
+			net.minecraft.client.gui.Click click,
 			CallbackInfoReturnable<Boolean> cir) {
 		if ((Object) this instanceof ChatScreen screen
-				&& CommandToolPanel.dispatchMouseReleased(screen, button)) {
+				&& CommandToolPanel.dispatchMouseReleased(screen, click.button())) {
 			cir.setReturnValue(true);
 		}
 	}
 
 	@Inject(method = "charTyped", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$commandClipboardCharTyped(
-			char chr, int modifiers, CallbackInfoReturnable<Boolean> cir) {
+			net.minecraft.client.input.CharInput chr, CallbackInfoReturnable<Boolean> cir) {
 		if (!((Object) this instanceof ChatScreen screen)) return;
-		if (CommandToolPanel.dispatchCharTyped(screen, chr, modifiers)) {
+		if (CommandToolPanel.dispatchCharTyped(screen, (char) chr.codepoint(), chr.modifiers())) {
 			cir.setReturnValue(true);
 			return;
 		}
 		if (screen instanceof ChatCanvasInputScreenBridge bridge
-				&& bridge.chat_canvas$dispatchUnicodeChar(chr, modifiers)) {
+				&& bridge.chat_canvas$dispatchUnicodeChar((char) chr.codepoint(), chr.modifiers())) {
 			cir.setReturnValue(true);
 		}
 	}

@@ -87,7 +87,7 @@ public final class ChatCanvasMessageIngress {
 				"Mention trace id={} ingress={} channel={} source={} sender={} local={} self={} matched={} debugSelf={}",
 				id, context.ingress(), classified.channel(), classified.source(),
 				classified.senderName() == null ? "<unknown>" : classified.senderName().getString(),
-				client.player == null ? "<none>" : client.player.getGameProfile().getName(),
+				client.player == null ? "<none>" : client.player.getGameProfile().name(),
 				classified.selfMessage(), mentionMatched, debugSelfMention);
 		ChatCanvasMessage result = new ChatCanvasMessage(
 				id,
@@ -124,7 +124,7 @@ public final class ChatCanvasMessageIngress {
 		if (client.player == null) return false;
 		return !MentionMatcher.findMentions(
 				message.getString(),
-				client.player.getGameProfile().getName(),
+				client.player.getGameProfile().name(),
 				ChatCanvasConfig.instance().mention().requireAtSymbol()).isEmpty();
 	}
 
@@ -134,7 +134,7 @@ public final class ChatCanvasMessageIngress {
 		MinecraftClient client = MinecraftClient.getInstance();
 		UUID localUuid = client.player == null ? null : client.player.getUuid();
 		String localName = client.player == null
-				? "" : client.player.getGameProfile().getName();
+				? "" : client.player.getGameProfile().name();
 		List<PlayerChatIdentity> online = List.copyOf(PlayerRosterTracker.onlinePlayers());
 		return new MessageContext(
 				ingress, signature, sender, senderName, online,

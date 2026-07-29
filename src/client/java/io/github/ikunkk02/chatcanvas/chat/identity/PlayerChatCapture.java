@@ -88,7 +88,7 @@ public final class PlayerChatCapture {
 			Text message, SignedMessage signedMessage, GameProfile sender, Text senderName) {
 		if (sender != null) {
 			return PlayerIdentityResolver.resolveStandard(
-					message, senderName, sender.getId(), sender.getName());
+					message, senderName, sender.id(), sender.name());
 		}
 		String displayName = senderName == null ? "" : senderName.getString();
 		return PlayerRosterTracker.onlinePlayers().stream()

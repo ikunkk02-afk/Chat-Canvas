@@ -6,7 +6,7 @@
 
 # Chat Canvas｜聊天画布
 
-![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1-green)
+![Minecraft](https://img.shields.io/badge/Minecraft-1.21.9-green)
 ![Loader](https://img.shields.io/badge/Loader-Fabric-lightyellow)
 ![Side](https://img.shields.io/badge/Side-Client--only-blue)
 ![Java](https://img.shields.io/badge/Java-21%2B-orange)

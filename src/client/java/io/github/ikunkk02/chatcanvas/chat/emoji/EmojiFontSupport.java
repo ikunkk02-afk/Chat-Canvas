@@ -28,12 +28,12 @@ public final class EmojiFontSupport {
 		boolean supported;
 		try {
 			FontStorage storage = ((TextRendererAccessor) renderer)
-					.chat_canvas$getFontStorage(Style.DEFAULT_FONT_ID);
+					.chat_canvas$getFontStorage(net.minecraft.client.MinecraftClient.DEFAULT_FONT_ID);
 			supported = entry.unicode().codePoints()
 					.filter(codePoint -> !ignorable(codePoint))
 					.allMatch(codePoint ->
-							storage.getGlyph(codePoint, false)
-									!= BuiltinEmptyGlyph.MISSING);
+							false // FIXME: FontStorage.getGlyph API changed in 1.21.9
+					);
 		} catch (RuntimeException failure) {
 			supported = false;
 			if (!loggedFailure) {

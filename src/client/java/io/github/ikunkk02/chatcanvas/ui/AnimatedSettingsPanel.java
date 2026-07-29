@@ -176,7 +176,6 @@ public final class AnimatedSettingsPanel {
 		this.categorySpring = new SpringValue(0.0, MotionPreset.CATEGORY_SLIDE);
 		this.component = buildComponent();
 		this.component.positioning(Positioning.absolute((int) Math.round(initialX), PANEL_TOP));
-		this.component.zIndex(20);
 		setPageButtonsActive(true);
 		syncFromSession();
 
@@ -286,11 +285,8 @@ public final class AnimatedSettingsPanel {
 			ButtonComponent button = transparentButton(
 					Text.translatable(category.translationKey),
 					clicked -> switchCategory(category));
-			button.mouseDown().subscribe((mouseX, mouseY, mouseButton) -> {
-				if (mouseButton != 0) return false;
-				switchCategory(category);
-				return true;
-			});
+			// FIXME: owo-lib 0.12.24 mouseDown API changed
+			// button.mouseDown().subscribe(...) — needs Click-compatible event type
 			button.sizing(Sizing.fill(100 / Category.values().length), Sizing.fill(100));
 			buttons.child(button);
 		}
@@ -627,7 +623,7 @@ public final class AnimatedSettingsPanel {
 					if (client.player == null) return;
 					ChatCanvasConfig.instance().save(session.settings());
 					CommandToolPanel.requestOpenNextChatScreen();
-					client.setScreen(new ChatScreen("/"));
+					client.setScreen(new ChatScreen("/", false));
 				});
 		manage.sizing(Sizing.fill(100), Sizing.fixed(22));
 		registerPageButton(Category.COMMAND, manage);
@@ -1387,11 +1383,8 @@ public final class AnimatedSettingsPanel {
 			ModernUiTheme.border(context, component.getX(), component.getY(),
 					component.getWidth(), component.getHeight(), 0xAAFFFFFF);
 		});
-		color.mouseDown().subscribe((mouseX, mouseY, button) -> {
-			if (button != 1) return false;
-			restorePlayerAutomatic(player);
-			return true;
-		});
+		// FIXME: owo-lib 0.12.24 mouseDown API changed
+		// color.mouseDown().subscribe(...) — needs Click-compatible event type
 		row.child(color);
 
 		var name = Components.label(Text.literal(player.playerName()).formatted(Formatting.WHITE));

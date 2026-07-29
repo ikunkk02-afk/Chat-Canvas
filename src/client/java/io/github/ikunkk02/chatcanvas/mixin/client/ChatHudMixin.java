@@ -543,7 +543,7 @@ public abstract class ChatHudMixin {
 				Math.max(topLeft.y, bottomRight.y)
 		));
 		if (ChatCanvasConfig.instance().playerColors().showNameHitboxes()) {
-			context.drawBorder(
+			ChatBackgroundDraw.drawBorder(context, 
 					(int) Math.floor(drawX + prefixWidth * fontScale), y,
 					(int) Math.ceil(nameWidth * fontScale),
 					(int) Math.ceil(renderer.fontHeight * fontScale), 0xFFE66B6B);

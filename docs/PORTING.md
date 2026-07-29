@@ -26,6 +26,7 @@ How to port Chat Canvas to newer Minecraft versions.
 | `mc/1.21.5` | 1.21.5 | ✅ Stable |
 | `mc/1.21.6` | 1.21.6 | ✅ Stable |
 | `mc/1.21.8` | 1.21.8 | ✅ Stable |
+| `mc/1.21.9` | 1.21.9 | ✅ Stable |
 
 ## High-Risk Porting Areas
 

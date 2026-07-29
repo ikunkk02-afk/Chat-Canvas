@@ -19,10 +19,8 @@ public abstract class KeyboardMixin {
     )
     private void chat_canvas$handleVoiceKeyRelease(
             long window,
-            int keyCode,
-            int scanCode,
             int action,
-            int modifiers,
+            net.minecraft.client.input.KeyInput input,
             CallbackInfo ci
     ) {
         if (action != GLFW.GLFW_RELEASE) {
@@ -44,7 +42,7 @@ public abstract class KeyboardMixin {
         }
 
         if (chatScreen instanceof ChatCanvasVoiceShortcutHost host) {
-            host.chat_canvas$onVoiceShortcutReleased(keyCode, scanCode);
+            host.chat_canvas$onVoiceShortcutReleased(input.key(), input.scancode());
         }
     }
 }

@@ -90,7 +90,7 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 	@Override
 	public boolean dragPointer(double mouseX, double mouseY, int button) {
 		if (!dragging || button != 0 || dragStart == null) return false;
-		double modifier = Screen.hasShiftDown() ? 0.2 : Screen.hasControlDown() ? 5.0 : 1.0;
+		double modifier = MinecraftClient.getInstance().isShiftPressed() ? 0.2 : MinecraftClient.getInstance().isCtrlPressed() ? 5.0 : 1.0;
 		applyValue(dragStartValue + (mouseX - dragStartMouseX) * property.dragStep * modifier);
 		return true;
 	}
@@ -123,7 +123,7 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 	@Override
 	public boolean scroll(double amount) {
 		if (!valueHovered || amount == 0.0) return false;
-		double modifier = Screen.hasShiftDown() ? 0.2 : Screen.hasControlDown() ? 5.0 : 1.0;
+		double modifier = MinecraftClient.getInstance().isShiftPressed() ? 0.2 : MinecraftClient.getInstance().isCtrlPressed() ? 5.0 : 1.0;
 		MentionConfig before = session.mention();
 		applyValue(property.read(before) + Math.signum(amount) * property.scrollStep * modifier);
 		if (!before.equals(session.mention())) {

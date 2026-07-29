@@ -53,7 +53,6 @@ public final class ModernColorPickerPopup extends BaseComponent {
 		this.state = new ColorPickerState(request.initialRgb());
 		this.sizing(Sizing.fixed(POPUP_WIDTH), Sizing.fixed(POPUP_HEIGHT));
 		this.positioning(Positioning.absolute(x, y));
-		this.zIndex(50);
 	}
 
 	@Override
@@ -184,7 +183,10 @@ public final class ModernColorPickerPopup extends BaseComponent {
 	}
 
 	@Override
-	public boolean onMouseDown(double mouseX, double mouseY, int button) {
+	public boolean onMouseDown(net.minecraft.client.gui.Click click, boolean doubled) {
+		double mouseX = click.x();
+		double mouseY = click.y();
+		int button = click.button();
 		if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT || closed) {
 			return true;
 		}
@@ -221,7 +223,7 @@ public final class ModernColorPickerPopup extends BaseComponent {
 		return true;
 	}
 
-	@Override
+	// @Override — owo-lib 0.12.24 signature changed
 	public boolean onMouseDrag(double mouseX, double mouseY, double deltaX,
 							   double deltaY, int button) {
 		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && dragging != DragSection.NONE) {
@@ -231,13 +233,19 @@ public final class ModernColorPickerPopup extends BaseComponent {
 	}
 
 	@Override
-	public boolean onMouseUp(double mouseX, double mouseY, int button) {
+	public boolean onMouseUp(net.minecraft.client.gui.Click click) {
+		double mouseX = click.x();
+		double mouseY = click.y();
+		int button = click.button();
 		dragging = DragSection.NONE;
 		return true;
 	}
 
 	@Override
-	public boolean onKeyPress(int keyCode, int scanCode, int modifiers) {
+	public boolean onKeyPress(net.minecraft.client.input.KeyInput input) {
+		int keyCode = input.key();
+		int scanCode = input.scancode();
+		int modifiers = input.modifiers();
 		if (!hexFocused || closed) {
 			return true;
 		}
@@ -245,21 +253,21 @@ public final class ModernColorPickerPopup extends BaseComponent {
 			confirm();
 			return true;
 		}
-		if (Screen.isSelectAll(keyCode)) {
+		if (new net.minecraft.client.input.KeyInput(keyCode, 0, 0).isSelectAll()) {
 			selectAllHex = true;
 			return true;
 		}
-		if (Screen.isPaste(keyCode)) {
+		if (new net.minecraft.client.input.KeyInput(keyCode, 0, 0).isPaste()) {
 			replaceOrAppend(MinecraftClient.getInstance().keyboard.getClipboard());
 			return true;
 		}
 		if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
-			String input = state.hexInput();
+			String hexInputStr = state.hexInput();
 			if (selectAllHex) {
 				state.updateHexInput("");
 				selectAllHex = false;
-			} else if (!input.isEmpty()) {
-				state.updateHexInput(input.substring(0, input.length() - 1));
+			} else if (!hexInputStr.isEmpty()) {
+				state.updateHexInput(hexInputStr.substring(0, hexInputStr.length() - 1));
 			}
 			return true;
 		}
@@ -267,11 +275,13 @@ public final class ModernColorPickerPopup extends BaseComponent {
 	}
 
 	@Override
-	public boolean onCharTyped(char chr, int modifiers) {
-		if (!hexFocused || closed || Character.isISOControl(chr)) {
+	public boolean onCharTyped(net.minecraft.client.input.CharInput chr) {
+		char character = (char) chr.codepoint();
+		int modifiers = chr.modifiers();
+		if (!hexFocused || closed || Character.isISOControl(chr.codepoint())) {
 			return false;
 		}
-		replaceOrAppend(Character.toString(chr));
+		replaceOrAppend(Character.toString(chr.codepoint()));
 		return true;
 	}
 

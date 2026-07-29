@@ -179,8 +179,11 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 
 	@Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$handleCustomMouseInput(
-			double mouseX, double mouseY, int button,
+			net.minecraft.client.gui.Click click, boolean doubled,
 			CallbackInfoReturnable<Boolean> cir) {
+		double mouseX = click.x();
+		double mouseY = click.y();
+		int button = click.button();
 		if (!chat_canvas$inputHealthy) return;
 		ChatScreen screen = (ChatScreen) (Object) this;
 		if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT
@@ -209,7 +212,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		}
 		ChatInputSuggestor activeSuggestor = chat_canvas$activeInputSuggestor();
 		if (chat_canvas$inputMode == ChatCanvasInputMode.PLAYER_CHAT
-				&& activeSuggestor.mouseClicked(mouseX, mouseY, button)) {
+				&& activeSuggestor.mouseClicked(new net.minecraft.client.gui.Click(mouseX, mouseY, new net.minecraft.client.input.MouseInput(button, 0)))) {
 			cir.setReturnValue(true);
 			return;
 		}
@@ -267,8 +270,11 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 
 	@Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$routeKeysByInputMode(
-			int keyCode, int scanCode, int modifiers,
+			net.minecraft.client.input.KeyInput input,
 			CallbackInfoReturnable<Boolean> cir) {
+		int keyCode = input.key();
+		int scanCode = input.scancode();
+		int modifiers = input.modifiers();
 		if (!chat_canvas$inputHealthy) return;
 		ChatScreen screen = (ChatScreen) (Object) this;
 		TextFieldWidget activeField = chat_canvas$activeInputField();
@@ -278,7 +284,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		}
 		if (chat_canvas$inputMode == ChatCanvasInputMode.PLAYER_CHAT
 				&& io.github.ikunkk02.chatcanvas.ChatCanvasClient.voiceInputKey()
-						.matchesKey(keyCode, scanCode)) {
+						.matchesKey(new net.minecraft.client.input.KeyInput(keyCode, scanCode, 0))) {
 			chat_canvas$emojiPicker.close();
 			chat_canvas$voiceOverlay.keyboardPressed();
 			chat_canvas$suppressNextVoiceCharacter = true;
@@ -307,13 +313,13 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 			return;
 		}
 		if (chat_canvas$inputMode == ChatCanvasInputMode.PLAYER_CHAT
-				&& activeSuggestor.keyPressed(keyCode, scanCode, modifiers)) {
+				&& activeSuggestor.keyPressed(new net.minecraft.client.input.KeyInput(keyCode, scanCode, modifiers))) {
 			cir.setReturnValue(true);
 			return;
 		}
 		if ((keyCode == GLFW.GLFW_KEY_UP || keyCode == GLFW.GLFW_KEY_DOWN)
 				&& chat_canvas$inputMode == ChatCanvasInputMode.COMMAND
-				&& activeSuggestor.keyPressed(keyCode, scanCode, modifiers)) {
+				&& activeSuggestor.keyPressed(new net.minecraft.client.input.KeyInput(keyCode, scanCode, modifiers))) {
 			cir.setReturnValue(true);
 			return;
 		}
@@ -374,7 +380,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		if (voiceKey == null) {
 			return;
 		}
-		if (!voiceKey.matchesKey(keyCode, scanCode)) {
+		if (!voiceKey.matchesKey(new net.minecraft.client.input.KeyInput(keyCode, scanCode, 0))) {
 			return;
 		}
 		chat_canvas$voiceOverlay.keyboardReleased();

@@ -65,7 +65,7 @@ public final class PlayerRosterTracker {
 	}
 
 	private static PlayerChatIdentity fromProfile(GameProfile profile) {
-		return new PlayerChatIdentity(profile.getId(), profile.getName(), true);
+		return new PlayerChatIdentity(profile.id(), profile.name(), true);
 	}
 
 	private static PlayerChatIdentity preview(String name) {

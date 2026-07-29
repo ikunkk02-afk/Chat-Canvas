@@ -110,7 +110,7 @@ public final class ChannelMessageLayoutEngine {
 				plain,
 				net.minecraft.client.MinecraftClient.getInstance().player == null ? ""
 						: net.minecraft.client.MinecraftClient.getInstance().player
-						.getGameProfile().getName(),
+						.getGameProfile().name(),
 				ChatCanvasConfig.instance().mention().requireAtSymbol());
 		return new StyledMessage(
 				styles.apply(original, nameRange, color, mentions,

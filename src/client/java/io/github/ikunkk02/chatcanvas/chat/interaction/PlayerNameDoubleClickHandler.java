@@ -142,7 +142,7 @@ public final class PlayerNameDoubleClickHandler {
 			return hitbox.playerUuid().equals(client.player.getUuid());
 		}
 		return PlayerColorConfig.normalizeName(hitbox.playerName()).equals(
-				PlayerColorConfig.normalizeName(client.player.getGameProfile().getName()));
+				PlayerColorConfig.normalizeName(client.player.getGameProfile().name()));
 	}
 
 	private void showFeedback(String translationKey, long now) {

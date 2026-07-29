@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.WeakHashMap;
+import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
 
 public final class CommandToolPanel {
 	private static final int WIDTH = 292;
@@ -165,7 +166,7 @@ public final class CommandToolPanel {
 				return true;
 			}
 		}
-		if (searchField.mouseClicked(mouseX, mouseY, button)) {
+		if (searchField.mouseClicked(new net.minecraft.client.gui.Click(mouseX, mouseY, new net.minecraft.client.input.MouseInput(button, 0)), false)) {
 			setSearchFocused(true);
 			listFocused = false;
 			return true;
@@ -223,7 +224,7 @@ public final class CommandToolPanel {
 		} else if (tab == CommandToolTab.CLIPBOARD && mouseX >= right - 20) {
 			MinecraftClient.getInstance().keyboard.setClipboard(row.command());
 		} else {
-			insert(commandField, suggestor, row.command(), Screen.hasShiftDown());
+			insert(commandField, suggestor, row.command(), MinecraftClient.getInstance().isShiftPressed());
 		}
 		return true;
 	}
@@ -280,7 +281,7 @@ public final class CommandToolPanel {
 			int keyCode, int scanCode, int modifiers,
 			TextFieldWidget commandField, ChatInputSuggestor suggestor) {
 		if (!open) {
-			if (keyCode == GLFW.GLFW_KEY_F && Screen.hasControlDown()) {
+			if (keyCode == GLFW.GLFW_KEY_F && MinecraftClient.getInstance().isCtrlPressed()) {
 				open = true;
 				setSearchFocused(true);
 				return true;
@@ -304,8 +305,7 @@ public final class CommandToolPanel {
 							? favoriteCommandField : nameField);
 					return true;
 				}
-				return focusedDialogField().keyPressed(
-						keyCode, scanCode, modifiers);
+				return focusedDialogField().keyPressed(new net.minecraft.client.input.KeyInput(keyCode, scanCode, modifiers));
 			}
 			return true;
 		}
@@ -316,7 +316,7 @@ public final class CommandToolPanel {
 			} else close();
 			return true;
 		}
-		if (keyCode == GLFW.GLFW_KEY_F && Screen.hasControlDown()) {
+		if (keyCode == GLFW.GLFW_KEY_F && MinecraftClient.getInstance().isCtrlPressed()) {
 			setSearchFocused(true);
 			listFocused = false;
 			return true;
@@ -328,7 +328,7 @@ public final class CommandToolPanel {
 				listFocused = true;
 				return true;
 			}
-			return searchField.keyPressed(keyCode, scanCode, modifiers);
+			return searchField.keyPressed(new net.minecraft.client.input.KeyInput(keyCode, scanCode, modifiers));
 		}
 		if (!listFocused) return false;
 		if (keyCode == GLFW.GLFW_KEY_TAB
@@ -356,7 +356,7 @@ public final class CommandToolPanel {
 			if (!rows.isEmpty()) {
 				insert(commandField, suggestor,
 						rows.get(Math.min(selected, rows.size() - 1)).command(),
-						Screen.hasShiftDown());
+						MinecraftClient.getInstance().isShiftPressed());
 			}
 			return true;
 		}
@@ -376,10 +376,10 @@ public final class CommandToolPanel {
 	public boolean charTyped(char character, int modifiers) {
 		if (dialog == Dialog.ADD_FAVORITE
 				|| dialog == Dialog.EDIT_FAVORITE) {
-			return focusedDialogField().charTyped(character, modifiers);
+			return focusedDialogField().charTyped(new net.minecraft.client.input.CharInput(character, modifiers));
 		}
 		return open && searchField.isFocused()
-				&& searchField.charTyped(character, modifiers);
+				&& searchField.charTyped(new net.minecraft.client.input.CharInput(character, modifiers));
 	}
 
 	public void removed() {
@@ -415,7 +415,7 @@ public final class CommandToolPanel {
 		int px = visualX;
 		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
 		context.fill(px, y, px + WIDTH, y + HEIGHT, 0xF0181B25);
-		context.drawBorder(px, y, WIDTH, HEIGHT, 0xFF59647A);
+		ChatBackgroundDraw.drawBorder(context, px, y, WIDTH, HEIGHT, 0xFF59647A);
 		context.drawTextWithShadow(renderer,
 				Text.translatable("chat_canvas.command.tools"),
 				px + 8, y + 5, 0xFFFFFFFF);
@@ -535,7 +535,7 @@ public final class CommandToolPanel {
 		context.fill(px + 1, y + 18, px + WIDTH - 1, y + HEIGHT - 1,
 				0xFF10131B);
 		context.fill(dx, dy, dx + dialogWidth, y + HEIGHT - 8, 0xFF171B25);
-		context.drawBorder(dx, dy, dialogWidth, HEIGHT - 30, 0xFF73809A);
+		ChatBackgroundDraw.drawBorder(context, dx, dy, dialogWidth, HEIGHT - 30, 0xFF73809A);
 		context.drawTextWithShadow(renderer, Text.translatable(dialog.titleKey),
 				dx + 8, dy + 8, 0xFFFFFFFF);
 		if (dialog == Dialog.ADD_FAVORITE
@@ -575,11 +575,11 @@ public final class CommandToolPanel {
 		int dy = y + 22;
 		if (dialog == Dialog.ADD_FAVORITE
 				|| dialog == Dialog.EDIT_FAVORITE) {
-			if (nameField.mouseClicked(mouseX, mouseY, button)) {
+			if (nameField.mouseClicked(new net.minecraft.client.gui.Click(mouseX, mouseY, new net.minecraft.client.input.MouseInput(button, 0)), false)) {
 				focusDialogField(nameField);
 				return true;
 			}
-			if (favoriteCommandField.mouseClicked(mouseX, mouseY, button)) {
+			if (favoriteCommandField.mouseClicked(new net.minecraft.client.gui.Click(mouseX, mouseY, new net.minecraft.client.input.MouseInput(button, 0)), false)) {
 				focusDialogField(favoriteCommandField);
 				return true;
 			}
@@ -813,7 +813,7 @@ public final class CommandToolPanel {
 			int width, int height, boolean active) {
 		context.fill(x, y, x + width, y + height,
 				active ? 0xFF405C82 : 0xCC30394B);
-		context.drawBorder(x, y, width, height, 0xFF5D6A82);
+		ChatBackgroundDraw.drawBorder(context, x, y, width, height, 0xFF5D6A82);
 	}
 
 	private static String shorten(String value, int limit) {
