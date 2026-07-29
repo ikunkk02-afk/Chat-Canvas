@@ -1,6 +1,6 @@
 package io.github.ikunkk02.chatcanvas.chat.message;
 
-import net.minecraft.network.chat.MessageSignature;
+import net.minecraft.network.message.MessageSignature;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayDeque;
@@ -16,13 +16,13 @@ public final class PendingMessageContextRegistry {
 	private static final long UNSIGNED_TTL_MS = 5_000L;
 	private final LinkedHashMap<MessageSignature, PendingMessage> signatures =
 			new LinkedHashMap<>();
-	private final IdentityHashMap<Component, Deque<PendingMessage>> identities =
+	private final IdentityHashMap<Text, Deque<PendingMessage>> identities =
 			new IdentityHashMap<>();
-	private final Deque<Component> order = new ArrayDeque<>();
+	private final Deque<Text> order = new ArrayDeque<>();
 	private final Deque<PendingMessage> unsignedOrder = new ArrayDeque<>();
 
 	public synchronized PendingMessage register(
-			Component message, MessageSignature signature, MessageContext context) {
+			Text message, MessageSignature signature, MessageContext context) {
 		if (message == null) throw new IllegalArgumentException("message");
 		UUID id = signature == null
 				? UUID.randomUUID()
@@ -43,7 +43,7 @@ public final class PendingMessageContextRegistry {
 		return pending;
 	}
 
-	public synchronized PendingMessage consume(Component message, MessageSignature signature) {
+	public synchronized PendingMessage consume(Text message, MessageSignature signature) {
 		PendingMessage pending = signature == null ? null : signatures.remove(signature);
 		Deque<PendingMessage> queue = identities.get(message);
 		if (pending != null && queue != null) {
@@ -79,7 +79,7 @@ public final class PendingMessageContextRegistry {
 	}
 
 	private void removeOldest() {
-		Component oldest = order.pollFirst();
+		Text oldest = order.pollFirst();
 		if (oldest == null) return;
 		Deque<PendingMessage> queue = identities.get(oldest);
 		if (queue == null) return;
@@ -91,8 +91,8 @@ public final class PendingMessageContextRegistry {
 		}
 	}
 
-	private void removeOneOrderReference(Component message) {
-		Iterator<Component> iterator = order.iterator();
+	private void removeOneOrderReference(Text message) {
+		Iterator<Text> iterator = order.iterator();
 		while (iterator.hasNext()) {
 			if (iterator.next() == message) {
 				iterator.remove();

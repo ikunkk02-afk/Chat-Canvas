@@ -25,7 +25,7 @@ public final class PlayerNameDoubleClickHandler {
 			new PlayerNameDoubleClickHandler();
 
 	private final MentionInteractionState state = new MentionInteractionState();
-	private Component feedback;
+	private Text feedback;
 	private long feedbackUntilMs;
 
 	private PlayerNameDoubleClickHandler() {
@@ -37,8 +37,8 @@ public final class PlayerNameDoubleClickHandler {
 
 	public boolean mouseClicked(
 			ChatScreen screen,
-			EditBox chatField,
-			CommandSuggestions suggestor,
+			TextFieldWidget chatField,
+			ChatInputSuggestor suggestor,
 			double mouseX,
 			double mouseY,
 			int button
@@ -62,7 +62,7 @@ public final class PlayerNameDoubleClickHandler {
 			state.reset();
 			return false;
 		}
-		long now = Util.getMillis();
+		long now = Util.getMeasuringTimeMs();
 		if (!state.click(hitbox.get(), now, mouseX, mouseY,
 				config.doubleClickIntervalMs(), screen)) {
 			return false;
@@ -74,8 +74,8 @@ public final class PlayerNameDoubleClickHandler {
 		}
 		TextFieldWidgetAccessor accessor = (TextFieldWidgetAccessor) chatField;
 		MentionInsertionController.Result insertion = MentionInsertionController.plan(
-				chatField.getValue(),
-				chatField.getCursorPosition(),
+				chatField.getText(),
+				chatField.getCursor(),
 				accessor.chat_canvas$selectionEnd(),
 				accessor.chat_canvas$maxLength(),
 				hitbox.get().playerName());
@@ -83,29 +83,29 @@ public final class PlayerNameDoubleClickHandler {
 			showFeedback("chat_canvas.mention.input_too_long", now);
 			return true;
 		}
-		String previous = chatField.getValue();
-		int previousCursor = chatField.getCursorPosition();
+		String previous = chatField.getText();
+		int previousCursor = chatField.getCursor();
 		int previousSelectionEnd = accessor.chat_canvas$selectionEnd();
-		chatField.setValue(insertion.text());
-		if (!insertion.text().equals(chatField.getValue())) {
-			chatField.setValue(previous);
-			chatField.moveCursorTo(previousCursor);
-			chatField.setHighlightPos(previousSelectionEnd);
+		chatField.setText(insertion.text());
+		if (!insertion.text().equals(chatField.getText())) {
+			chatField.setText(previous);
+			chatField.setSelectionStart(previousCursor);
+			chatField.setSelectionEnd(previousSelectionEnd);
 			showFeedback("chat_canvas.mention.input_too_long", now);
 			return true;
 		}
-		chatField.moveCursorTo(insertion.cursorUtf16(), false);
+		chatField.setCursor(insertion.cursorUtf16(), false);
 		chatField.setFocused(true);
-		suggestor.updateCommandInfo();
+		suggestor.refresh();
 		clearFeedback();
 		return true;
 	}
 
 	public void tick(ChatScreen screen) {
 		MentionConfig config = ChatCanvasConfig.instance().mention();
-		long now = Util.getMillis();
+		long now = Util.getMeasuringTimeMs();
 		if (!config.doubleClickEnabled()
-				|| Minecraft.getInstance().screen != screen
+				|| Minecraft.getInstance().currentScreen != screen
 				|| !Minecraft.getInstance().isWindowFocused()) {
 			state.reset();
 		} else {
@@ -114,8 +114,8 @@ public final class PlayerNameDoubleClickHandler {
 		if (feedback != null && now > feedbackUntilMs) clearFeedback();
 	}
 
-	public Optional<Component> feedback() {
-		if (feedback == null || Util.getMillis() > feedbackUntilMs) {
+	public Optional<Text> feedback() {
+		if (feedback == null || Util.getMeasuringTimeMs() > feedbackUntilMs) {
 			clearFeedback();
 			return Optional.empty();
 		}
@@ -128,15 +128,15 @@ public final class PlayerNameDoubleClickHandler {
 	}
 
 	private static boolean isSuggestionWindowAt(
-			CommandSuggestions suggestor, double mouseX, double mouseY) {
-		CommandSuggestions.SuggestionWindow window =
+			ChatInputSuggestor suggestor, double mouseX, double mouseY) {
+		ChatInputSuggestor.SuggestionWindow window =
 				((ChatInputSuggestorAccessor) suggestor).chat_canvas$window();
 		return window != null && ((SuggestionWindowAccessor) window).chat_canvas$area()
 				.contains((int) Math.floor(mouseX), (int) Math.floor(mouseY));
 	}
 
 	private static boolean isLocalPlayer(PlayerNameHitbox hitbox) {
-		Minecraft client = Minecraft.getInstance();
+		MinecraftClient client = Minecraft.getInstance();
 		if (client.player == null) return false;
 		if (hitbox.playerUuid() != null) {
 			return hitbox.playerUuid().equals(client.player.getUuid());

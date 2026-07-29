@@ -37,7 +37,7 @@ public final class MentionNotificationController {
 	}
 
 	public void receive(ChatCanvasMessage message) {
-		Minecraft client = Minecraft.getInstance();
+		MinecraftClient client = Minecraft.getInstance();
 		boolean debugSelfMention = MentionDebugPolicy.allowsSelfMention(client);
 		if (client.player == null || message == null
 				|| message.channel() != ChatCanvasChannel.PLAYER_CHAT

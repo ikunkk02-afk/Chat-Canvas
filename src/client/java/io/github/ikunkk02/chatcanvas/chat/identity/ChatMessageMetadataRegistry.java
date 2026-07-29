@@ -5,8 +5,8 @@ import io.github.ikunkk02.chatcanvas.chat.style.TextRange;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.chat.GuiMessage;
-import net.minecraft.network.chat.MessageSignature;
+import net.minecraft.client.gui.hud.ChatHudLine;
+import net.minecraft.network.message.MessageSignature;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.network.chat.Component;
 
@@ -26,15 +26,15 @@ public final class ChatMessageMetadataRegistry {
 
 	private final LinkedHashMap<MessageSignature, ChatMessageMetadata> signatures =
 			new LinkedHashMap<>(64, 0.75f, true);
-	private final IdentityHashMap<Component, Deque<ChatMessageMetadata>> pendingByText =
+	private final IdentityHashMap<Text, Deque<ChatMessageMetadata>> pendingByText =
 			new IdentityHashMap<>();
-	private final Deque<Component> pendingOrder = new ArrayDeque<>();
-	private final IdentityHashMap<GuiMessage, ChatMessageMetadata> messages =
+	private final Deque<Text> pendingOrder = new ArrayDeque<>();
+	private final IdentityHashMap<ChatHudLine, ChatMessageMetadata> messages =
 			new IdentityHashMap<>();
-	private final IdentityHashMap<GuiMessage, MentionAnalysis> mentions =
+	private final IdentityHashMap<ChatHudLine, MentionAnalysis> mentions =
 			new IdentityHashMap<>();
-	private final Deque<GuiMessage> mentionOrder = new ArrayDeque<>();
-	private final IdentityHashMap<FormattedCharSequence, VisibleMetadata> visible =
+	private final Deque<ChatHudLine> mentionOrder = new ArrayDeque<>();
+	private final IdentityHashMap<OrderedText, VisibleMetadata> visible =
 			new IdentityHashMap<>();
 
 	private ChatMessageMetadataRegistry() {
@@ -44,7 +44,7 @@ public final class ChatMessageMetadataRegistry {
 		return INSTANCE;
 	}
 
-	public synchronized void registerIncoming(Component text, MessageSignature signature,
+	public synchronized void registerIncoming(Text text, MessageSignature signature,
 											  ChatMessageMetadata metadata) {
 		if (signature != null) {
 			signatures.put(signature, metadata);
@@ -57,7 +57,7 @@ public final class ChatMessageMetadataRegistry {
 		}
 	}
 
-	public synchronized void registerVisibleLines(GuiMessage message, List<FormattedCharSequence> lines) {
+	public synchronized void registerVisibleLines(ChatHudLine message, List<OrderedText> lines) {
 		ChatMessageMetadata sender = metadataFor(message);
 		String plain = message.content().getString();
 		MentionKey key = currentMentionKey();
@@ -69,7 +69,7 @@ public final class ChatMessageMetadataRegistry {
 			if (!mentions.containsKey(message)) mentionOrder.addLast(message);
 			mentions.put(message, mentionAnalysis);
 			while (mentionOrder.size() > CAPACITY) {
-				GuiMessage oldest = mentionOrder.pollFirst();
+				ChatHudLine oldest = mentionOrder.pollFirst();
 				if (oldest != null) mentions.remove(oldest);
 			}
 		}
@@ -87,7 +87,7 @@ public final class ChatMessageMetadataRegistry {
 		}
 	}
 
-	public synchronized VisibleMetadata visibleMetadata(FormattedCharSequence line) {
+	public synchronized VisibleMetadata visibleMetadata(OrderedText line) {
 		return visible.get(line);
 	}
 
@@ -95,15 +95,15 @@ public final class ChatMessageMetadataRegistry {
 		visible.clear();
 	}
 
-	public synchronized void retainMessages(Collection<GuiMessage> retained) {
-		IdentityHashMap<GuiMessage, Boolean> live = new IdentityHashMap<>();
-		for (GuiMessage line : retained) live.put(line, Boolean.TRUE);
+	public synchronized void retainMessages(Collection<ChatHudLine> retained) {
+		IdentityHashMap<ChatHudLine, Boolean> live = new IdentityHashMap<>();
+		for (ChatHudLine line : retained) live.put(line, Boolean.TRUE);
 		messages.keySet().removeIf(line -> !live.containsKey(line));
 		mentions.keySet().removeIf(line -> !live.containsKey(line));
 		mentionOrder.removeIf(line -> !live.containsKey(line));
 
 		java.util.HashSet<MessageSignature> liveSignatures = new java.util.HashSet<>();
-		for (GuiMessage line : retained) {
+		for (ChatHudLine line : retained) {
 			if (line.signature() != null) liveSignatures.add(line.signature());
 		}
 		signatures.keySet().removeIf(signature -> !liveSignatures.contains(signature));
@@ -119,7 +119,7 @@ public final class ChatMessageMetadataRegistry {
 		visible.clear();
 	}
 
-	private ChatMessageMetadata metadataFor(GuiMessage line) {
+	private ChatMessageMetadata metadataFor(ChatHudLine line) {
 		ChatMessageMetadata existing = messages.get(line);
 		if (existing != null) return existing;
 		ChatMessageMetadata found = line.signature() == null
@@ -157,7 +157,7 @@ public final class ChatMessageMetadataRegistry {
 	}
 
 	private void removeOldestPending() {
-		Component oldest = pendingOrder.pollFirst();
+		Text oldest = pendingOrder.pollFirst();
 		if (oldest == null) return;
 		Deque<ChatMessageMetadata> queue = pendingByText.get(oldest);
 		if (queue != null) {
@@ -166,8 +166,8 @@ public final class ChatMessageMetadataRegistry {
 		}
 	}
 
-	private void removePendingOrderReference(Component text) {
-		Iterator<Component> iterator = pendingOrder.iterator();
+	private void removePendingOrderReference(Text text) {
+		Iterator<Text> iterator = pendingOrder.iterator();
 		while (iterator.hasNext()) {
 			if (iterator.next() == text) {
 				iterator.remove();
@@ -177,7 +177,7 @@ public final class ChatMessageMetadataRegistry {
 	}
 
 	private static MentionKey currentMentionKey() {
-		Minecraft client = Minecraft.getInstance();
+		MinecraftClient client = Minecraft.getInstance();
 		String playerName = client.player == null
 				? ""
 				: client.player.getGameProfile().getName();
@@ -186,11 +186,11 @@ public final class ChatMessageMetadataRegistry {
 				ChatCanvasConfig.instance().mention().requireAtSymbol());
 	}
 
-	private static List<LineIndex> mapLines(String source, List<FormattedCharSequence> lines) {
+	private static List<LineIndex> mapLines(String source, List<OrderedText> lines) {
 		int[] sourceCodePoints = source.codePoints().toArray();
 		int[] cursor = {0};
 		List<LineIndex> result = new java.util.ArrayList<>(lines.size());
-		for (FormattedCharSequence line : lines) {
+		for (OrderedText line : lines) {
 			List<Integer> globalIndices = new java.util.ArrayList<>();
 			line.accept((ignored, style, codePoint) -> {
 				int mapped = findNextSourceIndex(sourceCodePoints, cursor[0], codePoint);

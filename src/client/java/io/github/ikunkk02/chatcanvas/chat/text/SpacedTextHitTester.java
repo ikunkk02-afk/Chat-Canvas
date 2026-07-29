@@ -11,7 +11,7 @@ public final class SpacedTextHitTester {
 
 	@Nullable
 	public static Style styleAt(
-			Font renderer, FormattedCharSequence text, double spacing, double x) {
+			TextRenderer renderer, OrderedText text, double spacing, double x) {
 		GlyphAdvanceCache.GlyphRun run = GlyphAdvanceCache.layout(renderer, text, spacing);
 		if (x < 0.0 || x > run.width()) return null;
 		for (GlyphAdvanceCache.Glyph glyph : run.glyphs()) {
@@ -21,10 +21,10 @@ public final class SpacedTextHitTester {
 	}
 
 	public static int utf16IndexAt(
-			Font renderer, String text, double spacing, double x) {
+			TextRenderer renderer, String text, double spacing, double x) {
 		if (x <= 0.0 || text.isEmpty()) return 0;
 		GlyphAdvanceCache.GlyphRun run = GlyphAdvanceCache.layout(
-				renderer, FormattedCharSequence.styledForwardsVisitedString(text, Style.EMPTY), spacing);
+				renderer, OrderedText.styledForwardsVisitedString(text, Style.EMPTY), spacing);
 		int utf16 = 0;
 		for (GlyphAdvanceCache.Glyph glyph : run.glyphs()) {
 			double midpoint = glyph.x() + glyph.advance() * 0.5;

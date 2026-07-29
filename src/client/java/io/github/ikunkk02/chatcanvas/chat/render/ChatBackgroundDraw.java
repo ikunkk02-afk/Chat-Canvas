@@ -7,14 +7,14 @@ public final class ChatBackgroundDraw {
 	private ChatBackgroundDraw() {
 	}
 
-	public static void fill(GuiGraphicsExtractor context, ChatBackgroundBounds bounds, int color) {
+	public static void fill(DrawContext context, ChatBackgroundBounds bounds, int color) {
 		if (bounds == null || !bounds.visible() || color >>> 24 == 0) {
 			return;
 		}
 		context.fill(bounds.left(), bounds.top(), bounds.right(), bounds.bottom(), color);
 	}
 
-	public static void drawRectBorder(GuiGraphicsExtractor context, int left, int top,
+	public static void drawRectBorder(DrawContext context, int left, int top,
 									  int right, int bottom, int color) {
 		if (color >>> 24 == 0 || right - left <= 1 || bottom - top <= 1) {
 			return;

@@ -10,7 +10,7 @@ public final class OrderedTextStyleOverlay {
 	private OrderedTextStyleOverlay() {
 	}
 
-	public static FormattedCharSequence apply(FormattedCharSequence original, List<StyledRange> ranges) {
+	public static OrderedText apply(OrderedText original, List<StyledRange> ranges) {
 		if (original == null || ranges == null || ranges.isEmpty()) return original;
 		List<StyledRange> ordered = ranges.stream()
 				.sorted(Comparator.comparingInt(StyledRange::priority))
@@ -30,7 +30,7 @@ public final class OrderedTextStyleOverlay {
 		};
 	}
 
-	public static FormattedCharSequence selectRange(FormattedCharSequence original, TextRange range) {
+	public static OrderedText selectRange(OrderedText original, TextRange range) {
 		return visitor -> {
 			int[] codePointIndex = {0};
 			return original.accept((index, style, codePoint) -> {

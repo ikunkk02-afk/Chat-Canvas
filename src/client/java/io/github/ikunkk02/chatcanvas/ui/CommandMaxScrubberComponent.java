@@ -2,15 +2,15 @@ package io.github.ikunkk02.chatcanvas.ui;
 
 import io.github.ikunkk02.chatcanvas.config.CommandClipboardConfig;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
-import io.wispforest.owo.ui.base.BaseUIComponent;
+import io.wispforest.owo.ui.base.BaseComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
-import io.wispforest.owo.ui.core.OwoUIGraphics;
+import io.wispforest.owo.ui.core.OwoUIDrawContext;
 import io.wispforest.owo.ui.core.Sizing;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-public final class CommandMaxScrubberComponent extends BaseUIComponent implements NumericScrubber {
+public final class CommandMaxScrubberComponent extends BaseComponent implements NumericScrubber {
 	private final EditorSession session;
 	private final Runnable changed;
 	private final Runnable committed;
@@ -35,7 +35,7 @@ public final class CommandMaxScrubberComponent extends BaseUIComponent implement
 	}
 
 	@Override
-	public void draw(OwoUIGraphics context, int mouseX, int mouseY, float partialTicks, float delta) {
+	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
 		var renderer = Minecraft.getInstance().textRenderer;
 		int valueLeft = x() + width() - 92;
 		context.fill(valueLeft, y() + 2, x() + width(), y() + height() - 2, 0xB02A3543);
@@ -45,11 +45,11 @@ public final class CommandMaxScrubberComponent extends BaseUIComponent implement
 				- CommandClipboardConfig.MIN_COMMANDS);
 		context.fill(valueLeft, y() + height() - 3,
 				valueLeft + (int) Math.round(92 * progress), y() + height() - 2, 0xCC6E9ED8);
-		int ty = y() + (height() - renderer.lineHeight) / 2;
+		int ty = y() + (height() - renderer.fontHeight) / 2;
 		context.drawText(renderer, Component.translatable("chat_canvas.command.max_commands"),
 				x() + 2, ty, 0xFFC7CEDA, false);
 		String value = Integer.toString(session.commandClipboard().maxCommands());
-		context.drawText(renderer, value, x() + width() - 8 - renderer.width(value),
+		context.drawText(renderer, value, x() + width() - 8 - renderer.getWidth(value),
 				ty, 0xFFE9EDF4, false);
 	}
 

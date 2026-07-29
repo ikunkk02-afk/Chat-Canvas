@@ -39,7 +39,7 @@ public final class ChannelMessageLayoutEngine {
 		return INSTANCE;
 	}
 
-	public synchronized Layout layout(ChatCanvasMessage message, Font renderer,
+	public synchronized Layout layout(ChatCanvasMessage message, TextRenderer renderer,
 									  int availablePixels, ChatTextConfig config,
 									  int lineHeight, int messageSpacing, long historyEpoch,
 									  PlayerChatLayoutMode layoutMode, double splitRatio,
@@ -56,7 +56,7 @@ public final class ChannelMessageLayoutEngine {
 		Layout cached = cache.get(key);
 		if (cached != null) return cached;
 		StyledMessage styled = styled(message);
-		List<FormattedCharSequence> wrapped = SpacedTextWrapper.wrap(
+		List<OrderedText> wrapped = SpacedTextWrapper.wrap(
 				renderer, List.of(styled.text()), glyphWidth, config.characterSpacing());
 		List<Line> lines = mapLines(
 				wrapped, message.content().getString(), styled.playerNameRange(),
@@ -92,7 +92,7 @@ public final class ChannelMessageLayoutEngine {
 	}
 
 	private StyledMessage styled(ChatCanvasMessage message) {
-		FormattedCharSequence original = message.content().getVisualOrderText();
+		OrderedText original = message.content().asOrderedText();
 		if (message.channel() != ChatCanvasChannel.PLAYER_CHAT) {
 			return new StyledMessage(original, null);
 		}
@@ -119,12 +119,12 @@ public final class ChannelMessageLayoutEngine {
 	}
 
 	private static List<Line> mapLines(
-			List<FormattedCharSequence> wrapped, String plain, @Nullable TextRange nameRange,
-			Font renderer, ChatTextConfig config) {
+			List<OrderedText> wrapped, String plain, @Nullable TextRange nameRange,
+			TextRenderer renderer, ChatTextConfig config) {
 		int[] source = plain.codePoints().toArray();
 		int sourceCursor = 0;
 		List<Line> result = new ArrayList<>(wrapped.size());
-		for (FormattedCharSequence text : wrapped) {
+		for (OrderedText text : wrapped) {
 			LineMapping mapping = mapLine(text, source, sourceCursor);
 			sourceCursor = Math.max(sourceCursor, mapping.nextSourceIndex());
 			int width = (int) Math.ceil(
@@ -136,7 +136,7 @@ public final class ChannelMessageLayoutEngine {
 		return List.copyOf(result);
 	}
 
-	private static LineMapping mapLine(FormattedCharSequence line, int[] source, int sourceCursor) {
+	private static LineMapping mapLine(OrderedText line, int[] source, int sourceCursor) {
 		ArrayList<Integer> indices = new ArrayList<>();
 		int[] cursor = {sourceCursor};
 		line.accept((index, style, codePoint) -> {
@@ -167,7 +167,7 @@ public final class ChannelMessageLayoutEngine {
 		}
 	}
 
-	public record Line(FormattedCharSequence text, int width, @Nullable TextRange playerNameRange) {}
+	public record Line(OrderedText text, int width, @Nullable TextRange playerNameRange) {}
 
 	public record Layout(List<Line> lines, int width, int height) {}
 
@@ -177,7 +177,7 @@ public final class ChannelMessageLayoutEngine {
 					   int messageSpacing, int visualSafetyPixels, long guiScale,
 					   long historyEpoch, long resourceEpoch) {}
 
-	private record StyledMessage(FormattedCharSequence text, @Nullable TextRange playerNameRange) {}
+	private record StyledMessage(OrderedText text, @Nullable TextRange playerNameRange) {}
 
 	private record LineMapping(int[] globalIndices, int nextSourceIndex) {
 		private @Nullable TextRange localRange(TextRange globalRange) {

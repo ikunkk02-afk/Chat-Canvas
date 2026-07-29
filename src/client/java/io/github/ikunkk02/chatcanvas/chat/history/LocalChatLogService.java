@@ -189,7 +189,7 @@ public final class LocalChatLogService implements ChatLogService {
     private void tryWrite(StoredChatMessage message) {
         if (!tryOpenWriter()) return;
         try {
-            writer.insertText(message);
+            writer.write(message);
         } catch (Exception e) {
             closeWriterFile();
             writerOpen = false;

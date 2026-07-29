@@ -2,7 +2,7 @@ package io.github.ikunkk02.chatcanvas.ui;
 
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.core.Component;
-import io.wispforest.owo.ui.core.OwoUIGraphics;
+import io.wispforest.owo.ui.core.OwoUIDrawContext;
 import io.wispforest.owo.ui.core.ParentComponent;
 import io.wispforest.owo.ui.core.Sizing;
 
@@ -93,7 +93,7 @@ public final class ClippedPageViewport extends FlowLayout {
     // ── draw ─────────────────────────────────────────────────────
 
     @Override
-    public void draw(OwoUIGraphics context, int mouseX, int mouseY,
+    public void draw(OwoUIDrawContext context, int mouseX, int mouseY,
                      float partialTicks, float delta) {
         if (this.width <= 0 || this.height <= 0) return;
 
@@ -179,7 +179,7 @@ public final class ClippedPageViewport extends FlowLayout {
     }
 
     private static void drawDebugBoundary(
-            OwoUIGraphics context, int x1, int y1, int x2, int y2,
+            OwoUIDrawContext context, int x1, int y1, int x2, int y2,
             int color) {
         // top edge
         context.fill(x1, y1, x2, y1 + 1, color);

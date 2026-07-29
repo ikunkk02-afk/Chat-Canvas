@@ -15,22 +15,22 @@ public final class SpacedTextWrapper {
 	private SpacedTextWrapper() {
 	}
 
-	public static List<FormattedCharSequence> wrap(
-			Font renderer, List<FormattedCharSequence> logicalLines, int width, double spacing) {
-		List<FormattedCharSequence> result = new ArrayList<>();
-		for (FormattedCharSequence line : logicalLines) {
+	public static List<OrderedText> wrap(
+			TextRenderer renderer, List<OrderedText> logicalLines, int width, double spacing) {
+		List<OrderedText> result = new ArrayList<>();
+		for (OrderedText line : logicalLines) {
 			wrapLine(renderer, line, Math.max(1, width), spacing, result);
 		}
-		return result.isEmpty() ? List.of(FormattedCharSequence.EMPTY) : List.copyOf(result);
+		return result.isEmpty() ? List.of(OrderedText.EMPTY) : List.copyOf(result);
 	}
 
 	private static void wrapLine(
-			Font renderer, FormattedCharSequence text, int width, double spacing,
-			List<FormattedCharSequence> output) {
+			TextRenderer renderer, OrderedText text, int width, double spacing,
+			List<OrderedText> output) {
 		List<Atom> atoms = collect(renderer, text);
 		List<Cluster> clusters = clusters(atoms);
 		if (clusters.isEmpty()) {
-			output.add(FormattedCharSequence.EMPTY);
+			output.add(OrderedText.EMPTY);
 			return;
 		}
 		Set<Integer> preferredBreaks = lineBreaks(atoms);
@@ -78,7 +78,7 @@ public final class SpacedTextWrapper {
 		StringBuilder plain = new StringBuilder();
 		for (Atom atom : atoms) plain.appendCodePoint(atom.codePoint());
 		BreakIterator iterator = BreakIterator.getCharacterInstance(Locale.ROOT);
-		iterator.setValue(plain.toString());
+		iterator.setText(plain.toString());
 		List<Cluster> result = new ArrayList<>();
 		int atomIndex = 0;
 		int start = iterator.first();
@@ -100,7 +100,7 @@ public final class SpacedTextWrapper {
 		StringBuilder plain = new StringBuilder();
 		for (Atom atom : atoms) plain.appendCodePoint(atom.codePoint());
 		BreakIterator iterator = BreakIterator.getLineInstance(Locale.ROOT);
-		iterator.setValue(plain.toString());
+		iterator.setText(plain.toString());
 		Set<Integer> result = new HashSet<>();
 		for (int position = iterator.first(); position != BreakIterator.DONE;
 			 position = iterator.next()) {
@@ -109,20 +109,20 @@ public final class SpacedTextWrapper {
 		return result;
 	}
 
-	private static List<Atom> collect(Font renderer, FormattedCharSequence text) {
+	private static List<Atom> collect(TextRenderer renderer, OrderedText text) {
 		List<Atom> atoms = new ArrayList<>();
 		text.accept((index, style, codePoint) -> {
 			Style safe = style == null ? Style.EMPTY : style;
 			atoms.add(new Atom(
 					codePoint,
 					safe,
-					renderer.getSplitter().width(FormattedCharSequence.styled(codePoint, safe))));
+					renderer.getTextHandler().getWidth(OrderedText.styled(codePoint, safe))));
 			return true;
 		});
 		return atoms;
 	}
 
-	private static FormattedCharSequence asOrderedText(List<Atom> atoms) {
+	private static OrderedText asOrderedText(List<Atom> atoms) {
 		return visitor -> {
 			int utf16 = 0;
 			for (Atom atom : atoms) {

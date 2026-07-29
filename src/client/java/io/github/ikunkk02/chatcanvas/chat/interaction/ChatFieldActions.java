@@ -10,59 +10,59 @@ public final class ChatFieldActions {
 	}
 
 	public static boolean insertMention(
-			EditBox field, CommandSuggestions suggestor, String playerName) {
+			TextFieldWidget field, ChatInputSuggestor suggestor, String playerName) {
 		TextFieldWidgetAccessor accessor = (TextFieldWidgetAccessor) field;
 		MentionInsertionController.Result insertion = MentionInsertionController.plan(
-				field.getValue(), field.getCursorPosition(), accessor.chat_canvas$selectionEnd(),
+				field.getText(), field.getCursor(), accessor.chat_canvas$selectionEnd(),
 				accessor.chat_canvas$maxLength(), playerName);
 		if (!insertion.successful()) return false;
-		String previous = field.getValue();
-		int previousCursor = field.getCursorPosition();
+		String previous = field.getText();
+		int previousCursor = field.getCursor();
 		int previousSelection = accessor.chat_canvas$selectionEnd();
-		field.setValue(insertion.text());
-		if (!insertion.text().equals(field.getValue())) {
-			field.setValue(previous);
-			field.moveCursorTo(previousCursor);
-			field.setHighlightPos(previousSelection);
+		field.setText(insertion.text());
+		if (!insertion.text().equals(field.getText())) {
+			field.setText(previous);
+			field.setSelectionStart(previousCursor);
+			field.setSelectionEnd(previousSelection);
 			return false;
 		}
-		field.moveCursorTo(insertion.cursorUtf16(), false);
+		field.setCursor(insertion.cursorUtf16(), false);
 		field.setFocused(true);
-		suggestor.updateCommandInfo();
+		suggestor.refresh();
 		return true;
 	}
 
 	public static InputSnapshot replace(
-			EditBox field, CommandSuggestions suggestor, String replacement) {
+			TextFieldWidget field, ChatInputSuggestor suggestor, String replacement) {
 		TextFieldWidgetAccessor accessor = (TextFieldWidgetAccessor) field;
 		InputSnapshot previous = new InputSnapshot(
-				field.getValue(), field.getCursorPosition(), accessor.chat_canvas$selectionEnd());
-		field.setValue(replacement);
-		field.moveCursorToEnd(false);
+				field.getText(), field.getCursor(), accessor.chat_canvas$selectionEnd());
+		field.setText(replacement);
+		field.setCursorToEnd(false);
 		field.setFocused(true);
-		suggestor.updateCommandInfo();
+		suggestor.refresh();
 		return previous;
 	}
 
-	public static void applyCommand(EditBox field, CommandSuggestions suggestor,
+	public static void applyCommand(TextFieldWidget field, ChatInputSuggestor suggestor,
 									String command, CommandInsertMode mode) {
 		if (mode == CommandInsertMode.REPLACE_INPUT) {
-			field.setValue(command);
-			field.moveCursorToEnd(false);
+			field.setText(command);
+			field.setCursorToEnd(false);
 		} else {
-			field.insertText(command);
+			field.write(command);
 		}
 		field.setFocused(true);
-		suggestor.updateCommandInfo();
+		suggestor.refresh();
 	}
 
 	public static void restore(
-			EditBox field, CommandSuggestions suggestor, InputSnapshot snapshot) {
-		field.setValue(snapshot.text());
-		field.moveCursorTo(snapshot.cursor());
-		field.setHighlightPos(snapshot.selectionEnd());
+			TextFieldWidget field, ChatInputSuggestor suggestor, InputSnapshot snapshot) {
+		field.setText(snapshot.text());
+		field.setSelectionStart(snapshot.cursor());
+		field.setSelectionEnd(snapshot.selectionEnd());
 		field.setFocused(true);
-		suggestor.updateCommandInfo();
+		suggestor.refresh();
 	}
 
 	public record InputSnapshot(String text, int cursor, int selectionEnd) {

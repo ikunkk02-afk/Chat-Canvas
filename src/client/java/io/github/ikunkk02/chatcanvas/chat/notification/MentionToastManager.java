@@ -10,9 +10,9 @@ public final class MentionToastManager {
 	private static final SystemToast.Type TYPE = new SystemToast.Type(5_000L);
 
 	public void show(MentionNotificationEvent event, MentionConfig config) {
-		Minecraft client = Minecraft.getInstance();
+		MinecraftClient client = Minecraft.getInstance();
 		if (!config.toastEnabled()) return;
-		if (!config.toastWhenChatOpen() && client.screen instanceof ChatScreen) return;
+		if (!config.toastWhenChatOpen() && client.currentScreen instanceof ChatScreen) return;
 		String sender = event.sender() == null || event.sender().playerName().isBlank()
 				? Component.translatable("chat_canvas.notification.unknown_sender").getString()
 				: event.sender().playerName();

@@ -13,8 +13,8 @@ public final class StyledRangePipeline {
 
 	private final MentionStyleProvider mentionStyles = new MentionStyleProvider();
 
-	public FormattedCharSequence apply(
-			FormattedCharSequence original,
+	public OrderedText apply(
+			OrderedText original,
 			TextRange playerNameRange,
 			OptionalInt playerColor,
 			List<TextRange> mentionRanges,

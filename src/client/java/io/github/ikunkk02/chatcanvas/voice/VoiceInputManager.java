@@ -340,7 +340,7 @@ public final class VoiceInputManager {
 	}
 
 	private static void onClient(Runnable runnable) {
-		Minecraft client = Minecraft.getInstance();
+		MinecraftClient client = Minecraft.getInstance();
 		if (client != null) client.execute(runnable);
 	}
 

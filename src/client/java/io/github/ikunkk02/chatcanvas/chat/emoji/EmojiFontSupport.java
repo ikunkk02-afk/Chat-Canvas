@@ -2,8 +2,8 @@ package io.github.ikunkk02.chatcanvas.chat.emoji;
 
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
 import io.github.ikunkk02.chatcanvas.mixin.client.TextRendererAccessor;
-import net.minecraft.client.gui.font.EmptyArea;
-import net.minecraft.client.gui.font.FontSet;
+import net.minecraft.client.font.BuiltinEmptyGlyph;
+import net.minecraft.client.font.FontStorage;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Style;
 
@@ -21,19 +21,19 @@ public final class EmojiFontSupport {
 	}
 
 	public static synchronized boolean supports(
-			Font renderer, EmojiEntry entry) {
+			TextRenderer renderer, EmojiEntry entry) {
 		if (renderer == null || entry == null) return false;
 		Boolean cached = CACHE.get(entry.unicode());
 		if (cached != null) return cached;
 		boolean supported;
 		try {
-			FontSet storage = ((TextRendererAccessor) renderer)
-					.chat_canvas$getFontStorage(Style.Font.DEFAULT_FONT);
+			FontStorage storage = ((TextRendererAccessor) renderer)
+					.chat_canvas$getFontStorage(Style.DEFAULT_FONT_ID);
 			supported = entry.unicode().codePoints()
 					.filter(codePoint -> !ignorable(codePoint))
 					.allMatch(codePoint ->
 							storage.getGlyph(codePoint, false)
-									!= EmptyArea.MISSING);
+									!= BuiltinEmptyGlyph.MISSING);
 		} catch (RuntimeException failure) {
 			supported = false;
 			if (!loggedFailure) {
@@ -47,7 +47,7 @@ public final class EmojiFontSupport {
 		return supported;
 	}
 
-	public static List<EmojiEntry> supportedEntries(Font renderer) {
+	public static List<EmojiEntry> supportedEntries(TextRenderer renderer) {
 		List<EmojiEntry> supported = EmojiRegistry.instance().entries().stream()
 				.filter(entry -> supports(renderer, entry))
 				.toList();

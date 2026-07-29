@@ -26,7 +26,7 @@ public final class ChatLayoutCalculator {
 	private PlayerChatLayoutMode cachedLayoutMode = PlayerChatLayoutMode.CLASSIC;
 	private long cachedSplitRatioBits;
 
-	public List<ChatLine> calculate(Font renderer, List<PreviewChatMessage> messages, int width,
+	public List<ChatLine> calculate(TextRenderer renderer, List<PreviewChatMessage> messages, int width,
 									String localPlayerName, boolean requireAtSymbol,
 									double characterSpacing,
 									PlayerChatLayoutMode layoutMode,
@@ -66,7 +66,7 @@ public final class ChatLayoutCalculator {
 					plain, mentionName, requireAtSymbol);
 			int messageWidth = PlayerChatLayoutStrategies.forMode(safeMode)
 					.wrapWidth(safeWidth, 0, splitRatio, message.selfMessage());
-			List<FormattedCharSequence> wrapped = Math.abs(characterSpacing) < 0.00001
+			List<OrderedText> wrapped = Math.abs(characterSpacing) < 0.00001
 					? renderer.wrapLines(message.text(), messageWidth)
 					: SpacedTextWrapper.wrap(
 							renderer,
@@ -75,7 +75,7 @@ public final class ChatLayoutCalculator {
 							characterSpacing);
 			int[] source = plain.codePoints().toArray();
 			int sourceCursor = 0;
-			for (FormattedCharSequence line : wrapped) {
+			for (OrderedText line : wrapped) {
 				LineMapping mapping = mapLine(line, source, sourceCursor);
 				sourceCursor = Math.max(sourceCursor, mapping.nextSourceIndex());
 				TextRange nameRange = globalNameRange == null
@@ -100,7 +100,7 @@ public final class ChatLayoutCalculator {
 		cachedMentionName = "";
 	}
 
-	private static LineMapping mapLine(FormattedCharSequence line, int[] source, int sourceCursor) {
+	private static LineMapping mapLine(OrderedText line, int[] source, int sourceCursor) {
 		java.util.ArrayList<Integer> indices = new java.util.ArrayList<>();
 		int[] cursor = {sourceCursor};
 		line.accept((index, style, codePoint) -> {
@@ -123,7 +123,7 @@ public final class ChatLayoutCalculator {
 	}
 
 	public record ChatLine(
-			FormattedCharSequence text,
+			OrderedText text,
 			int width,
 			@Nullable PlayerChatIdentity sender,
 			@Nullable TextRange playerNameRange,

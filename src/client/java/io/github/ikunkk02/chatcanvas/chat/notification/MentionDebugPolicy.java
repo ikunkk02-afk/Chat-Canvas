@@ -14,8 +14,8 @@ public final class MentionDebugPolicy {
 
 	private MentionDebugPolicy() {}
 
-	public static boolean allowsSelfMention(Minecraft client) {
-		if (client == null || !client.hasSingleplayerServer()) return false;
+	public static boolean allowsSelfMention(MinecraftClient client) {
+		if (client == null || !client.isInSingleplayer()) return false;
 		return FabricLoader.getInstance().isDevelopmentEnvironment()
 				|| Boolean.getBoolean(SELF_MENTION_PROPERTY);
 	}

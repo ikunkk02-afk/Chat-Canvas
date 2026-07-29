@@ -3,7 +3,7 @@ package io.github.ikunkk02.chatcanvas.mixin.client;
 import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerNameDoubleClickHandler;
 import io.github.ikunkk02.chatcanvas.chat.command.ui.CommandToolPanel;
 import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputScreenBridge;
-import net.minecraft.client.gui.components.events.AbstractContainerEventHandler;
+import net.minecraft.client.gui.ParentElement;
 import net.minecraft.client.gui.screens.ChatScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

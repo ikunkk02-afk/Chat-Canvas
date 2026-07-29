@@ -32,16 +32,16 @@ public final class CommandToolRuntime {
 		return MANAGER;
 	}
 
-	public static void beginSession(Minecraft client) {
+	public static void beginSession(MinecraftClient client) {
 		if (client == null) {
 			serverIdentifier = "unknown";
-		} else if (client.hasSingleplayerServer()) {
+		} else if (client.isInSingleplayer()) {
 			serverIdentifier = "singleplayer";
 		} else {
-			String ip = client.getCurrentServer() == null
-					? "unknown" : client.getCurrentServer().ip;
+			String address = client.getCurrentServerEntry() == null
+					? "unknown" : client.getCurrentServerEntry().address;
 			serverIdentifier = "server-"
-					+ UUID.nameUUIDFromBytes(ip.getBytes(StandardCharsets.UTF_8));
+					+ UUID.nameUUIDFromBytes(address.getBytes(StandardCharsets.UTF_8));
 		}
 	}
 

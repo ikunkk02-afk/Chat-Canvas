@@ -11,9 +11,9 @@ public final class SpacedTextRenderer {
 	}
 
 	public static int draw(
-			GuiGraphicsExtractor context,
-			Font renderer,
-			FormattedCharSequence text,
+			DrawContext context,
+			TextRenderer renderer,
+			OrderedText text,
 			double x,
 			int y,
 			int color,

@@ -4,7 +4,7 @@ import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import io.github.ikunkk02.chatcanvas.config.MentionSound;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.sound.PositionedSoundInstance;
-import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 
 public final class MentionSoundPlayer {
@@ -19,7 +19,7 @@ public final class MentionSoundPlayer {
 	private void play(MentionConfig source, boolean test) {
 		MentionConfig config = source == null ? MentionConfig.DEFAULT : source.sanitized();
 		if (!test && !config.soundEnabled()) return;
-		Minecraft client = Minecraft.getInstance();
+		MinecraftClient client = Minecraft.getInstance();
 		if (client == null || config.soundVolume() <= 0.0) return;
 		SoundEvent sound = resolve(config.sound());
 		client.getSoundManager().play(PositionedSoundInstance.master(

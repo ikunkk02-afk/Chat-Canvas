@@ -29,7 +29,7 @@ public abstract class KeyboardMixin {
             return;
         }
 
-        Minecraft client = Minecraft.getInstance();
+        MinecraftClient client = Minecraft.getInstance();
 
         if (client == null || client.getWindow() == null) {
             return;
@@ -39,7 +39,7 @@ public abstract class KeyboardMixin {
             return;
         }
 
-        if (!(client.screen instanceof ChatScreen chatScreen)) {
+        if (!(client.currentScreen instanceof ChatScreen chatScreen)) {
             return;
         }
 

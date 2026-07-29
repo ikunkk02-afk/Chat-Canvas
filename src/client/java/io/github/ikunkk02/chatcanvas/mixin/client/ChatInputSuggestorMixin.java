@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 
-@Mixin(CommandSuggestions.class)
+@Mixin(ChatInputSuggestor.class)
 public abstract class ChatInputSuggestorMixin {
 	private static final int READABLE_INPUT_COLOR = 0xE0E0E0;
 
@@ -27,14 +27,14 @@ public abstract class ChatInputSuggestorMixin {
 
 	@Shadow
 	@Final
-	private EditBox textField;
+	private TextFieldWidget textField;
 
 	@Shadow
 	@Final
 	private boolean chatScreenSized;
 
 	@Shadow
-	private List<FormattedCharSequence> messages;
+	private List<OrderedText> messages;
 
 	@Shadow
 	private int x;
@@ -64,12 +64,12 @@ public abstract class ChatInputSuggestorMixin {
 				&& x == 0
 				&& width == owner.width) {
 			x = textField.getX();
-			width = textField.width();
+			width = textField.getWidth();
 		}
 	}
 
 	@ModifyReturnValue(method = "provideRenderText", at = @At("RETURN"))
-	private FormattedCharSequence chat_canvas$useReadableBaseCommandColor(FormattedCharSequence original) {
+	private OrderedText chat_canvas$useReadableBaseCommandColor(OrderedText original) {
 		Integer gray = ChatFormatting.GRAY.getColorValue();
 		if (gray == null) {
 			return original;

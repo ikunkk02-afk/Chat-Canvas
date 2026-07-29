@@ -13,20 +13,20 @@ import java.util.Locale;
 
 /**
  * Bounded identity cache for the glyph runs used by every spaced text operation.
- * FormattedCharSequence is intentionally keyed by identity because many implementations are
+ * OrderedText is intentionally keyed by identity because many implementations are
  * visitor lambdas without structural equality.
  */
 public final class GlyphAdvanceCache {
 	private static final int MAX_TEXTS = 512;
 	private static final int MAX_SPACING_VARIANTS = 8;
-	private static final Map<FormattedCharSequence, Map<Long, GlyphRun>> RUNS = new IdentityHashMap<>();
+	private static final Map<OrderedText, Map<Long, GlyphRun>> RUNS = new IdentityHashMap<>();
 	private static long fontEpoch;
 
 	private GlyphAdvanceCache() {
 	}
 
 	public static synchronized GlyphRun layout(
-			Font renderer, FormattedCharSequence text, double spacing) {
+			TextRenderer renderer, OrderedText text, double spacing) {
 		long key = spacingKey(spacing);
 		Map<Long, GlyphRun> variants = RUNS.get(text);
 		if (variants != null) {
@@ -55,13 +55,13 @@ public final class GlyphAdvanceCache {
 		RUNS.clear();
 	}
 
-	private static GlyphRun build(Font renderer, FormattedCharSequence text, double spacing) {
+	private static GlyphRun build(TextRenderer renderer, OrderedText text, double spacing) {
 		List<MutableGlyph> captured = new ArrayList<>();
 		int[] utf16 = {0};
 		text.accept((sourceIndex, style, codePoint) -> {
 			Style safeStyle = style == null ? Style.EMPTY : style;
-			float vanilla = renderer.getSplitter().width(
-					FormattedCharSequence.styled(codePoint, safeStyle));
+			float vanilla = renderer.getTextHandler().getWidth(
+					OrderedText.styled(codePoint, safeStyle));
 			captured.add(new MutableGlyph(
 					sourceIndex, utf16[0], codePoint, safeStyle,
 					Math.max(0.0f, vanilla)));
@@ -95,7 +95,7 @@ public final class GlyphAdvanceCache {
 		StringBuilder plain = new StringBuilder();
 		for (MutableGlyph glyph : glyphs) plain.appendCodePoint(glyph.codePoint());
 		BreakIterator iterator = BreakIterator.getCharacterInstance(Locale.ROOT);
-		iterator.setValue(plain.toString());
+		iterator.setText(plain.toString());
 		List<Integer> lastVisiblePerCluster = new ArrayList<>();
 		int glyphIndex = 0;
 		int start = iterator.first();

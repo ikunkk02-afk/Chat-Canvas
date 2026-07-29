@@ -5,15 +5,15 @@ import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 public record PreviewChatMessage(
-		Component text,
+		Text text,
 		@Nullable PlayerChatIdentity sender,
 		boolean selfMessage
 ) {
-	public PreviewChatMessage(Component text) {
+	public PreviewChatMessage(Text text) {
 		this(text, null, false);
 	}
 
-	public PreviewChatMessage(Component text, @Nullable PlayerChatIdentity sender) {
+	public PreviewChatMessage(Text text, @Nullable PlayerChatIdentity sender) {
 		this(text, sender, false);
 	}
 }

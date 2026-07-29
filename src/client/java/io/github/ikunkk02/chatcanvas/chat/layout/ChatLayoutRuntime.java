@@ -20,25 +20,25 @@ public final class ChatLayoutRuntime {
 		return currentTransform(Minecraft.getInstance());
 	}
 
-	public static ChatHudTransform currentTransform(Minecraft client) {
-		int width = Math.max(1, client.getWindow().getGuiScaledWidth());
-		int height = Math.max(1, client.getWindow().getGuiScaledHeight());
+	public static ChatHudTransform currentTransform(MinecraftClient client) {
+		int width = Math.max(1, client.getWindow().getScaledWidth());
+		int height = Math.max(1, client.getWindow().getScaledHeight());
 		PixelLayout layout = ChatCanvasConfig.instance().layout().toPixels(width, height);
-		double vanillaScale = client.options.chatScale().getValue();
+		double vanillaScale = client.options.getChatScale().getValue();
 		double configuredScale = ChatCanvasConfig.instance().text().fontScale();
-		boolean chatOpen = client.screen instanceof ChatScreen;
+		boolean chatOpen = client.currentScreen instanceof ChatScreen;
 		int inputHeight = 0;
 		if (chatOpen
-				&& client.screen instanceof ChatCanvasInputScreenBridge bridge
+				&& client.currentScreen instanceof ChatCanvasInputScreenBridge bridge
 				&& bridge.chat_canvas$inputMode() == ChatCanvasInputMode.PLAYER_CHAT) {
-			EditBox chatField = bridge.chat_canvas$activeInputField();
+			TextFieldWidget chatField = bridge.chat_canvas$activeInputField();
 			if (chatField != null) {
 				inputHeight = chatField.getHeight();
 			}
 		}
-		double vanillaLineSpacing = client.options.chatLineSpacing().getValue();
+		double vanillaLineSpacing = client.options.getChatLineSpacing().getValue();
 		int vanillaLineHeight = Math.max(1,
-				(int) (client.font.lineHeight * (vanillaLineSpacing + 1.0)));
+				(int) (client.textRenderer.fontHeight * (vanillaLineSpacing + 1.0)));
 		int internalLineHeight = ChatTextLayout.internalLineHeight(
 				vanillaLineHeight, configuredScale,
 				ChatCanvasConfig.instance().text().lineSpacing());
@@ -54,27 +54,27 @@ public final class ChatLayoutRuntime {
 		return new ChatHudTransform(layout, height, vanillaScale, configuredScale, bounds);
 	}
 
-	public static void tick(Minecraft client) {
-		if (client.gui == null) return;
+	public static void tick(MinecraftClient client) {
+		if (client.inGameHud == null) return;
 		ChatHudTransform transform = currentTransform(client);
 		RefreshSignature signature = RefreshSignature.from(transform);
 		if (lastRefreshSignature == null) {
 			lastRefreshSignature = signature;
 		} else if (!lastRefreshSignature.equals(signature)) {
 			ChatTextLayoutEngine.instance().invalidateLayout();
-			refresh(client.gui.getChat());
+			refresh(client.inGameHud.getChatHud());
 			lastRefreshSignature = signature;
 		}
 	}
 
 	public static void applySavedSettings() {
-		Minecraft client = Minecraft.getInstance();
-		if (client.gui == null) return;
+		MinecraftClient client = Minecraft.getInstance();
+		if (client.inGameHud == null) return;
 		ChatHudTransform transform = currentTransform(client);
 		RefreshSignature signature = RefreshSignature.from(transform);
 		if (lastRefreshSignature == null || !lastRefreshSignature.equals(signature)) {
 			ChatTextLayoutEngine.instance().invalidateLayout();
-			refresh(client.gui.getChat());
+			refresh(client.inGameHud.getChatHud());
 		}
 		lastRefreshSignature = signature;
 	}
@@ -86,14 +86,14 @@ public final class ChatLayoutRuntime {
 	public static void onFontResourcesReloaded() {
 		lastRefreshSignature = null;
 		ChatTextLayoutEngine.instance().invalidateLayout();
-		Minecraft client = Minecraft.getInstance();
-		if (client.gui != null) {
-			refresh(client.gui.getChat());
+		MinecraftClient client = Minecraft.getInstance();
+		if (client.inGameHud != null) {
+			refresh(client.inGameHud.getChatHud());
 			lastRefreshSignature = RefreshSignature.from(currentTransform(client));
 		}
 	}
 
-	private static void refresh(ChatComponent chatHud) {
+	private static void refresh(ChatHud chatHud) {
 		((ChatHudAccessor) chatHud).chat_canvas$refresh();
 	}
 
@@ -104,7 +104,7 @@ public final class ChatLayoutRuntime {
 									boolean requireAtSymbol) {
 		private static RefreshSignature from(ChatHudTransform transform) {
 			int horizontalPadding = ChatCanvasConfig.instance().background().horizontalPadding();
-			Minecraft client = Minecraft.getInstance();
+			MinecraftClient client = Minecraft.getInstance();
 			String localPlayerName = client.player == null
 					? ""
 					: client.player.getGameProfile().getName().toLowerCase(java.util.Locale.ROOT);

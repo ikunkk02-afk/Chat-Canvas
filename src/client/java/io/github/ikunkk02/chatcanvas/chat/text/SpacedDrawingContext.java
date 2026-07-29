@@ -1,8 +1,8 @@
 package io.github.ikunkk02.chatcanvas.chat.text;
 
 /**
- * Synchronous render scope consumed by Font.Drawer. Keeping the
- * original FormattedCharSequence in one draw call is important for style decorations and
+ * Synchronous render scope consumed by TextRenderer.Drawer. Keeping the
+ * original OrderedText in one draw call is important for style decorations and
  * for Chat Heads, which counts characters within one Drawer instance.
  */
 public final class SpacedDrawingContext {

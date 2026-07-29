@@ -4,8 +4,8 @@ import net.minecraft.client.gui.components.CommandSuggestions;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(CommandSuggestions.class)
+@Mixin(ChatInputSuggestor.class)
 public interface ChatInputSuggestorAccessor {
 	@Accessor("window")
-	CommandSuggestions.SuggestionWindow chat_canvas$window();
+	ChatInputSuggestor.SuggestionWindow chat_canvas$window();
 }

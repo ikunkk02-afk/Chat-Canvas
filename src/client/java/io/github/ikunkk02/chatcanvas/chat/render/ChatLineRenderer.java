@@ -4,7 +4,7 @@ import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextRenderer;
 import net.minecraft.util.FormattedCharSequence;
 
 public final class ChatLineRenderer {
-	public void draw(ChatRenderContext context, FormattedCharSequence text, int x, int y,
+	public void draw(ChatRenderContext context, OrderedText text, int x, int y,
 					 float opacity, boolean shadow) {
 		int alpha = Math.round(255 * Math.max(0.0f, Math.min(1.0f, opacity)));
 		double spacing = context.textConfig() == null

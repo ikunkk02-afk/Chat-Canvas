@@ -9,14 +9,14 @@ import io.github.ikunkk02.chatcanvas.editor.EditorPointerTarget;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.github.ikunkk02.chatcanvas.editor.EditorChannel;
 import io.github.ikunkk02.chatcanvas.editor.LayoutEditorMath;
-import io.wispforest.owo.ui.base.BaseUIComponent;
+import io.wispforest.owo.ui.base.BaseComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
-import io.wispforest.owo.ui.core.OwoUIGraphics;
+import io.wispforest.owo.ui.core.OwoUIDrawContext;
 import io.wispforest.owo.ui.core.Positioning;
 import io.wispforest.owo.ui.core.Sizing;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.text.MutableText;
 import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatIdentity;
@@ -25,7 +25,7 @@ import java.util.UUID;
 
 import java.util.List;
 
-public final class PreviewChatWidget extends BaseUIComponent implements EditorPointerTarget {
+public final class PreviewChatWidget extends BaseComponent implements EditorPointerTarget {
 	private static final int HANDLE_THICKNESS = 7;
 	private static final int SNAP_DISTANCE = 7;
 	private static final int HANDLE_SIZE = 4;
@@ -170,9 +170,9 @@ public final class PreviewChatWidget extends BaseUIComponent implements EditorPo
 	}
 
 	@Override
-	public void draw(OwoUIGraphics context, int mouseX, int mouseY, float partialTicks, float delta) {
+	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
 		PixelLayout layout = session.layout(channel);
-		Font renderer = Minecraft.getInstance().textRenderer;
+		TextRenderer renderer = Minecraft.getInstance().textRenderer;
 		renderEngine.render(new ChatRenderContext(
 				context,
 				renderer,
@@ -199,15 +199,15 @@ public final class PreviewChatWidget extends BaseUIComponent implements EditorPo
 
 	private List<PreviewChatMessage> previewMessages() {
 		String shouyunName = Component.translatable("chat_canvas.preview.shouyun_name").getString();
-		MutableComponent steve = Component.literal("Steve: ").formatted(ChatFormatting.WHITE)
+		MutableText steve = Component.literal("Steve: ").formatted(ChatFormatting.WHITE)
 				.append(Component.literal("@" + shouyunName + " ").formatted(ChatFormatting.WHITE))
 				.append(Component.translatable("chat_canvas.preview.steve").formatted(ChatFormatting.WHITE));
-		MutableComponent alex = Component.literal("Alex: ").formatted(ChatFormatting.WHITE)
+		MutableText alex = Component.literal("Alex: ").formatted(ChatFormatting.WHITE)
 				.append(Component.translatable("chat_canvas.preview.alex").formatted(ChatFormatting.WHITE));
-		MutableComponent shouyun = Component.literal(shouyunName).formatted(ChatFormatting.WHITE)
+		MutableText shouyun = Component.literal(shouyunName).formatted(ChatFormatting.WHITE)
 				.append(Component.literal(": ").formatted(ChatFormatting.WHITE))
 				.append(Component.translatable("chat_canvas.preview.shouyun_body").formatted(ChatFormatting.WHITE));
-		MutableComponent system = Component.translatable("chat_canvas.preview.system").formatted(ChatFormatting.GREEN, ChatFormatting.ITALIC);
+		MutableText system = Component.translatable("chat_canvas.preview.system").formatted(ChatFormatting.GREEN, ChatFormatting.ITALIC);
 		return List.of(
 				new PreviewChatMessage(steve, previewIdentity("Steve")),
 				new PreviewChatMessage(alex, previewIdentity("Alex")),
@@ -224,7 +224,7 @@ public final class PreviewChatWidget extends BaseUIComponent implements EditorPo
 		);
 	}
 
-	private void drawEditorAssist(OwoUIGraphics context, PixelLayout layout) {
+	private void drawEditorAssist(OwoUIDrawContext context, PixelLayout layout) {
 		if (hoveredHandle == ResizeHandle.NONE && activeHandle == ResizeHandle.NONE) return;
 		int color = activeHandle != ResizeHandle.NONE ? 0xFF8EB8FF : 0xCC70A7FF;
 		context.fill(layout.x(), layout.y(), layout.right(), layout.y() + 1, color);
@@ -244,7 +244,7 @@ public final class PreviewChatWidget extends BaseUIComponent implements EditorPo
 		drawHandle(context, layout.right(), layout.bottom(), color);
 	}
 
-	private void drawHandle(OwoUIGraphics context, int centerX, int centerY, int color) {
+	private void drawHandle(OwoUIDrawContext context, int centerX, int centerY, int color) {
 		int half = HANDLE_SIZE / 2;
 		context.fill(centerX - half, centerY - half, centerX - half + HANDLE_SIZE,
 				centerY - half + HANDLE_SIZE, 0xE6151820);

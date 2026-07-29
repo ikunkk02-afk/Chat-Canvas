@@ -6,9 +6,9 @@ import net.minecraft.client.gui.components.EditBox;
 public interface ChatCanvasInputScreenBridge {
 	ChatCanvasInputMode chat_canvas$inputMode();
 
-	EditBox chat_canvas$activeInputField();
+	TextFieldWidget chat_canvas$activeInputField();
 
-	CommandSuggestions chat_canvas$activeInputSuggestor();
+	ChatInputSuggestor chat_canvas$activeInputSuggestor();
 
 	void chat_canvas$openPlayerInput();
 

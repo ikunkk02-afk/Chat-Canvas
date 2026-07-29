@@ -13,8 +13,8 @@ import io.github.ikunkk02.chatcanvas.ui.NumericScrubberComponent;
 import io.github.ikunkk02.chatcanvas.ui.PreviewChatWidget;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.ButtonComponent;
-import io.wispforest.owo.ui.component.UIComponents;
-import io.wispforest.owo.ui.container.UIContainers;
+import io.wispforest.owo.ui.component.Components;
+import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.core.HorizontalAlignment;
 import io.wispforest.owo.ui.core.Insets;
@@ -58,7 +58,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 			session = new EditorSession(ChatCanvasConfig.instance().settings(), width, height);
 		}
 		ModernUiTheme.setStyle(ChatCanvasConfig.instance().editorUiStyle());
-		return OwoUIAdapter.create(this, UIContainers::verticalFlow);
+		return OwoUIAdapter.create(this, Containers::verticalFlow);
 	}
 
 	@Override
@@ -88,7 +88,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	}
 
 	private FlowLayout buildToolbar() {
-		FlowLayout bar = UIContainers.horizontalFlow(Sizing.fixed(620), Sizing.fixed(32));
+		FlowLayout bar = Containers.horizontalFlow(Sizing.fixed(620), Sizing.fixed(32));
 		bar.positioning(Positioning.absolute(Math.max(8, (width - 620) / 2), 10));
 		bar.padding(Insets.of(5).withLeft(16));
 		bar.gap(6);
@@ -97,7 +97,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		bar.verticalAlignment(VerticalAlignment.CENTER);
 		bar.zIndex(30);
 
-		var title = UIComponents.label(Component.translatable("chat_canvas.editor.title")
+		var title = Components.label(Component.translatable("chat_canvas.editor.title")
 				.formatted(ChatFormatting.WHITE, ChatFormatting.BOLD));
 		title.horizontalSizing(Sizing.fill(28));
 		bar.child(title);
@@ -151,7 +151,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
 		double deltaSeconds = animationClock.tick();
 		if (settingsPanel != null) {
 			settingsPanel.update(deltaSeconds);
@@ -170,7 +170,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	}
 
 	@Override
-	public void renderBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+	public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
 		if (client != null && client.world == null) {
 			renderPanoramaBackground(context, delta);
 		}
@@ -297,7 +297,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	}
 
 	@Override
-	public void resize(Minecraft client, int width, int height) {
+	public void resize(MinecraftClient client, int width, int height) {
 		pointerCapture.cancel();
 		if (colorPickerPopup != null) {
 			colorPickerPopup.cancel();
@@ -441,7 +441,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		int maxY = Math.max(4, height - ModernColorPickerPopup.POPUP_HEIGHT - 4);
 		int anchorY = clamp(anchor.getY(), 4, maxY);
 		int[][] candidates = new int[][]{
-				{anchor.getX() + anchor.width() + margin, anchorY},
+				{anchor.getX() + anchor.getWidth() + margin, anchorY},
 				{anchor.getX() - ModernColorPickerPopup.POPUP_WIDTH - margin, anchorY},
 				{anchor.getX(), anchor.getY() - ModernColorPickerPopup.POPUP_HEIGHT - margin}
 		};

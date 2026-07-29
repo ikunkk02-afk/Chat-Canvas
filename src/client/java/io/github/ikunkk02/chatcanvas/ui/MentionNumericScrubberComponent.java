@@ -3,9 +3,9 @@ package io.github.ikunkk02.chatcanvas.ui;
 import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.github.ikunkk02.chatcanvas.editor.EditorUiStyle;
-import io.wispforest.owo.ui.base.BaseUIComponent;
+import io.wispforest.owo.ui.base.BaseComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
-import io.wispforest.owo.ui.core.OwoUIGraphics;
+import io.wispforest.owo.ui.core.OwoUIDrawContext;
 import io.wispforest.owo.ui.core.Sizing;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -14,11 +14,11 @@ import net.minecraft.network.chat.Component;
 
 import java.util.Locale;
 
-public final class MentionNumericScrubberComponent extends BaseUIComponent implements NumericScrubber {
+public final class MentionNumericScrubberComponent extends BaseComponent implements NumericScrubber {
 	private static final int VALUE_WIDTH = 92;
 	private final EditorSession session;
 	private final Property property;
-	private final Component label;
+	private final Text label;
 	private final Runnable previewChanged;
 	private final Runnable historyChanged;
 	private MentionConfig dragStart;
@@ -29,7 +29,7 @@ public final class MentionNumericScrubberComponent extends BaseUIComponent imple
 	private boolean valueHovered;
 
 	public MentionNumericScrubberComponent(
-			EditorSession session, Property property, Component label,
+			EditorSession session, Property property, Text label,
 			Runnable previewChanged, Runnable historyChanged) {
 		this.session = session;
 		this.property = property;
@@ -47,8 +47,8 @@ public final class MentionNumericScrubberComponent extends BaseUIComponent imple
 	}
 
 	@Override
-	public void draw(OwoUIGraphics context, int mouseX, int mouseY, float partialTicks, float delta) {
-		Font renderer = Minecraft.getInstance().textRenderer;
+	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
+		TextRenderer renderer = Minecraft.getInstance().textRenderer;
 		int valueLeft = valueLeft();
 		boolean vanilla = ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA;
 		context.fill(valueLeft, y() + 2, x() + width(), y() + height() - 2,
@@ -61,11 +61,11 @@ public final class MentionNumericScrubberComponent extends BaseUIComponent imple
 		context.fill(valueLeft, y() + height() - 3, progressRight, y() + height() - 2,
 				dragging ? (vanilla ? 0xFFAAAAAA : 0xFF8EB8FF)
 						: (vanilla ? 0xFF999999 : 0xCC6E9ED8));
-		int textY = y() + (height() - renderer.lineHeight) / 2;
+		int textY = y() + (height() - renderer.fontHeight) / 2;
 		int labelColor = vanilla ? 0xFFFFFFFF : 0xFFC7CEDA;
 		context.drawText(renderer, label, x() + 2, textY, labelColor, false);
 		String value = property.format(property.read(session.mention()));
-		context.drawText(renderer, value, x() + width() - 8 - renderer.width(value),
+		context.drawText(renderer, value, x() + width() - 8 - renderer.getWidth(value),
 				textY, vanilla ? 0xFFFFFFFF : 0xFFE9EDF4, false);
 	}
 
@@ -152,7 +152,7 @@ public final class MentionNumericScrubberComponent extends BaseUIComponent imple
 
 	private void applyValue(double value) {
 		MentionConfig before = session.mention();
-		session.setMention(property.insertText(before, value));
+		session.setMention(property.write(before, value));
 		if (!before.equals(session.mention())) {
 			changed = true;
 			previewChanged.run();

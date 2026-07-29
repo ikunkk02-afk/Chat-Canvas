@@ -20,7 +20,7 @@ public final class MentionFlashOverlay {
 	public void trigger(MentionConfig source) {
 		MentionConfig config = source.sanitized();
 		if (!config.flashEnabled() || config.flashOpacity() <= 0.0) return;
-		long now = Util.getMillis();
+		long now = Util.getMeasuringTimeMs();
 		startedAtMs = now;
 		endsAtMs = now + config.flashDurationMs();
 		color = config.flashColor();
@@ -33,11 +33,11 @@ public final class MentionFlashOverlay {
 		maximumOpacity = 0.0;
 	}
 
-	private void render(net.minecraft.client.gui.GuiGraphicsExtractor context) {
-		Minecraft client = Minecraft.getInstance();
+	private void render(net.minecraft.client.gui.DrawContext context) {
+		MinecraftClient client = Minecraft.getInstance();
 		if (client.world == null) return;
-		if (client.screen != null && !(client.screen instanceof ChatScreen)) return;
-		long now = Util.getMillis();
+		if (client.currentScreen != null && !(client.currentScreen instanceof ChatScreen)) return;
+		long now = Util.getMeasuringTimeMs();
 		if (now >= endsAtMs || endsAtMs <= startedAtMs) return;
 		double duration = Math.max(1.0, endsAtMs - startedAtMs);
 		double remaining = Mth.clamp((endsAtMs - now) / duration, 0.0, 1.0);

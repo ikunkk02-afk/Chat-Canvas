@@ -3,7 +3,7 @@ package io.github.ikunkk02.chatcanvas.chat.identity;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
-import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.client.network.PlayerListEntry;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
@@ -20,12 +20,12 @@ public final class PlayerRosterTracker {
 	private PlayerRosterTracker() {
 	}
 
-	public static void refresh(ClientGamePacketListener handler) {
+	public static void refresh(ClientPlayNetworkHandler handler) {
 		if (handler == null) {
 			clear();
 			return;
 		}
-		List<PlayerChatIdentity> updated = handler.getOnlinePlayers().stream()
+		List<PlayerChatIdentity> updated = handler.getListedPlayerListEntries().stream()
 				.map(PlayerListEntry::getProfile)
 				.map(PlayerRosterTracker::fromProfile)
 				.sorted(Comparator.comparing(PlayerChatIdentity::playerName,
@@ -38,7 +38,7 @@ public final class PlayerRosterTracker {
 	}
 
 	public static void refreshFromClient() {
-		refresh(Minecraft.getInstance().getConnection());
+		refresh(Minecraft.getInstance().getNetworkHandler());
 	}
 
 	public static void clear() {

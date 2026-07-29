@@ -68,7 +68,7 @@ public final class ChatRenderEngine {
 		playerARGB.updateConfig(baseContext.playerColorConfig());
 		float progress = openProgress.update(animationClock.tick());
 		float opacity = lerp(CLOSED_OPACITY, 1.0f, progress);
-		int fullInputHeight = baseContext.textRenderer().lineHeight + INPUT_VERTICAL_PADDING;
+		int fullInputHeight = baseContext.textRenderer().fontHeight + INPUT_VERTICAL_PADDING;
 		int inputHeight = Math.round(fullInputHeight * progress);
 		ChatRenderContext context = new ChatRenderContext(
 				baseContext.drawContext(),
@@ -97,7 +97,7 @@ public final class ChatRenderEngine {
 				inputHeight,
 				Math.round(RuntimeChatBounds.DEFAULT_INPUT_GAP * progress),
 				(int) Math.ceil(ChatTextLayout.internalLineHeight(
-						context.textRenderer().lineHeight, textConfig.lineSpacing())
+						context.textRenderer().fontHeight, textConfig.lineSpacing())
 						* textConfig.fontScale())
 		);
 		if (inputHeight > 0) {
@@ -122,14 +122,14 @@ public final class ChatRenderEngine {
 						context.playerChatLayoutMode(),
 						context.splitMessageMaxWidthRatio());
 		ChatVerticalMetrics verticalMetrics = ChatTextLayout.verticalMetrics(
-				context.textRenderer().lineHeight,
-				context.textRenderer().lineHeight,
+				context.textRenderer().fontHeight,
+				context.textRenderer().fontHeight,
 				1.0,
 				textConfig.lineSpacing()
 		);
 		int internalLineHeight = (int) Math.round(verticalMetrics.lineAdvance());
 		double screenLineHeight = verticalMetrics.lineAdvance() * fontScale;
-		double lineY = bounds.messageBottom() - context.textRenderer().lineHeight * fontScale;
+		double lineY = bounds.messageBottom() - context.textRenderer().fontHeight * fontScale;
 		int minimumY = bounds.messageTop();
 		int depth = 0;
 		context.drawContext().enableScissor(
@@ -144,10 +144,10 @@ public final class ChatRenderEngine {
 			int lineX = PlayerChatLayoutStrategies
 					.forMode(context.playerChatLayoutMode())
 					.textX(0, wrapWidth, line.width(), 0, line.selfMessage());
-			context.drawContext().pose().pushMatrix();
-			context.drawContext().pose().translate(
+			context.drawContext().getMatrices().push();
+			context.drawContext().getMatrices().translate(
 					context.x() + backgroundConfig.horizontalPadding(), (float) lineY, 0.0f);
-			context.drawContext().pose().scale((float) fontScale, (float) fontScale, 1.0f);
+			context.drawContext().getMatrices().scale((float) fontScale, (float) fontScale, 1.0f);
 			backgroundRenderer.drawMessageBackground(
 					new ChatRenderContext(
 							context.drawContext(),
@@ -175,7 +175,7 @@ public final class ChatRenderEngine {
 							lineX,
 							line.width(),
 							0,
-							context.textRenderer().lineHeight,
+							context.textRenderer().fontHeight,
 							verticalMetrics.lineAdvance(),
 							backgroundConfig.horizontalPadding(),
 							backgroundConfig.verticalPadding(),
@@ -183,7 +183,7 @@ public final class ChatRenderEngine {
 					),
 					vanillaLineOpacity * context.vanillaBackgroundOpacity()
 			);
-			FormattedCharSequence renderedLine = line.text();
+			OrderedText renderedLine = line.text();
 			var color = line.sender() == null
 					? java.util.OptionalInt.empty()
 					: playerARGB.colorFor(line.sender());
@@ -194,7 +194,7 @@ public final class ChatRenderEngine {
 					line.mentionRanges(),
 					context.mentionConfig());
 			lineRenderer.draw(context, renderedLine, lineX, 0, lineOpacity, textConfig.shadow());
-			context.drawContext().pose().popMatrix();
+			context.drawContext().getMatrices().pop();
 			lineY -= screenLineHeight;
 			depth++;
 		}
@@ -205,21 +205,21 @@ public final class ChatRenderEngine {
 		int inputHeight = bounds.inputHeight();
 		int inputY = bounds.inputTop();
 		backgroundRenderer.drawInputBackground(context, inputY, inputHeight);
-		int textY = inputY + Math.max(1, (inputHeight - context.textRenderer().lineHeight) / 2);
+		int textY = inputY + Math.max(1, (inputHeight - context.textRenderer().fontHeight) / 2);
 		int color = (Math.round(190 * context.inputProgress()) << 24) | 0xC8CDD6;
 		int textX = context.x() + HORIZONTAL_PADDING;
 		SpacedTextRenderer.draw(
 				context.drawContext(), context.textRenderer(),
-				context.inputPlaceholder().getVisualOrderText(),
+				context.inputPlaceholder().asOrderedText(),
 				textX, textY, color, true,
 				context.textConfig().characterSpacing());
 		int cursorX = Math.min(context.right() - 2,
 				textX + SpacedTextMetrics.width(
 						context.textRenderer(),
-						context.inputPlaceholder().getVisualOrderText(),
+						context.inputPlaceholder().asOrderedText(),
 						context.textConfig().characterSpacing()) + 2);
 		context.drawContext().fill(cursorX, textY, cursorX + 1,
-				Math.min(bounds.inputBottom() - 1, textY + context.textRenderer().lineHeight),
+				Math.min(bounds.inputBottom() - 1, textY + context.textRenderer().fontHeight),
 				(Math.round(220 * context.inputProgress()) << 24) | 0xFFFFFF);
 	}
 

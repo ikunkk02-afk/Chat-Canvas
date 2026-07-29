@@ -1,12 +1,12 @@
 package io.github.ikunkk02.chatcanvas.mixin.client;
 
 import net.minecraft.client.gui.components.CommandSuggestions;
-import net.minecraft.client.gui.navigation.ScreenRectangle;
+import net.minecraft.client.util.math.Rect2i;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(CommandSuggestions.SuggestionWindow.class)
+@Mixin(ChatInputSuggestor.SuggestionWindow.class)
 public interface SuggestionWindowAccessor {
 	@Accessor("area")
-	ScreenRectangle chat_canvas$area();
+	Rect2i chat_canvas$area();
 }

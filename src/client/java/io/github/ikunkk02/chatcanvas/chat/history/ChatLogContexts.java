@@ -6,17 +6,17 @@ public final class ChatLogContexts {
 
     private ChatLogContexts() {}
 
-    public static ChatLogContext current(Minecraft client) {
+    public static ChatLogContext current(MinecraftClient client) {
         if (client == null) return null;
-        if (client.hasSingleplayerServer() && client.getServer() != null) {
+        if (client.isInSingleplayer() && client.getServer() != null) {
             String worldLabel = client.getServer().getSaveProperties().getLevelName();
             return ChatLogContext.singleplayer(worldLabel, worldLabel);
         }
-        var entry = client.getCurrentServer();
+        var entry = client.getCurrentServerEntry();
         if (entry != null) {
-            String ip = entry.ip != null ? entry.ip : "unknown";
-            String label = entry.name != null ? entry.name : ip;
-            return ChatLogContext.multiplayer(ip, label);
+            String address = entry.address != null ? entry.address : "unknown";
+            String label = entry.name != null ? entry.name : address;
+            return ChatLogContext.multiplayer(address, label);
         }
         return null;
     }
