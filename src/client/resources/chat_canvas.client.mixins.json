@@ -1,0 +1,26 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "io.github.ikunkk02.chatcanvas.mixin.client",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "AbstractParentElementMixin",
+    "ChatHudAccessor",
+    "ChatHudMixin",
+    "ChatInputSuggestorAccessor",
+    "ChatInputSuggestorMixin",
+    "ChatScreenAccessor",
+    "ChatScreenMixin",
+    "ClientPlayNetworkHandlerMixin",
+    "KeyboardMixin",
+    "ScreenAccessor",
+    "SuggestionWindowAccessor",
+    "TextFieldWidgetAccessor",
+    "TextFieldWidgetMixin",
+    "TextRendererAccessor",
+    "TextRendererDrawerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
