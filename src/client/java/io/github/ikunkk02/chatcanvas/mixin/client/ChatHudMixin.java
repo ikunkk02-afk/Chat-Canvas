@@ -221,7 +221,7 @@ public abstract class ChatHudMixin {
 			)
 	)
 	private List<OrderedText> chat_canvas$bindVisiblePlayerNameRanges(
-			TextRenderer renderer, int width,
+			ChatHudLine self, TextRenderer renderer, int width,
 			Operation<List<OrderedText>> original,
 			@Local(argsOnly = true) ChatHudLine message) {
 		ChatTextConfig config = ChatCanvasConfig.instance().text();
