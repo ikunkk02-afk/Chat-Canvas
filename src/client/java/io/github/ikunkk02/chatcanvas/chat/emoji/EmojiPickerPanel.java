@@ -8,9 +8,9 @@ import io.github.ikunkk02.chatcanvas.mixin.client.SuggestionWindowAccessor;
 import io.github.ikunkk02.chatcanvas.mixin.client.TextFieldWidgetAccessor;
 import io.github.ikunkk02.chatcanvas.ui.ModernUiTheme;
 import io.wispforest.owo.ui.component.ButtonComponent;
-import io.wispforest.owo.ui.component.Components;
+import io.wispforest.owo.ui.component.UIComponents;
 import io.wispforest.owo.ui.component.TextBoxComponent;
-import io.wispforest.owo.ui.container.Containers;
+import io.wispforest.owo.ui.container.UIContainers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.OwoUIAdapter;
@@ -265,7 +265,7 @@ public final class EmojiPickerPanel {
 		if (adapter != null) adapter.dispose();
 		categoryButtons.clear();
 		adapter = OwoUIAdapter.createWithoutScreen(
-				x, y, width, height, Containers::verticalFlow);
+				x, y, width, height, UIContainers::verticalFlow);
 		adapterX = x;
 		adapterY = y;
 		adapterWidth = width;
@@ -275,19 +275,19 @@ public final class EmojiPickerPanel {
 		root.padding(Insets.of(6));
 		root.gap(4);
 
-		searchField = Components.textBox(Sizing.fill(100));
+		searchField = UIComponents.textBox(Sizing.fill(100));
 		searchField.setMaxLength(64);
 		searchField.setPlaceholder(Text.translatable("chat_canvas.emoji.search"));
 		searchField.sizing(Sizing.fill(100), Sizing.fixed(18));
 		searchField.onChanged().subscribe(value -> updateGrid());
 		root.child(searchField);
 
-		FlowLayout categoryRows = Containers.verticalFlow(
+		FlowLayout categoryRows = UIContainers.verticalFlow(
 				Sizing.fill(100), Sizing.fixed(44));
 		categoryRows.gap(2);
 		int categoryWidth = Math.max(20, (width - 20) / 5);
 		for (int rowIndex = 0; rowIndex < 2; rowIndex++) {
-			FlowLayout row = Containers.horizontalFlow(
+			FlowLayout row = UIContainers.horizontalFlow(
 					Sizing.fill(100), Sizing.fixed(21));
 			row.gap(2);
 			for (int column = 0; column < 5; column++) {

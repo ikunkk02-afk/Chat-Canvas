@@ -1,8 +1,8 @@
 package io.github.ikunkk02.chatcanvas.chat.emoji;
 
-import io.wispforest.owo.ui.base.BaseComponent;
+import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
-import io.wispforest.owo.ui.core.OwoUIDrawContext;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
 
-public final class VirtualizedEmojiGrid extends BaseComponent {
+public final class VirtualizedEmojiGrid extends BaseUIComponent {
 	private static final int CELL_WIDTH = 28;
 	private static final int CELL_HEIGHT = 23;
 
@@ -99,7 +99,7 @@ public final class VirtualizedEmojiGrid extends BaseComponent {
 
 	@Override
 	public void draw(
-			OwoUIDrawContext context, int mouseX, int mouseY,
+			OwoUIGraphics context, int mouseX, int mouseY,
 			float partialTicks, float delta) {
 		context.fill(x(), y(), x() + width(), y() + height(), 0x70202531);
 		hoveredEntry = null;

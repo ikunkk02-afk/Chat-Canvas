@@ -9,9 +9,9 @@ import io.github.ikunkk02.chatcanvas.editor.EditorPointerTarget;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.github.ikunkk02.chatcanvas.editor.EditorChannel;
 import io.github.ikunkk02.chatcanvas.editor.LayoutEditorMath;
-import io.wispforest.owo.ui.base.BaseComponent;
+import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
-import io.wispforest.owo.ui.core.OwoUIDrawContext;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Positioning;
 import io.wispforest.owo.ui.core.Sizing;
 import net.minecraft.client.MinecraftClient;
@@ -25,7 +25,7 @@ import java.util.UUID;
 
 import java.util.List;
 
-public final class PreviewChatWidget extends BaseComponent implements EditorPointerTarget {
+public final class PreviewChatWidget extends BaseUIComponent implements EditorPointerTarget {
 	private static final int HANDLE_THICKNESS = 7;
 	private static final int SNAP_DISTANCE = 7;
 	private static final int HANDLE_SIZE = 4;
@@ -170,7 +170,7 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 	}
 
 	@Override
-	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
+	public void draw(OwoUIGraphics context, int mouseX, int mouseY, float partialTicks, float delta) {
 		PixelLayout layout = session.layout(channel);
 		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
 		renderEngine.render(new ChatRenderContext(
@@ -224,7 +224,7 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 		);
 	}
 
-	private void drawEditorAssist(OwoUIDrawContext context, PixelLayout layout) {
+	private void drawEditorAssist(OwoUIGraphics context, PixelLayout layout) {
 		if (hoveredHandle == ResizeHandle.NONE && activeHandle == ResizeHandle.NONE) return;
 		int color = activeHandle != ResizeHandle.NONE ? 0xFF8EB8FF : 0xCC70A7FF;
 		context.fill(layout.x(), layout.y(), layout.right(), layout.y() + 1, color);
@@ -244,7 +244,7 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 		drawHandle(context, layout.right(), layout.bottom(), color);
 	}
 
-	private void drawHandle(OwoUIDrawContext context, int centerX, int centerY, int color) {
+	private void drawHandle(OwoUIGraphics context, int centerX, int centerY, int color) {
 		int half = HANDLE_SIZE / 2;
 		context.fill(centerX - half, centerY - half, centerX - half + HANDLE_SIZE,
 				centerY - half + HANDLE_SIZE, 0xE6151820);

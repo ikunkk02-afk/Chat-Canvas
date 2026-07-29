@@ -62,7 +62,7 @@ The ChatHud class underwent significant internal refactoring:
 
 | Item | 1.21.9 | 1.21.11 | Impact |
 |------|--------|---------|--------|
-| Version used | 0.12.24+1.21.9 | 0.12.24+1.21.9 (cross-version compat) | No owo-lib change needed for this port |
+| owo-lib | 0.13.0+1.21.11 | Minor API: BaseComponent→BaseUIComponent, OwoUIDrawContext→OwoUIGraphics |
 
 ## Summary
 

@@ -2,15 +2,15 @@ package io.github.ikunkk02.chatcanvas.ui;
 
 import io.github.ikunkk02.chatcanvas.config.CommandClipboardConfig;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
-import io.wispforest.owo.ui.base.BaseComponent;
+import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
-import io.wispforest.owo.ui.core.OwoUIDrawContext;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 
-public final class CommandMaxScrubberComponent extends BaseComponent implements NumericScrubber {
+public final class CommandMaxScrubberComponent extends BaseUIComponent implements NumericScrubber {
 	private final EditorSession session;
 	private final Runnable changed;
 	private final Runnable committed;
@@ -35,7 +35,7 @@ public final class CommandMaxScrubberComponent extends BaseComponent implements 
 	}
 
 	@Override
-	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
+	public void draw(OwoUIGraphics context, int mouseX, int mouseY, float partialTicks, float delta) {
 		var renderer = MinecraftClient.getInstance().textRenderer;
 		int valueLeft = x() + width() - 92;
 		context.fill(valueLeft, y() + 2, x() + width(), y() + height() - 2, 0xB02A3543);

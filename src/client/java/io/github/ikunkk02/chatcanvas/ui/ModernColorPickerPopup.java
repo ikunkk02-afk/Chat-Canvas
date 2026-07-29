@@ -1,9 +1,9 @@
 package io.github.ikunkk02.chatcanvas.ui;
 
 import io.github.ikunkk02.chatcanvas.editor.ColorPickerState;
-import io.wispforest.owo.ui.base.BaseComponent;
+import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
-import io.wispforest.owo.ui.core.OwoUIDrawContext;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Positioning;
 import io.wispforest.owo.ui.core.Sizing;
 import net.minecraft.client.MinecraftClient;
@@ -15,7 +15,7 @@ import org.lwjgl.glfw.GLFW;
 import java.util.List;
 import java.util.function.IntConsumer;
 
-public final class ModernColorPickerPopup extends BaseComponent {
+public final class ModernColorPickerPopup extends BaseUIComponent {
 	public static final int POPUP_WIDTH = 250;
 	public static final int POPUP_HEIGHT = 266;
 
@@ -66,7 +66,7 @@ public final class ModernColorPickerPopup extends BaseComponent {
 	}
 
 	@Override
-	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
+	public void draw(OwoUIGraphics context, int mouseX, int mouseY, float partialTicks, float delta) {
 		float progress = Math.min(1.0f, (System.nanoTime() - openedAt) / 100_000_000.0f);
 		float eased = 1.0f - (1.0f - progress) * (1.0f - progress);
 		float scale = 0.98f + 0.02f * eased;
@@ -106,7 +106,7 @@ public final class ModernColorPickerPopup extends BaseComponent {
 		context.getMatrices().popMatrix();
 	}
 
-	private void drawCurrentPreview(OwoUIDrawContext context) {
+	private void drawCurrentPreview(OwoUIGraphics context) {
 		int left = x() + 210;
 		int top = y() + SV_Y;
 		ModernUiTheme.roundedRect(context, left, top, 30, 110, 5,
@@ -114,7 +114,7 @@ public final class ModernColorPickerPopup extends BaseComponent {
 		context.drawRectOutline(left, top, 30, 110, 0x88798BA5);
 	}
 
-	private void drawHexInput(OwoUIDrawContext context, TextRenderer renderer) {
+	private void drawHexInput(OwoUIGraphics context, TextRenderer renderer) {
 		context.drawText(renderer, Text.translatable("chat_canvas.color_picker.hex"),
 				x() + HEX_X, y() + 143, ModernUiTheme.TEXT_SECONDARY, false);
 		int border = state.hexValid()
@@ -140,7 +140,7 @@ public final class ModernColorPickerPopup extends BaseComponent {
 		}
 	}
 
-	private void drawRecentColors(OwoUIDrawContext context, TextRenderer renderer) {
+	private void drawRecentColors(OwoUIGraphics context, TextRenderer renderer) {
 		context.drawText(renderer, Text.translatable("chat_canvas.color_picker.recent"),
 				x() + RECENT_X, y() + 190, ModernUiTheme.TEXT_SECONDARY, false);
 		for (int index = 0; index < 8; index++) {
@@ -155,7 +155,7 @@ public final class ModernColorPickerPopup extends BaseComponent {
 		}
 	}
 
-	private void drawActions(OwoUIDrawContext context, TextRenderer renderer,
+	private void drawActions(OwoUIGraphics context, TextRenderer renderer,
 							 int mouseX, int mouseY) {
 		drawAction(context, renderer, x() + 10, y() + BUTTON_Y, 96, 22,
 				Text.translatable("chat_canvas.color_picker.restore_default"),
@@ -169,7 +169,7 @@ public final class ModernColorPickerPopup extends BaseComponent {
 				state.hexValid());
 	}
 
-	private static void drawAction(OwoUIDrawContext context, TextRenderer renderer,
+	private static void drawAction(OwoUIGraphics context, TextRenderer renderer,
 								   int x, int y, int width, int height,
 								   Text label, boolean hovered, boolean active) {
 		int background = !active

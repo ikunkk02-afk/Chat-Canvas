@@ -6,16 +6,16 @@ import io.github.ikunkk02.chatcanvas.editor.EditorChannel;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.github.ikunkk02.chatcanvas.editor.EditorUiStyle;
 import io.github.ikunkk02.chatcanvas.editor.NumericScrubberMath;
-import io.wispforest.owo.ui.base.BaseComponent;
+import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
-import io.wispforest.owo.ui.core.OwoUIDrawContext;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.text.Text;
 
 public final class SplitMessageRatioScrubberComponent
-		extends BaseComponent implements NumericScrubber {
+		extends BaseUIComponent implements NumericScrubber {
 	private static final int VALUE_WIDTH = 78;
 
 	private final EditorSession session;
@@ -47,7 +47,7 @@ public final class SplitMessageRatioScrubberComponent
 	}
 
 	@Override
-	public void draw(OwoUIDrawContext context, int mouseX, int mouseY,
+	public void draw(OwoUIGraphics context, int mouseX, int mouseY,
 					 float partialTicks, float delta) {
 		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
 		boolean enabled = enabled();

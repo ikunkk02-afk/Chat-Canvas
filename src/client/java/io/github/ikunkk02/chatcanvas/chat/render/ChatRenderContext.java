@@ -1,6 +1,6 @@
 package io.github.ikunkk02.chatcanvas.chat.render;
 
-import io.wispforest.owo.ui.core.OwoUIDrawContext;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
@@ -10,7 +10,7 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.text.Text;
 
 public record ChatRenderContext(
-		OwoUIDrawContext drawContext,
+		OwoUIGraphics drawContext,
 		TextRenderer textRenderer,
 		int x,
 		int y,

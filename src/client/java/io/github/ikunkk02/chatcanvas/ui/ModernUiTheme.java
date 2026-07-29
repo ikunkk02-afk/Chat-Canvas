@@ -3,8 +3,8 @@ package io.github.ikunkk02.chatcanvas.ui;
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
 import io.github.ikunkk02.chatcanvas.editor.EditorUiStyle;
 import io.wispforest.owo.ui.component.ButtonComponent;
-import io.wispforest.owo.ui.component.Components;
-import io.wispforest.owo.ui.core.OwoUIDrawContext;
+import io.wispforest.owo.ui.component.UIComponents;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Surface;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.Text;
@@ -75,7 +75,7 @@ public final class ModernUiTheme {
      * {@link #transparentButton(Text, Consumer)}.
      */
     public static ButtonComponent button(Text text, Consumer<ButtonComponent> action) {
-        ButtonComponent button = Components.button(text, clicked -> {
+        ButtonComponent button = UIComponents.button(text, clicked -> {
             PRESSED_AT.put(clicked, System.nanoTime());
             action.accept(clicked);
         });
@@ -86,13 +86,13 @@ public final class ModernUiTheme {
 
     /** Create a button that never draws a solid background in either theme. */
     public static ButtonComponent transparentButton(Text text, Consumer<ButtonComponent> action) {
-        ButtonComponent button = Components.button(text, action);
+        ButtonComponent button = UIComponents.button(text, action);
         button.renderer(ModernUiTheme::drawTransparentButton);
         button.textShadow(false);
         return button;
     }
 
-    private static void drawButton(OwoUIDrawContext context, ButtonComponent button, float delta) {
+    private static void drawButton(OwoUIGraphics context, ButtonComponent button, float delta) {
         if (currentStyle == EditorUiStyle.VANILLA) {
             drawVanillaButton(context, button);
         } else {
@@ -100,7 +100,7 @@ public final class ModernUiTheme {
         }
     }
 
-    private static void drawTransparentButton(OwoUIDrawContext context, ButtonComponent button, float delta) {
+    private static void drawTransparentButton(OwoUIGraphics context, ButtonComponent button, float delta) {
         // In vanilla theme, draw no background (prevents gray rectangle from oversized hit targets).
         // In modern theme, draw the normal modern background.
         if (currentStyle == EditorUiStyle.VANILLA) {
@@ -110,7 +110,7 @@ public final class ModernUiTheme {
         drawModernButton(context, button);
     }
 
-    private static void drawModernButton(OwoUIDrawContext context, ButtonComponent button) {
+    private static void drawModernButton(OwoUIGraphics context, ButtonComponent button) {
         int color;
         if (!button.active()) {
             color = 0x55343A48;
@@ -129,7 +129,7 @@ public final class ModernUiTheme {
                 button.active() ? 0x554F6079 : 0x223C4452);
     }
 
-    private static void drawVanillaButton(OwoUIDrawContext context, ButtonComponent button) {
+    private static void drawVanillaButton(OwoUIGraphics context, ButtonComponent button) {
         int w = button.getWidth();
         int h = button.getHeight();
         int x = button.getX();

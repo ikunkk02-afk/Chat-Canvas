@@ -13,13 +13,13 @@ import io.github.ikunkk02.chatcanvas.ui.NumericScrubberComponent;
 import io.github.ikunkk02.chatcanvas.ui.PreviewChatWidget;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.ButtonComponent;
-import io.wispforest.owo.ui.component.Components;
-import io.wispforest.owo.ui.container.Containers;
+import io.wispforest.owo.ui.component.UIComponents;
+import io.wispforest.owo.ui.container.UIContainers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.core.HorizontalAlignment;
 import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.OwoUIAdapter;
-import io.wispforest.owo.ui.core.Component;
+import io.wispforest.owo.ui.core.UIComponent;
 import io.wispforest.owo.ui.core.Positioning;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.VerticalAlignment;
@@ -58,7 +58,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 			session = new EditorSession(ChatCanvasConfig.instance().settings(), width, height);
 		}
 		ModernUiTheme.setStyle(ChatCanvasConfig.instance().editorUiStyle());
-		return OwoUIAdapter.create(this, Containers::verticalFlow);
+		return OwoUIAdapter.create(this, UIContainers::verticalFlow);
 	}
 
 	@Override
@@ -86,7 +86,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	}
 
 	private FlowLayout buildToolbar() {
-		FlowLayout bar = Containers.horizontalFlow(Sizing.fixed(620), Sizing.fixed(32));
+		FlowLayout bar = UIContainers.horizontalFlow(Sizing.fixed(620), Sizing.fixed(32));
 		bar.positioning(Positioning.absolute(Math.max(8, (width - 620) / 2), 10));
 		bar.padding(Insets.of(5).withLeft(16));
 		bar.gap(6);
@@ -94,7 +94,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		bar.horizontalAlignment(HorizontalAlignment.RIGHT);
 		bar.verticalAlignment(VerticalAlignment.CENTER);
 
-		var title = Components.label(Text.translatable("chat_canvas.editor.title")
+		var title = UIComponents.label(Text.translatable("chat_canvas.editor.title")
 				.formatted(Formatting.WHITE, Formatting.BOLD));
 		title.horizontalSizing(Sizing.fill(28));
 		bar.child(title);
@@ -292,14 +292,14 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		if (preview == null || uiAdapter == null || !preview.containsInteraction(mouseX, mouseY)) {
 			return false;
 		}
-		Component top = uiAdapter.rootComponent.childAt((int) Math.floor(mouseX), (int) Math.floor(mouseY));
+		UIComponent top = uiAdapter.rootComponent.childAt((int) Math.floor(mouseX), (int) Math.floor(mouseY));
 		return top == preview || top == uiAdapter.rootComponent;
 	}
 
 	private boolean commandPreviewCanReceive(double mouseX, double mouseY) {
 		if (commandPreview == null || uiAdapter == null
 				|| !commandPreview.containsInteraction(mouseX, mouseY)) return false;
-		Component top = uiAdapter.rootComponent.childAt(
+		UIComponent top = uiAdapter.rootComponent.childAt(
 				(int) Math.floor(mouseX), (int) Math.floor(mouseY));
 		return top == commandPreview || top == uiAdapter.rootComponent;
 	}

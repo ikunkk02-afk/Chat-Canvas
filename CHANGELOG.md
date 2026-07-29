@@ -17,6 +17,7 @@ All notable changes to Chat Canvas will be documented in this file.
 - Fixed `DrawContext.drawSelection` call: added missing `boolean invert` parameter (new in 1.21.11).
 - Fixed `PositionedSoundInstance.master()` → `ui()` (renamed in 1.21.11).
 - Fixed `ChatCanvasEditorScreen.resize` signature: `resize(int, int)` instead of `resize(MinecraftClient, int, int)`.
+- **Migrated owo-lib from 0.12.x → 0.13.0**: `BaseComponent` → `BaseUIComponent`, `OwoUIDrawContext` → `OwoUIGraphics`, `Containers` → `UIContainers`, `Components` → `UIComponents`, `Component` → `UIComponent`, `ParentComponent` → `ParentUIComponent` (16 files).
 
 ### Dependencies
 
@@ -25,7 +26,7 @@ All notable changes to Chat Canvas will be documented in this file.
 | Fabric Loader | 0.19.3 |
 | Fabric API | 0.141.6+1.21.11 |
 | Yarn mappings | 1.21.11+build.6 |
-| owo-lib | 0.12.24+1.21.9 (cross-version compat) |
+| owo-lib | 0.13.0+1.21.11 |
 | Mod Menu | 17.0.0 |
 | Java | 21 |
 

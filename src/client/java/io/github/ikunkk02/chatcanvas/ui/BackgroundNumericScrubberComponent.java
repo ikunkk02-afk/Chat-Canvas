@@ -4,9 +4,9 @@ import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.github.ikunkk02.chatcanvas.editor.EditorUiStyle;
 import io.github.ikunkk02.chatcanvas.editor.NumericScrubberMath;
-import io.wispforest.owo.ui.base.BaseComponent;
+import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
-import io.wispforest.owo.ui.core.OwoUIDrawContext;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
@@ -14,7 +14,7 @@ import net.minecraft.text.Text;
 
 import java.util.Locale;
 
-public final class BackgroundNumericScrubberComponent extends BaseComponent implements NumericScrubber {
+public final class BackgroundNumericScrubberComponent extends BaseUIComponent implements NumericScrubber {
 	private static final int VALUE_WIDTH = 78;
 
 	private final EditorSession session;
@@ -52,7 +52,7 @@ public final class BackgroundNumericScrubberComponent extends BaseComponent impl
 	}
 
 	@Override
-	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
+	public void draw(OwoUIGraphics context, int mouseX, int mouseY, float partialTicks, float delta) {
 		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
 		int valueLeft = valueLeft();
 		boolean vanilla = ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA;
