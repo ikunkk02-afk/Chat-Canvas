@@ -227,7 +227,7 @@ public abstract class ChatHudMixin {
 		ChatTextConfig config = ChatCanvasConfig.instance().text();
 		List<OrderedText> lines = ChatTextLayoutEngine.instance().wrap(
 				message, renderer, width, config.characterSpacing(), config.fontScale(),
-				() -> original.call(renderer, Integer.MAX_VALUE / 4));
+				() -> original.call(self, renderer, Integer.MAX_VALUE / 4));
 		ChatMessageMetadataRegistry.instance().registerVisibleLines(message, lines);
 		return lines;
 	}
