@@ -21,11 +21,11 @@
 	},
 	"mixins": ["chat_canvas.client.mixins.json"],
 	"depends": {
-			"fabricloader": ">=0.19.3",
-			"minecraft": "~1.21.9",
-			"java": ">=21",
-			"fabric-api": ">=0.134.1",
-			"owo": ">=0.12.24"
-		},
-		"suggests": { "modmenu": ">=16.0.1" }
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~1.21.10",
+		"java": ">=21",
+		"fabric-api": ">=0.138.4",
+		"owo": ">=0.12.24"
+	},
+	"suggests": { "modmenu": ">=16.0.1" }
 }
