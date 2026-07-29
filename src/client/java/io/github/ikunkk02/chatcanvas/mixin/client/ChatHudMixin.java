@@ -296,48 +296,6 @@ public abstract class ChatHudMixin {
 	}
 	*/
 
-	@Inject(method = "getTextStyleAt", at = @At("HEAD"), cancellable = true)
-	private void chat_canvas$getAlignedTextStyle(double x, double y,
-			CallbackInfoReturnable<Style> cir) {
-		if (DualChatHudRenderer.instance().active()) {
-			cir.setReturnValue(DualChatHudRenderer.instance().styleAt(x, y));
-			return;
-		}
-		ChatHudTransform transform = ChatLayoutRuntime.currentTransform();
-		double chatLineX = transform.screenToChatX(x);
-		double chatLineY = transform.screenToChatY(y);
-		int lineHeight = getLineHeight();
-		int lineIndex = lineHeight > 0 ? (int) Math.floor(chatLineY / lineHeight) : -1;
-		if (lineIndex < 0 || lineIndex >= visibleMessages.size()) {
-			cir.setReturnValue(null);
-			return;
-		}
-
-		ChatHudLine.Visible line = visibleMessages.get(lineIndex);
-		ChatLineMetrics metrics = chat_canvas$metrics(line);
-		double visualLocalX = metrics.localX(chatLineX)
-				/ ChatCanvasConfig.instance().text().fontScale();
-		double spacing = ChatCanvasConfig.instance().text().characterSpacing();
-		double adjustedX = ChatHeadsCompat.textXAt(
-				client.textRenderer, line.content(), spacing, line, visualLocalX);
-		if (Double.isNaN(adjustedX)) {
-			cir.setReturnValue(null);
-			return;
-		}
-		int localX = MathHelper.floor(adjustedX);
-		if (localX < 0 || localX > metrics.renderedWidth()) {
-			cir.setReturnValue(null);
-			return;
-		}
-		if (Math.abs(spacing) < 0.00001) {
-			cir.setReturnValue(chat_canvas$styleAtPixel(
-					client.textRenderer, line.content(), localX));
-		} else {
-			cir.setReturnValue(SpacedTextHitTester.styleAt(
-					client.textRenderer, line.content(), spacing, localX));
-		}
-	}
-
 	@Inject(method = "getIndicatorX", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$getAlignedIndicatorX(ChatHudLine.Visible line,
 												  CallbackInfoReturnable<Integer> cir) {
