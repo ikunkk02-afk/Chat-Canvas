@@ -305,7 +305,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	}
 
 	@Override
-	public void resize(MinecraftClient client, int width, int height) {
+	public void resize(int width, int height) {
 		pointerCapture.cancel();
 		if (colorPickerPopup != null) {
 			colorPickerPopup.cancel();
@@ -313,7 +313,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		if (session != null) {
 			session.resizeViewport(width, height);
 		}
-		super.resize(client, width, height);
+		super.resize(width, height);
 		if (preview != null) {
 			preview.resizeViewport(width, height);
 		}

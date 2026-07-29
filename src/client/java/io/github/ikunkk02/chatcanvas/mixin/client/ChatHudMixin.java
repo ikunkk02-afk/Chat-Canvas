@@ -73,17 +73,7 @@ public abstract class ChatHudMixin {
 	@Shadow
 	public abstract double getChatScale();
 	@Shadow
-	private double toChatLineX(double x) {
-		throw new AssertionError();
-	}
-	@Shadow
-	private double toChatLineY(double y) {
-		throw new AssertionError();
-	}
-	@Shadow
-	private int getMessageLineIndex(double chatLineX, double chatLineY) {
-		throw new AssertionError();
-	}
+	protected abstract int getLineHeight();
 
 	@Unique
 	private boolean chat_canvas$matrixPushed;
@@ -308,14 +298,16 @@ public abstract class ChatHudMixin {
 
 	@Inject(method = "getTextStyleAt", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$getAlignedTextStyle(double x, double y,
-												 CallbackInfoReturnable<Style> cir) {
+			CallbackInfoReturnable<Style> cir) {
 		if (DualChatHudRenderer.instance().active()) {
 			cir.setReturnValue(DualChatHudRenderer.instance().styleAt(x, y));
 			return;
 		}
-		double chatLineX = toChatLineX(x);
-		double chatLineY = toChatLineY(y);
-		int lineIndex = getMessageLineIndex(chatLineX, chatLineY);
+		ChatHudTransform transform = ChatLayoutRuntime.currentTransform();
+		double chatLineX = transform.screenToChatX(x);
+		double chatLineY = transform.screenToChatY(y);
+		int lineHeight = getLineHeight();
+		int lineIndex = lineHeight > 0 ? (int) Math.floor(chatLineY / lineHeight) : -1;
 		if (lineIndex < 0 || lineIndex >= visibleMessages.size()) {
 			cir.setReturnValue(null);
 			return;
@@ -338,8 +330,8 @@ public abstract class ChatHudMixin {
 			return;
 		}
 		if (Math.abs(spacing) < 0.00001) {
-			cir.setReturnValue(client.textRenderer.getTextHandler()
-					.getStyleAt(line.content(), localX));
+			cir.setReturnValue(chat_canvas$styleAtPixel(
+					client.textRenderer, line.content(), localX));
 		} else {
 			cir.setReturnValue(SpacedTextHitTester.styleAt(
 					client.textRenderer, line.content(), spacing, localX));
@@ -566,5 +558,24 @@ public abstract class ChatHudMixin {
 	@Unique
 	private int chat_canvas$glyphSafetyPixels() {
 		return ChatCanvasConfig.instance().text().shadow() ? 2 : 1;
+	}
+
+	@Unique
+	private static Style chat_canvas$styleAtPixel(
+			TextRenderer renderer, OrderedText text, int pixelX) {
+		final float[] accumulated = {0};
+		final Style[] found = {Style.EMPTY};
+		text.accept((index, style, codePoint) -> {
+			String charStr = new String(Character.toChars(codePoint));
+			float advance = renderer.getWidth(
+					OrderedText.styledForwardsVisitedString(charStr, style));
+			if (accumulated[0] + advance > pixelX) {
+				found[0] = style;
+				return false;
+			}
+			accumulated[0] += advance;
+			return true;
+		});
+		return found[0];
 	}
 }

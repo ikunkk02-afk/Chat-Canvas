@@ -1,1 +1,1 @@
-5b9edbfffacfa2d847ffa400c67506269033b773b43b67c5031ec6eb94868094 *build/libs/chat-canvas-1.2.0.jar
+22090b6227d1a13dd27a9b51792655f5e94755f118f759286fbf7687ae2beb2a *build/libs/chat-canvas-1.2.0.jar

@@ -2,6 +2,33 @@
 
 All notable changes to Chat Canvas will be documented in this file.
 
+## [1.2.0-mc1.21.11] - 2026-07-29
+
+### Ported
+
+- Ported Chat Canvas 1.2.0 to Minecraft 1.21.11 (Fabric).
+- Source baseline: `mc/1.21.9` branch.
+
+### Changed
+
+- Updated `ChatHudMixin.getTextStyleAt` injection: removed `@Shadow` for `toChatLineX`, `toChatLineY`, `getMessageLineIndex` (removed in MC 1.21.11 ChatHud refactoring).
+- Replaced coordinate conversion with `ChatLayoutRuntime.currentTransform()` and manual line index calculation.
+- Added `chat_canvas$styleAtPixel` helper to replace removed `TextHandler.getStyleAt(OrderedText, int)`.
+- Fixed `DrawContext.drawSelection` call: added missing `boolean invert` parameter (new in 1.21.11).
+- Fixed `PositionedSoundInstance.master()` → `ui()` (renamed in 1.21.11).
+- Fixed `ChatCanvasEditorScreen.resize` signature: `resize(int, int)` instead of `resize(MinecraftClient, int, int)`.
+
+### Dependencies
+
+| Dependency | Version |
+|-----------|---------|
+| Fabric Loader | 0.19.3 |
+| Fabric API | 0.141.6+1.21.11 |
+| Yarn mappings | 1.21.11+build.6 |
+| owo-lib | 0.12.24+1.21.9 (cross-version compat) |
+| Mod Menu | 17.0.0 |
+| Java | 21 |
+
 ## [1.2.0-mc1.21.9] - 2026-07-29
 
 ### Ported

@@ -10,6 +10,8 @@ repositories {
 	maven { name = "WispForest"; url = "https://maven.wispforest.io/releases" }
 	maven { name = "Terraformers"; url = "https://maven.terraformersmc.com/releases" }
 	maven { name = "BMCLAPI"; url = "https://bmclapi2.bangbang93.com/maven" }
+	maven { name = "Modrinth"; url = "https://api.modrinth.com/maven" }
+	maven { name = "JitPack"; url = "https://jitpack.io" }
 	mavenCentral()
 }
 

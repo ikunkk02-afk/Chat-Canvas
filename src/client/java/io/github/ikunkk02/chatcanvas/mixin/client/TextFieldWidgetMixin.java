@@ -243,7 +243,7 @@ public abstract class TextFieldWidgetMixin {
 			}
 		}
 		if (selectionOffset != cursorOffset) {
-			context.drawSelection(cursorX, textY - 1, selectionX - 1, textY + 10);
+			context.drawSelection(cursorX, textY - 1, selectionX - 1, textY + 10, true);
 		}
 	}
 

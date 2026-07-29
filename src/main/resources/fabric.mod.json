@@ -22,10 +22,10 @@
 	"mixins": ["chat_canvas.client.mixins.json"],
 	"depends": {
 			"fabricloader": ">=0.19.3",
-			"minecraft": "~1.21.9",
+			"minecraft": "~1.21.11",
 			"java": ">=21",
-			"fabric-api": ">=0.134.1",
+			"fabric-api": ">=0.141.6",
 			"owo": ">=0.12.24"
 		},
-		"suggests": { "modmenu": ">=16.0.1" }
+		"suggests": { "modmenu": ">=17.0.0" }
 }

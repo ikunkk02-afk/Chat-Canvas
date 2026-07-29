@@ -22,7 +22,7 @@ public final class MentionSoundPlayer {
 		MinecraftClient client = MinecraftClient.getInstance();
 		if (client == null || config.soundVolume() <= 0.0) return;
 		SoundEvent sound = resolve(config.sound());
-		client.getSoundManager().play(PositionedSoundInstance.master(
+		client.getSoundManager().play(PositionedSoundInstance.ui(
 				sound, (float) config.soundPitch(), (float) config.soundVolume()));
 	}
 
