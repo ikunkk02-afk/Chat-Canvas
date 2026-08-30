@@ -38,6 +38,7 @@ import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.option.KeyBinding;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
@@ -92,6 +93,8 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 
 	@Shadow
 	ChatInputSuggestor chatInputSuggestor;
+	@Shadow
+	private String originalChatText;
 
 	@Inject(method = "init", at = @At("RETURN"))
 	private void chat_canvas$initializeIndependentInputs(CallbackInfo ci) {
@@ -218,6 +221,14 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 				mouseX, mouseY, button)) {
 			cir.setReturnValue(true);
 			return;
+		}
+		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+			Style style = DualChatHudRenderer.instance().styleAt(mouseX, mouseY);
+			if (style != null && screen.handleTextClick(style)) {
+				originalChatText = chat_canvas$activeInputField().getText();
+				cir.setReturnValue(true);
+				return;
+			}
 		}
 		if (PlayerNameDoubleClickHandler.instance().mouseClicked(
 				screen, chat_canvas$playerChatField, chat_canvas$playerChatSuggestor,
@@ -388,12 +399,6 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 			chat_canvas$playerChatField.render(context, mouseX, mouseY, delta);
 		}
 		TextFieldWidget activeField = chat_canvas$activeInputField();
-		context.drawTextWithShadow(
-				MinecraftClient.getInstance().textRenderer,
-				Text.translatable(chat_canvas$inputMode == ChatCanvasInputMode.COMMAND
-						? "chat_canvas.input.mode.command"
-						: "chat_canvas.input.mode.player"),
-				activeField.getX(), Math.max(2, activeField.getY() - 10), 0xFFE7ECF5);
 		if (chat_canvas$inputMode == ChatCanvasInputMode.PLAYER_CHAT) {
 			context.getMatrices().push();
 			context.getMatrices().translate(0.0f, 0.0f, 200.0f);
@@ -699,11 +704,7 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		int color = text.length() >= 256 ? 0xFFFF6B6B
 				: text.length() >= 230 ? 0xFFF6C85F : 0xFFADB6C7;
 		int width = MinecraftClient.getInstance().textRenderer.getWidth(counter);
-		int modeWidth = MinecraftClient.getInstance().textRenderer.getWidth(
-				Text.translatable("chat_canvas.input.mode.player"));
-		int counterY = activeField.getWidth() < width + modeWidth + 8
-				? Math.max(2, activeField.getY() - 20)
-				: Math.max(2, activeField.getY() - 10);
+		int counterY = Math.max(2, activeField.getY() - 10);
 		context.drawTextWithShadow(
 				MinecraftClient.getInstance().textRenderer, counter,
 				Math.max(activeField.getX(),

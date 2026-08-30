@@ -1,0 +1,14 @@
+allprojects {
+    repositories {
+        maven {
+            name = "localBuildMojang"
+            url = "http://127.0.0.1:8765/.codex-maven"
+            metadataSources { mavenPom(); artifact() }
+        }
+    }
+    pluginManager.withPlugin("net.fabricmc.fabric-loom-remap") {
+        loom.versionsManifests {
+            add("local-bmclapi", "http://127.0.0.1:8765/.codex-version-manifest.json", -1000)
+        }
+    }
+}
