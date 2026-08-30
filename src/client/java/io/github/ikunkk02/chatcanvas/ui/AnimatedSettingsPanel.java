@@ -20,6 +20,8 @@ import io.github.ikunkk02.chatcanvas.config.PlayerChatLayoutMode;
 import io.github.ikunkk02.chatcanvas.voice.VoiceInputManager;
 import io.github.ikunkk02.chatcanvas.voice.VoiceInputState;
 import io.github.ikunkk02.chatcanvas.voice.VoiceSettings;
+import io.github.ikunkk02.chatcanvas.voice.VoiceModelDescriptor;
+import io.github.ikunkk02.chatcanvas.voice.VoicePlatformSupport;
 import io.github.ikunkk02.chatcanvas.chat.history.ChatLogConfigStorage;
 import io.github.ikunkk02.chatcanvas.chat.history.LocalChatLogService;
 import io.github.ikunkk02.chatcanvas.config.ChatLogConfig;
@@ -123,6 +125,11 @@ public final class AnimatedSettingsPanel {
 	private ButtonComponent voicePartialButton;
 	private ButtonComponent voicePunctuationButton;
 	private ButtonComponent voiceModelButton;
+	private ButtonComponent voiceModelSelectButton;
+	private ButtonComponent voiceNoSpeechButton;
+	private ButtonComponent voiceEndpointButton;
+	private ButtonComponent voiceTailButton;
+	private ButtonComponent voiceThreadsButton;
 	private ButtonComponent chatLogEnabledButton;
 	private ButtonComponent chatLogSelfButton;
 	private ButtonComponent chatLogOthersButton;
@@ -677,10 +684,7 @@ public final class AnimatedSettingsPanel {
 		body.child(Components.label(Text.translatable("chat_canvas.voice.settings_hint")
 				.formatted(Formatting.GRAY)));
 		voiceEnabledButton = voiceButton(clicked -> updateVoice(settings ->
-				new VoiceSettings(!settings.enabled(), settings.microphoneId(),
-						settings.maximumSeconds(), settings.showInputLevel(),
-						settings.noiseThreshold(), settings.showPartialResults(),
-						settings.addFinalPunctuation())));
+				settings.withEnabled(!settings.enabled())));
 		voiceDeviceButton = voiceButton(clicked -> {
 			var manager = VoiceInputManager.instance();
 			var devices = manager.devices();
@@ -691,56 +695,76 @@ public final class AnimatedSettingsPanel {
 				if (devices.get(i).id().equals(settings.microphoneId())) current = i;
 			}
 			String next = devices.get((current + 1) % devices.size()).id();
-			updateVoice(value -> new VoiceSettings(
-					value.enabled(), next, value.maximumSeconds(), value.showInputLevel(),
-					value.noiseThreshold(), value.showPartialResults(),
-					value.addFinalPunctuation()));
+			updateVoice(value -> value.withMicrophoneId(next));
 		});
 		voiceTestButton = voiceButton(clicked ->
 				VoiceInputManager.instance().toggleMicrophoneTest());
 		voiceDurationButton = voiceButton(clicked -> updateVoice(settings -> {
 			int next = settings.maximumSeconds() >= 60 ? 5 : settings.maximumSeconds() + 5;
-			return new VoiceSettings(settings.enabled(), settings.microphoneId(),
-					next, settings.showInputLevel(), settings.noiseThreshold(),
-					settings.showPartialResults(), settings.addFinalPunctuation());
+			return settings.withMaximumSeconds(next);
 		}));
 		voiceLevelButton = voiceButton(clicked -> updateVoice(settings ->
-				new VoiceSettings(settings.enabled(), settings.microphoneId(),
-						settings.maximumSeconds(), !settings.showInputLevel(),
-						settings.noiseThreshold(), settings.showPartialResults(),
-						settings.addFinalPunctuation())));
+				settings.withShowInputLevel(!settings.showInputLevel())));
 		voiceThresholdButton = voiceButton(clicked -> updateVoice(settings -> {
 			double next = settings.noiseThreshold() >= 0.05
 					? 0.005 : settings.noiseThreshold() + 0.005;
-			return new VoiceSettings(settings.enabled(), settings.microphoneId(),
-					settings.maximumSeconds(), settings.showInputLevel(), next,
-					settings.showPartialResults(), settings.addFinalPunctuation());
+			return settings.withNoiseThreshold(next);
 		}));
 		voicePartialButton = voiceButton(clicked -> updateVoice(settings ->
-				new VoiceSettings(settings.enabled(), settings.microphoneId(),
-						settings.maximumSeconds(), settings.showInputLevel(),
-						settings.noiseThreshold(), !settings.showPartialResults(),
-						settings.addFinalPunctuation())));
+				settings.withShowPartialResults(!settings.showPartialResults())));
 		voicePunctuationButton = voiceButton(clicked -> updateVoice(settings ->
-				new VoiceSettings(settings.enabled(), settings.microphoneId(),
-						settings.maximumSeconds(), settings.showInputLevel(),
-						settings.noiseThreshold(), settings.showPartialResults(),
-						!settings.addFinalPunctuation())));
+				settings.withFinalPunctuation(!settings.addFinalPunctuation())));
+		voiceNoSpeechButton = voiceButton(clicked -> updateVoice(settings -> {
+			int next = settings.noSpeechTimeoutMillis() >= 10_000
+					? 3_000 : settings.noSpeechTimeoutMillis() + 1_000;
+			return settings.withEndpointTiming(next, settings.endpointSilenceMillis(),
+					settings.tailPaddingMillis());
+		}));
+		voiceEndpointButton = voiceButton(clicked -> updateVoice(settings -> {
+			int next = settings.endpointSilenceMillis() >= 1_200
+					? 600 : settings.endpointSilenceMillis() + 100;
+			return settings.withEndpointTiming(settings.noSpeechTimeoutMillis(), next,
+					settings.tailPaddingMillis());
+		}));
+		voiceTailButton = voiceButton(clicked -> updateVoice(settings -> {
+			int next = settings.tailPaddingMillis() >= 400 ? 100 : settings.tailPaddingMillis() + 50;
+			return settings.withEndpointTiming(settings.noSpeechTimeoutMillis(),
+					settings.endpointSilenceMillis(), next);
+		}));
+		voiceThreadsButton = voiceButton(clicked -> updateVoice(settings ->
+				settings.withInferenceThreads(settings.inferenceThreads() >= 4
+						? 0 : settings.inferenceThreads() + 1)));
 		ButtonComponent binding = voiceButton(clicked -> {});
 		binding.active(false);
 		binding.setMessage(Text.translatable("chat_canvas.voice.keybinding"));
 		ButtonComponent insertMode = voiceButton(clicked -> {});
 		insertMode.active(false);
 		insertMode.setMessage(Text.translatable("chat_canvas.voice.insert_mode"));
+		voiceModelSelectButton = voiceButton(clicked -> {
+			VoiceInputManager manager = VoiceInputManager.instance();
+			var available = manager.models();
+			if (available.isEmpty()) return;
+			int current = -1;
+			for (int index = 0; index < available.size(); index++) {
+				if (available.get(index).id().equals(manager.settings().selectedModelId())) current = index;
+			}
+			for (int offset = 1; offset <= available.size(); offset++) {
+				VoiceModelDescriptor candidate = available.get((current + offset) % available.size());
+				if (VoicePlatformSupport.supportsModel(VoicePlatformSupport.current(), candidate)) {
+					manager.selectModel(candidate.id());
+					break;
+				}
+			}
+		});
 		voiceModelButton = voiceButton(clicked -> {
 			VoiceInputManager manager = VoiceInputManager.instance();
-			if (manager.state() == VoiceInputState.MODEL_MISSING
-					|| manager.state() == VoiceInputState.ERROR) manager.installModel();
-			else if (manager.state() == VoiceInputState.MODEL_DOWNLOADING
+			VoiceModelDescriptor selected = manager.selectedModel();
+			if (manager.state() == VoiceInputState.MODEL_DOWNLOADING
 					|| manager.state() == VoiceInputState.MODEL_VERIFYING
-					|| manager.state() == VoiceInputState.MODEL_EXTRACTING) {
+					|| manager.state() == VoiceInputState.MODEL_EXTRACTING
+					|| manager.state() == VoiceInputState.MODEL_INSTALLING) {
 				manager.cancelModelInstall();
-			}
+			} else if (selected == null || !manager.isModelInstalled(selected.id())) manager.installModel();
 		});
 		ButtonComponent openModel = voiceButton(clicked ->
 				VoiceInputManager.instance().openModelsDirectory());
@@ -753,11 +777,16 @@ public final class AnimatedSettingsPanel {
 		body.child(voiceTestButton);
 		body.child(binding);
 		body.child(voiceDurationButton);
+		body.child(voiceNoSpeechButton);
+		body.child(voiceEndpointButton);
+		body.child(voiceTailButton);
+		body.child(voiceThreadsButton);
 		body.child(voiceLevelButton);
 		body.child(voiceThresholdButton);
 		body.child(voicePartialButton);
 		body.child(insertMode);
 		body.child(voicePunctuationButton);
+		body.child(voiceModelSelectButton);
 		body.child(voiceModelButton);
 		body.child(openModel);
 		body.child(releaseModel);
@@ -1580,6 +1609,22 @@ public final class AnimatedSettingsPanel {
 				Text.translatable("chat_canvas.voice.noise_threshold")
 						.append(Text.literal(String.format(Locale.ROOT, "  %.3f",
 								settings.noiseThreshold()))));
+		if (voiceNoSpeechButton != null) voiceNoSpeechButton.setMessage(
+				Text.translatable("chat_canvas.voice.no_speech_timeout")
+						.append(Text.literal("  " + settings.noSpeechTimeoutMillis() + " ms")));
+		if (voiceEndpointButton != null) voiceEndpointButton.setMessage(
+				Text.translatable("chat_canvas.voice.endpoint_silence")
+						.append(Text.literal("  " + settings.endpointSilenceMillis() + " ms")));
+		if (voiceTailButton != null) voiceTailButton.setMessage(
+				Text.translatable("chat_canvas.voice.tail_padding")
+						.append(Text.literal("  " + settings.tailPaddingMillis() + " ms")));
+		if (voiceThreadsButton != null) {
+			String configured = settings.inferenceThreads() == 0
+					? Text.translatable("chat_canvas.voice.threads.auto").getString()
+					: Integer.toString(settings.inferenceThreads());
+			voiceThreadsButton.setMessage(Text.translatable("chat_canvas.voice.inference_threads")
+					.append(Text.literal("  " + configured + " (" + manager.effectiveInferenceThreads() + ")")));
+		}
 		if (voiceDeviceButton != null) {
 			String name = manager.devices().stream()
 					.filter(device -> device.id().equals(settings.microphoneId()))
@@ -1598,8 +1643,21 @@ public final class AnimatedSettingsPanel {
 							? "chat_canvas.voice.test.stop"
 							: "chat_canvas.voice.test.start").append(Text.literal(suffix)));
 		}
+		VoiceModelDescriptor selectedModel = manager.selectedModel();
+		if (voiceModelSelectButton != null) {
+			Text modelName = selectedModel == null ? Text.translatable("chat_canvas.voice.model.none")
+					: Text.translatable(selectedModel.displayNameKey());
+			voiceModelSelectButton.setMessage(Text.translatable("chat_canvas.voice.current_model")
+					.append(Text.literal("  ")).append(modelName));
+		}
 		if (voiceModelButton != null) {
-			voiceModelButton.setMessage(Text.translatable("chat_canvas.voice.model.status")
+			boolean installed = selectedModel != null && manager.isModelInstalled(selectedModel.id());
+			String key = manager.state() == VoiceInputState.MODEL_DOWNLOADING
+					|| manager.state() == VoiceInputState.MODEL_VERIFYING
+					|| manager.state() == VoiceInputState.MODEL_INSTALLING
+					? "chat_canvas.voice.model.cancel_download"
+					: installed ? "chat_canvas.voice.model.installed" : "chat_canvas.voice.model.download";
+			voiceModelButton.setMessage(Text.translatable(key)
 					.append(Text.literal("  " + manager.state().name())));
 		}
 	}

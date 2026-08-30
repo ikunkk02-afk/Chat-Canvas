@@ -29,6 +29,7 @@ import io.github.ikunkk02.chatcanvas.voice.VoiceInputOverlay;
 import io.github.ikunkk02.chatcanvas.voice.VoiceRecognitionResult;
 import io.github.ikunkk02.chatcanvas.voice.VoiceTextSanitizer;
 import io.github.ikunkk02.chatcanvas.voice.VoiceEncodingDiagnostics;
+import io.github.ikunkk02.chatcanvas.voice.VoiceTextTransaction;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessageIngress;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -87,6 +88,8 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 	private int chat_canvas$suppressedVoiceKeyCode;
 	@Unique
 	private long chat_canvas$suppressVoiceCharacterUntil;
+	@Unique
+	private VoiceTextTransaction chat_canvas$voiceTransaction;
 
 	@Shadow
 	protected TextFieldWidget chatField;
@@ -145,7 +148,10 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 					chat_canvas$playerChatSuggestor);
 			chat_canvas$voiceOverlay.init(
 					screen, chat_canvas$playerChatField,
-					this::chat_canvas$insertVoiceResult);
+					this::chat_canvas$insertVoiceResult,
+					this::chat_canvas$beginVoiceTransaction,
+					this::chat_canvas$applyVoicePartial,
+					this::chat_canvas$cancelVoiceTransaction);
 			chat_canvas$inputInitialized = true;
 			chat_canvas$inputHealthy = true;
 		} catch (Throwable throwable) {
@@ -245,6 +251,11 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		if (!chat_canvas$inputHealthy) return;
 		PlayerNameDoubleClickHandler.instance().reset();
 		if (chat_canvas$inputMode == ChatCanvasInputMode.PLAYER_CHAT
+				&& chat_canvas$voiceOverlay.mouseScrolled(mouseX, mouseY, verticalAmount)) {
+			cir.setReturnValue(true);
+			return;
+		}
+		if (chat_canvas$inputMode == ChatCanvasInputMode.PLAYER_CHAT
 				&& chat_canvas$emojiPicker.mouseScrolled(
 						mouseX, mouseY, horizontalAmount, verticalAmount)) {
 			cir.setReturnValue(true);
@@ -267,12 +278,12 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 	@Inject(method = "removed", at = @At("HEAD"))
 	private void chat_canvas$saveDraftsOnRemoved(CallbackInfo ci) {
 		PlayerNameDoubleClickHandler.instance().reset();
+		chat_canvas$voiceOverlay.dispose();
 		if (chat_canvas$inputHealthy) chat_canvas$captureBothFields();
 		chat_canvas$unregisterFields();
 		chat_canvas$quickActionMenu.reset((ChatScreen) (Object) this);
 		chat_canvas$commandTools.removed();
 		chat_canvas$emojiPicker.dispose();
-		chat_canvas$voiceOverlay.dispose();
 		chat_canvas$pendingHighSurrogate = 0;
 	}
 
@@ -287,18 +298,6 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		if (keyCode == GLFW.GLFW_KEY_ESCAPE && VoiceInputManager.instance().isBusy()) {
 			chat_canvas$voiceOverlay.cancel();
 		}
-		if (chat_canvas$inputMode == ChatCanvasInputMode.PLAYER_CHAT
-				&& io.github.ikunkk02.chatcanvas.ChatCanvasClient.voiceInputKey()
-						.matchesKey(keyCode, scanCode)) {
-			chat_canvas$emojiPicker.close();
-			chat_canvas$voiceOverlay.keyboardPressed();
-			chat_canvas$suppressNextVoiceCharacter = true;
-			chat_canvas$suppressedVoiceKeyCode = keyCode;
-			chat_canvas$suppressVoiceCharacterUntil = System.currentTimeMillis() + 300;
-			cir.setReturnValue(true);
-			return;
-		}
-
 		if (chat_canvas$inputMode == ChatCanvasInputMode.PLAYER_CHAT
 				&& chat_canvas$emojiPicker.keyPressed(
 						keyCode, scanCode, modifiers)) {
@@ -371,11 +370,9 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 	}
 
 	@Override
-	public void chat_canvas$onVoiceShortcutReleased(int keyCode, int scanCode) {
+	public void chat_canvas$onVoiceShortcutPressed(int keyCode, int scanCode) {
 		if (!chat_canvas$inputHealthy) {
-			return;
-		}
-		if (chat_canvas$inputMode != ChatCanvasInputMode.PLAYER_CHAT) {
+			VoiceInputManager.instance().cancel();
 			return;
 		}
 		if (chat_canvas$voiceOverlay == null) {
@@ -388,7 +385,14 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		if (!voiceKey.matchesKey(keyCode, scanCode)) {
 			return;
 		}
-		chat_canvas$voiceOverlay.keyboardReleased();
+		if (chat_canvas$inputMode != ChatCanvasInputMode.PLAYER_CHAT) {
+			chat_canvas$openPlayerInput();
+		}
+		chat_canvas$emojiPicker.close();
+		chat_canvas$suppressNextVoiceCharacter = true;
+		chat_canvas$suppressedVoiceKeyCode = keyCode;
+		chat_canvas$suppressVoiceCharacterUntil = System.currentTimeMillis() + 300;
+		chat_canvas$voiceOverlay.keyboardPressed();
 	}
 
 	@Inject(method = "render", at = @At("RETURN"))
@@ -705,15 +709,20 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 					VoiceEncodingDiagnostics.describeCodePoints(value));
 		}
 		if (value.isEmpty()) {
+			chat_canvas$cancelVoiceTransaction();
 			ChatCanvasMessageIngress.instance().reportError(
 					Text.translatable("chat_canvas.voice.error.empty"), null);
 			return;
 		}
 		ChatInputSnapshot current = chat_canvas$snapshot(chat_canvas$playerChatField);
-		chat_canvas$inputController.capture(ChatCanvasInputMode.PLAYER_CHAT, current);
-		UnicodeTextNavigator.EditResult result =
-				chat_canvas$inputController.insertPlayerText(value, 256);
+		if (chat_canvas$voiceTransaction == null) {
+			chat_canvas$voiceTransaction = new VoiceTextTransaction(
+					current.text(), current.cursor(), current.selectionEnd());
+		}
+		VoiceTextTransaction.Edit result = chat_canvas$voiceTransaction.commit(
+				current.text(), current.cursor(), current.selectionEnd(), value, 256);
 		if (result.limitExceeded()) {
+			chat_canvas$cancelVoiceTransaction();
 			ChatCanvasMessageIngress.instance().reportError(
 					Text.translatable("chat_canvas.voice.error.too_long"), null);
 			return;
@@ -726,5 +735,46 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		chat_canvas$playerChatSuggestor.setWindowActive(!result.text().isEmpty());
 		chat_canvas$playerChatSuggestor.refresh();
 		chat_canvas$focusActiveField();
+		chat_canvas$voiceTransaction = null;
+	}
+
+	@Unique
+	private void chat_canvas$beginVoiceTransaction() {
+		if (chat_canvas$playerChatField == null) return;
+		ChatInputSnapshot current = chat_canvas$snapshot(chat_canvas$playerChatField);
+		chat_canvas$voiceTransaction = new VoiceTextTransaction(
+				current.text(), current.cursor(), current.selectionEnd());
+	}
+
+	@Unique
+	private void chat_canvas$applyVoicePartial(String partial) {
+		if (chat_canvas$voiceTransaction == null || chat_canvas$playerChatField == null) return;
+		String value = VoiceTextSanitizer.sanitize(partial, false);
+		ChatInputSnapshot current = chat_canvas$snapshot(chat_canvas$playerChatField);
+		VoiceTextTransaction.Edit result = chat_canvas$voiceTransaction.updatePartial(
+				current.text(), current.cursor(), current.selectionEnd(), value, 256);
+		if (result.limitExceeded()) return;
+		ChatInputSnapshot updated = new ChatInputSnapshot(
+				result.text(), result.cursor(), result.selectionEnd());
+		chat_canvas$restoreField(chat_canvas$playerChatField, updated);
+		chat_canvas$inputController.capture(ChatCanvasInputMode.PLAYER_CHAT, updated);
+		chat_canvas$playerChatSuggestor.setWindowActive(!updated.text().isEmpty());
+		chat_canvas$playerChatSuggestor.refresh();
+	}
+
+	@Unique
+	private void chat_canvas$cancelVoiceTransaction() {
+		if (chat_canvas$voiceTransaction == null || chat_canvas$playerChatField == null) {
+			chat_canvas$voiceTransaction = null;
+			return;
+		}
+		ChatInputSnapshot current = chat_canvas$snapshot(chat_canvas$playerChatField);
+		VoiceTextTransaction.Edit result = chat_canvas$voiceTransaction.cancel(
+				current.text(), current.cursor(), current.selectionEnd());
+		ChatInputSnapshot restored = new ChatInputSnapshot(
+				result.text(), result.cursor(), result.selectionEnd());
+		chat_canvas$restoreField(chat_canvas$playerChatField, restored);
+		chat_canvas$inputController.capture(ChatCanvasInputMode.PLAYER_CHAT, restored);
+		chat_canvas$voiceTransaction = null;
 	}
 }
