@@ -1,5 +1,6 @@
 package io.github.ikunkk02.chatcanvas.chat.emoji;
 
+import io.github.ikunkk02.chatcanvas.ui.ModernUiTheme;
 import io.wispforest.owo.ui.base.BaseComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
 import io.wispforest.owo.ui.core.OwoUIDrawContext;
@@ -96,14 +97,15 @@ public final class VirtualizedEmojiGrid extends BaseComponent {
 	public void draw(
 			OwoUIDrawContext context, int mouseX, int mouseY,
 			float partialTicks, float delta) {
-		context.fill(x(), y(), x() + width(), y() + height(), 0x70202531);
+		context.fill(x(), y(), x() + width(), y() + height(),
+				ModernUiTheme.CONTROL_BACKGROUND);
 		hoveredEntry = null;
 		if (entries.isEmpty()) {
 			Text empty = Text.translatable(emptyMessageKey);
 			context.drawCenteredTextWithShadow(
 					MinecraftClient.getInstance().textRenderer,
 					empty, x() + width() / 2,
-					y() + Math.max(2, height() / 2 - 4), 0xFFADB6C7);
+					y() + Math.max(2, height() / 2 - 4), ModernUiTheme.TEXT_SECONDARY);
 			return;
 		}
 		context.enableScissor(x(), y(), x() + width(), y() + height());
@@ -122,20 +124,20 @@ public final class VirtualizedEmojiGrid extends BaseComponent {
 				hoveredEntry = entries.get(index);
 				context.fill(cellX + 1, cellY + 1,
 						cellX + CELL_WIDTH - 1, cellY + CELL_HEIGHT - 1,
-						0xB04B5970);
+						ModernUiTheme.CONTROL_HOVER);
 			}
 			if (index == selected) {
 				context.drawBorder(cellX, cellY,
-						CELL_WIDTH, CELL_HEIGHT, 0xFFF6C85F);
+						CELL_WIDTH, CELL_HEIGHT, ModernUiTheme.ACCENT);
 				context.fill(cellX + 3, cellY + CELL_HEIGHT - 3,
 						cellX + CELL_WIDTH - 3, cellY + CELL_HEIGHT - 1,
-						0xFFF6C85F);
+						ModernUiTheme.ACCENT);
 			}
 			String emoji = entries.get(index).unicode();
 			context.drawTextWithShadow(renderer, emoji,
 					cellX + (CELL_WIDTH - renderer.getWidth(emoji)) / 2,
 					cellY + (CELL_HEIGHT - renderer.fontHeight) / 2,
-					0xFFFFFFFF);
+					ModernUiTheme.TEXT_PRIMARY);
 		}
 		context.disableScissor();
 		if (maxScrollRow() > 0) {
@@ -144,7 +146,7 @@ public final class VirtualizedEmojiGrid extends BaseComponent {
 			int track = Math.max(1, height() - thumbHeight);
 			int thumbY = y() + track * scrollRow / maxScrollRow();
 			context.fill(x() + width() - 2, thumbY,
-					x() + width(), thumbY + thumbHeight, 0xFF8190AA);
+					x() + width(), thumbY + thumbHeight, ModernUiTheme.SCROLLBAR);
 		}
 	}
 

@@ -6,6 +6,7 @@ import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.Components;
 import io.wispforest.owo.ui.core.OwoUIDrawContext;
 import io.wispforest.owo.ui.core.Surface;
+import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.Text;
 
@@ -23,12 +24,26 @@ public final class ModernUiTheme {
     /** Enable to log suspiciously large vanilla-styled components. */
     public static final boolean VANILLA_THEME_RENDER_DEBUG = false;
 
-    /* ── colour constants (modern theme) ─────────────────────── */
-    public static final int PANEL_BACKGROUND = 0xE6191C26;
-    public static final int PANEL_BORDER = 0x664C566A;
-    public static final int ACCENT = 0xFF70A7FF;
-    public static final int TEXT_PRIMARY = 0xFFF2F4F8;
-    public static final int TEXT_SECONDARY = 0xFF9EA8BA;
+    /* ── colour constants (Minecraft-modern neutral theme) ───── */
+    public static final int SCREEN_OVERLAY = 0x88000000;
+    public static final int PANEL_BACKGROUND = 0xE6141414;
+    public static final int PANEL_ELEVATED = 0xF01B1B1B;
+    public static final int PANEL_BORDER = 0x80585858;
+    public static final int DIVIDER = 0x554A4A4A;
+    public static final int CONTROL_BACKGROUND = 0xCC292929;
+    public static final int CONTROL_HOVER = 0xE03A3A3A;
+    public static final int CONTROL_ACTIVE = 0xE0443F32;
+    public static final int CONTROL_DISABLED = 0x66303030;
+    public static final int ACCENT = 0xFFB7A26A;
+    public static final int ACCENT_MUTED = 0x997C704C;
+    public static final int TEXT_PRIMARY = 0xFFF1F1F1;
+    public static final int TEXT_SECONDARY = 0xFFB5B5B5;
+    public static final int TEXT_DISABLED = 0xFF777777;
+    public static final int DANGER = 0xFFD98282;
+    public static final int WARNING = 0xFFCDA661;
+    public static final int SUCCESS = 0xFF8FA879;
+    public static final int SCROLLBAR = 0xFF777777;
+    public static final int SHADOW = 0x40000000;
 
     /* ── reasonable bounds for themed controls ──────────────── */
     private static final int MAX_REASONABLE_BUTTON_WIDTH = 400;
@@ -50,10 +65,14 @@ public final class ModernUiTheme {
             drawVanillaPanel(context, component.x(), component.y(), w, h);
         } else {
             shadow(context, component.x(), component.y(), w, h);
-            roundedRect(context, component.x(), component.y(), w, h, 7, PANEL_BACKGROUND);
+            roundedRect(context, component.x(), component.y(), w, h, 2, PANEL_BACKGROUND);
             border(context, component.x(), component.y(), w, h, PANEL_BORDER);
         }
     };
+
+    /** A neutral surface for chat overlays which is independent of editor theme selection. */
+    public static final Surface FIXED_PANEL_SURFACE = (context, component) ->
+            drawFixedPanel(context, component.x(), component.y(), component.width(), component.height(), true);
 
     private static void drawVanillaPanel(DrawContext context, int x, int y, int w, int h) {
         context.fill(x, y, x + w, y + h, 0xC8000000);
@@ -92,6 +111,17 @@ public final class ModernUiTheme {
         return button;
     }
 
+    /** Create a neutral chat-overlay button independent of the editor theme preference. */
+    public static ButtonComponent fixedButton(Text text, Consumer<ButtonComponent> action) {
+        ButtonComponent button = Components.button(text, clicked -> {
+            PRESSED_AT.put(clicked, System.nanoTime());
+            action.accept(clicked);
+        });
+        button.renderer((context, component, delta) -> drawNeutralButton(context, component));
+        button.textShadow(false);
+        return button;
+    }
+
     private static void drawButton(OwoUIDrawContext context, ButtonComponent button, float delta) {
         if (currentStyle == EditorUiStyle.VANILLA) {
             drawVanillaButton(context, button);
@@ -111,22 +141,21 @@ public final class ModernUiTheme {
     }
 
     private static void drawModernButton(OwoUIDrawContext context, ButtonComponent button) {
-        int color;
-        if (!button.active()) {
-            color = 0x55343A48;
-        } else if (button.isHovered()) {
-            color = 0xE04B5970;
-        } else {
-            color = 0xC8374256;
-        }
+        drawNeutralButton(context, button);
+    }
+
+    private static void drawNeutralButton(OwoUIDrawContext context, ButtonComponent button) {
+        int color = !button.active()
+                ? CONTROL_DISABLED
+                : button.isHovered() ? CONTROL_HOVER : CONTROL_BACKGROUND;
         Long pressedAt = PRESSED_AT.get(button);
         boolean pressed = pressedAt != null && System.nanoTime() - pressedAt < 90_000_000L;
         int inset = pressed ? 1 : 0;
         roundedRect(context, button.getX() + inset, button.getY() + inset,
-                button.getWidth() - inset * 2, button.getHeight() - inset * 2, 5, color);
+                button.getWidth() - inset * 2, button.getHeight() - inset * 2, 2, color);
         border(context, button.getX() + inset, button.getY() + inset,
                 button.getWidth() - inset * 2, button.getHeight() - inset * 2,
-                button.active() ? 0x554F6079 : 0x223C4452);
+                button.active() ? PANEL_BORDER : DIVIDER);
     }
 
     private static void drawVanillaButton(OwoUIDrawContext context, ButtonComponent button) {
@@ -174,8 +203,35 @@ public final class ModernUiTheme {
     /* ── shared draw utilities ───────────────────────────────── */
 
     public static void shadow(DrawContext context, int x, int y, int width, int height) {
-        roundedRect(context, x - 3, y + 4, width + 6, height + 4, 8, 0x32000000);
-        roundedRect(context, x - 1, y + 2, width + 2, height + 2, 7, 0x45000000);
+        roundedRect(context, x + 1, y + 2, width, height, 2, SHADOW);
+    }
+
+    public static void drawFixedPanel(DrawContext context, int x, int y,
+                                      int width, int height, boolean withShadow) {
+        if (width <= 0 || height <= 0) return;
+        if (withShadow) shadow(context, x, y, width, height);
+        roundedRect(context, x, y, width, height, 2, PANEL_ELEVATED);
+        border(context, x, y, width, height, PANEL_BORDER);
+    }
+
+    public static void drawFixedControl(DrawContext context, int x, int y,
+                                        int width, int height,
+                                        boolean hovered, boolean selected, boolean enabled) {
+        int background = !enabled ? CONTROL_DISABLED
+                : selected ? CONTROL_ACTIVE
+                : hovered ? CONTROL_HOVER : CONTROL_BACKGROUND;
+        roundedRect(context, x, y, width, height, 2, background);
+        border(context, x, y, width, height,
+                selected ? ACCENT : enabled ? PANEL_BORDER : DIVIDER);
+    }
+
+    public static String fitText(TextRenderer renderer, Text text, int maxWidth) {
+        String value = text == null ? "" : text.getString();
+		if (maxWidth <= 0) return "";
+		if (renderer.getWidth(value) <= maxWidth) return value;
+        String ellipsis = "…";
+        int contentWidth = Math.max(0, maxWidth - renderer.getWidth(ellipsis));
+        return renderer.trimToWidth(value, contentWidth) + ellipsis;
     }
 
     public static void roundedRect(DrawContext context, int x, int y,
@@ -194,9 +250,9 @@ public final class ModernUiTheme {
     public static void border(DrawContext context, int x, int y,
                                int width, int height, int color) {
         if (width <= 1 || height <= 1) return;
-        context.fill(x + 5, y, x + width - 5, y + 1, color);
-        context.fill(x + 5, y + height - 1, x + width - 5, y + height, color);
-        context.fill(x, y + 5, x + 1, y + height - 5, color);
-        context.fill(x + width - 1, y + 5, x + width, y + height - 5, color);
+        context.fill(x + 1, y, x + width - 1, y + 1, color);
+        context.fill(x + 1, y + height - 1, x + width - 1, y + height, color);
+        context.fill(x, y + 1, x + 1, y + height - 1, color);
+        context.fill(x + width - 1, y + 1, x + width, y + height - 1, color);
     }
 }

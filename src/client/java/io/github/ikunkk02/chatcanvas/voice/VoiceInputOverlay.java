@@ -1,5 +1,6 @@
 package io.github.ikunkk02.chatcanvas.voice;
 
+import io.github.ikunkk02.chatcanvas.ui.ModernUiTheme;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ChatScreen;
@@ -127,19 +128,22 @@ public final class VoiceInputOverlay {
 	private void renderButton(DrawContext context, int mouseX, int mouseY) {
 		VoiceInputState state = manager.state();
 		boolean hovered = hit(mouseX, mouseY, buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT);
-		int fill = state == VoiceInputState.LISTENING ? 0xE05D2E46
-				: state == VoiceInputState.RECOGNIZING ? 0xE04A5368
-				: state == VoiceInputState.MODEL_MISSING || state == VoiceInputState.ERROR
-				? 0xE06B4430 : hovered ? 0xD0445066 : 0xB02A3240;
-		context.fill(buttonX, buttonY, buttonX + BUTTON_WIDTH, buttonY + BUTTON_HEIGHT, fill);
-		context.drawBorder(buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT,
-				state == VoiceInputState.LISTENING ? 0xFFFF858D : 0xFF71809A);
+		ModernUiTheme.drawFixedControl(context, buttonX, buttonY,
+				BUTTON_WIDTH, BUTTON_HEIGHT, hovered,
+				state == VoiceInputState.RECOGNIZING, true);
+		if (state == VoiceInputState.LISTENING) {
+			context.drawBorder(buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT,
+					ModernUiTheme.DANGER);
+		} else if (state == VoiceInputState.MODEL_MISSING || state == VoiceInputState.ERROR) {
+			context.drawBorder(buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT,
+					ModernUiTheme.WARNING);
+		}
 		int cx = buttonX + 9;
-		context.fill(cx - 2, buttonY + 3, cx + 3, buttonY + 9, 0xFFE7ECF5);
-		context.fill(cx - 4, buttonY + 7, cx - 3, buttonY + 10, 0xFFE7ECF5);
-		context.fill(cx + 3, buttonY + 7, cx + 4, buttonY + 10, 0xFFE7ECF5);
-		context.fill(cx - 3, buttonY + 10, cx + 4, buttonY + 11, 0xFFE7ECF5);
-		context.fill(cx, buttonY + 11, cx + 1, buttonY + 13, 0xFFE7ECF5);
+		context.fill(cx - 2, buttonY + 3, cx + 3, buttonY + 9, ModernUiTheme.TEXT_PRIMARY);
+		context.fill(cx - 4, buttonY + 7, cx - 3, buttonY + 10, ModernUiTheme.TEXT_PRIMARY);
+		context.fill(cx + 3, buttonY + 7, cx + 4, buttonY + 10, ModernUiTheme.TEXT_PRIMARY);
+		context.fill(cx - 3, buttonY + 10, cx + 4, buttonY + 11, ModernUiTheme.TEXT_PRIMARY);
+		context.fill(cx, buttonY + 11, cx + 1, buttonY + 13, ModernUiTheme.TEXT_PRIMARY);
 	}
 
 	private void renderStatus(DrawContext context) {
@@ -163,61 +167,72 @@ public final class VoiceInputOverlay {
 				&& !manager.partial().isBlank()) {
 			label = Text.translatable(key).append(Text.literal(": " + manager.partial()));
 		}
-		int width = Math.min(240,
-				MinecraftClient.getInstance().textRenderer.getWidth(label) + 20);
-		int x = Math.max(4, buttonX + BUTTON_WIDTH - width);
+		int width = Math.min(Math.max(1, owner.width - 8), Math.min(240,
+				MinecraftClient.getInstance().textRenderer.getWidth(label) + 20));
+		int x = Math.max(4, Math.min(owner.width - width - 4,
+				buttonX + BUTTON_WIDTH - width));
 		int y = Math.max(4, field.getY() - 34);
-		context.fill(x, y, x + width, y + 20, 0xD0202632);
-		context.drawBorder(x, y, width, 20, 0xFF71809A);
+		ModernUiTheme.drawFixedPanel(context, x, y, width, 20, false);
+		String fitted = ModernUiTheme.fitText(MinecraftClient.getInstance().textRenderer,
+				label, Math.max(1, width - 10));
 		context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer,
-				label, x + 5, y + 4, 0xFFFFFFFF);
+				Text.literal(fitted), x + 5, y + 4, ModernUiTheme.TEXT_PRIMARY);
 		if (state == VoiceInputState.LISTENING && manager.settings().showInputLevel()) {
 			int meter = (int) Math.round((width - 10) * Math.min(1.0, manager.level() * 8.0));
-			context.fill(x + 5, y + 16, x + 5 + meter, y + 18, 0xFF63D297);
+			context.fill(x + 5, y + 16, x + 5 + meter, y + 18, ModernUiTheme.SUCCESS);
 		}
 	}
 
 	private void renderPrompt(DrawContext context, int mouseX, int mouseY) {
-		int width = Math.min(330, owner.width - 16);
-		int height = 128;
-		int x = (owner.width - width) / 2;
-		int y = Math.max(8, (owner.height - height) / 2);
-		context.fill(x, y, x + width, y + height, 0xF0181D27);
-		context.drawBorder(x, y, width, height, 0xFF71809A);
-		draw(context, "chat_canvas.voice.model.title", x + 10, y + 10, 0xFFFFFFFF);
-		draw(context, "chat_canvas.voice.model.details", x + 10, y + 28, 0xFFADB6C7);
-		draw(context, "chat_canvas.voice.model.privacy", x + 10, y + 44, 0xFFADB6C7);
-		button(context, x + 10, y + 82, 112, 20,
-				"chat_canvas.voice.model.download");
-		button(context, x + 126, y + 82, 98, 20,
-				"chat_canvas.voice.model.open");
-		button(context, x + 228, y + 82, width - 238, 20,
-				"chat_canvas.voice.model.cancel");
+		PromptLayout layout = promptLayout();
+		ModernUiTheme.drawFixedPanel(context, layout.x(), layout.y(),
+				layout.width(), layout.height(), true);
+		draw(context, "chat_canvas.voice.model.title", layout.x() + 10,
+				layout.y() + 10, ModernUiTheme.TEXT_PRIMARY);
+		context.drawTextWrapped(MinecraftClient.getInstance().textRenderer,
+				Text.translatable("chat_canvas.voice.model.details"),
+				layout.x() + 10, layout.y() + 28, layout.width() - 20,
+				ModernUiTheme.TEXT_SECONDARY);
+		context.drawTextWrapped(MinecraftClient.getInstance().textRenderer,
+				Text.translatable("chat_canvas.voice.model.privacy"),
+				layout.x() + 10, layout.y() + 48, layout.width() - 20,
+				ModernUiTheme.TEXT_SECONDARY);
+		button(context, mouseX, mouseY, layout.downloadX(), layout.buttonY(),
+				layout.buttonWidth(), 20, "chat_canvas.voice.model.download");
+		button(context, mouseX, mouseY, layout.openX(), layout.buttonY(),
+				layout.buttonWidth(), 20, "chat_canvas.voice.model.open");
+		button(context, mouseX, mouseY, layout.cancelX(), layout.buttonY(),
+				layout.lastButtonWidth(), 20, "chat_canvas.voice.model.cancel");
 	}
 
 	private boolean promptClick(double mouseX, double mouseY, int button) {
 		if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT || owner == null) return true;
-		int width = Math.min(330, owner.width - 16);
-		int x = (owner.width - width) / 2;
-		int y = Math.max(8, (owner.height - 128) / 2);
-		if (hit(mouseX, mouseY, x + 10, y + 82, 112, 20)) {
+		PromptLayout layout = promptLayout();
+		if (hit(mouseX, mouseY, layout.downloadX(), layout.buttonY(),
+				layout.buttonWidth(), 20)) {
 			installPrompt = false;
 			manager.installModel();
-		} else if (hit(mouseX, mouseY, x + 126, y + 82, 98, 20)) {
+		} else if (hit(mouseX, mouseY, layout.openX(), layout.buttonY(),
+				layout.buttonWidth(), 20)) {
 			manager.openModelsDirectory();
-		} else if (hit(mouseX, mouseY, x + 228, y + 82, width - 238, 20)
-				|| !hit(mouseX, mouseY, x, y, width, 128)) {
+		} else if (hit(mouseX, mouseY, layout.cancelX(), layout.buttonY(),
+				layout.lastButtonWidth(), 20)
+				|| !hit(mouseX, mouseY, layout.x(), layout.y(),
+				layout.width(), layout.height())) {
 			installPrompt = false;
 		}
 		return true;
 	}
 
-	private static void button(DrawContext context, int x, int y, int width, int height,
+	private static void button(DrawContext context, int mouseX, int mouseY,
+							   int x, int y, int width, int height,
 							   String key) {
-		context.fill(x, y, x + width, y + height, 0xFF343D50);
-		context.drawBorder(x, y, width, height, 0xFF71809A);
+		ModernUiTheme.drawFixedControl(context, x, y, width, height,
+				hit(mouseX, mouseY, x, y, width, height), false, true);
+		String fitted = ModernUiTheme.fitText(MinecraftClient.getInstance().textRenderer,
+				Text.translatable(key), Math.max(1, width - 6));
 		context.drawCenteredTextWithShadow(MinecraftClient.getInstance().textRenderer,
-				Text.translatable(key), x + width / 2, y + 6, 0xFFFFFFFF);
+				Text.literal(fitted), x + width / 2, y + 6, ModernUiTheme.TEXT_PRIMARY);
 	}
 
 	private static void draw(DrawContext context, String key, int x, int y, int color) {
@@ -227,6 +242,27 @@ public final class VoiceInputOverlay {
 
 	private static boolean hit(double mx, double my, int x, int y, int width, int height) {
 		return mx >= x && mx < x + width && my >= y && my < y + height;
+	}
+
+	private PromptLayout promptLayout() {
+		int width = Math.max(1, Math.min(330, owner.width - 16));
+		int height = Math.max(1, Math.min(128, owner.height - 16));
+		int x = Math.max(0, (owner.width - width) / 2);
+		int y = Math.max(0, (owner.height - height) / 2);
+		int margin = Math.min(10, Math.max(1, width / 16));
+		int gap = 4;
+		int available = Math.max(3, width - margin * 2 - gap * 2);
+		int buttonWidth = Math.max(1, available / 3);
+		int lastWidth = Math.max(1, available - buttonWidth * 2);
+		int downloadX = x + margin;
+		int openX = downloadX + buttonWidth + gap;
+		return new PromptLayout(x, y, width, height, downloadX, openX,
+				openX + buttonWidth + gap, y + height - 30, buttonWidth, lastWidth);
+	}
+
+	private record PromptLayout(int x, int y, int width, int height,
+			int downloadX, int openX, int cancelX, int buttonY,
+			int buttonWidth, int lastButtonWidth) {
 	}
 
 	/**

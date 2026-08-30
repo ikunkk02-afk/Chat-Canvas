@@ -35,6 +35,7 @@ import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.container.StackLayout;
 import io.wispforest.owo.ui.core.HorizontalAlignment;
+import io.wispforest.owo.ui.core.Color;
 import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.Positioning;
 import io.wispforest.owo.ui.core.Sizing;
@@ -60,12 +61,8 @@ public final class AnimatedSettingsPanel {
 	private static final boolean DEBUG_CLIP = false;
 
 	private static final int PANEL_MARGIN = 16;
-	private static final int PANEL_TOP = 48;
-	private static final int PANEL_PADDING = 12;
-	private static final int PANEL_GAP = 8;
 	private static final int LABEL_HEIGHT = 9;
 	private static final int CATEGORY_HEIGHT = 24;
-	private static final int FOOTER_HEIGHT = 30;
 
 	private final EditorSession session;
 	private final Runnable geometryChanged;
@@ -147,6 +144,7 @@ public final class AnimatedSettingsPanel {
 	private int screenHeight;
 	private int panelWidth;
 	private int panelHeight;
+	private UiLayoutMetrics.EditorPanel editorMetrics;
 
 	public AnimatedSettingsPanel(EditorSession session, int screenWidth, int screenHeight,
 								 Runnable geometryChanged, Runnable committed,
@@ -164,8 +162,9 @@ public final class AnimatedSettingsPanel {
 		this.colorPickerLauncher = colorPickerLauncher;
 		this.screenWidth = screenWidth;
 		this.screenHeight = screenHeight;
-		this.panelWidth = panelWidth(screenWidth);
-		this.panelHeight = panelHeight(screenHeight);
+		this.editorMetrics = UiLayoutMetrics.editorPanel(screenWidth, screenHeight);
+		this.panelWidth = editorMetrics.width();
+		this.panelHeight = editorMetrics.height();
 		this.side = session.layout().centerX() > screenWidth * 0.5 ? Side.LEFT : Side.RIGHT;
 		for (Category category : Category.values()) {
 			pageButtons.put(category, new ArrayList<>());
@@ -175,7 +174,7 @@ public final class AnimatedSettingsPanel {
 		this.spring = new SpringValue(initialX, MotionPreset.PANEL_SLIDE);
 		this.categorySpring = new SpringValue(0.0, MotionPreset.CATEGORY_SLIDE);
 		this.component = buildComponent();
-		this.component.positioning(Positioning.absolute((int) Math.round(initialX), PANEL_TOP));
+		this.component.positioning(Positioning.absolute((int) Math.round(initialX), editorMetrics.top()));
 		this.component.zIndex(20);
 		setPageButtonsActive(true);
 		syncFromSession();
@@ -188,26 +187,28 @@ public final class AnimatedSettingsPanel {
 			ChatCanvas.LOGGER.info(
 				"[ChatCanvas DEBUG] panel={}x{} atX={} viewport={}x{} guiScale={} framebuffer={}x{} activePage=LAYOUT",
 				panelWidth, panelHeight, (int) Math.round(targetX()),
-				pageWidth(), contentHeight(panelHeight),
+				pageWidth(), contentHeight(),
 				scale, fbWidth, fbHeight);
 		}
 	}
 
 	private FlowLayout buildComponent() {
 		FlowLayout panel = Containers.verticalFlow(Sizing.fixed(panelWidth), Sizing.fixed(panelHeight));
-		panel.padding(Insets.of(PANEL_PADDING));
-		panel.gap(PANEL_GAP);
+		panel.padding(Insets.of(editorMetrics.padding()));
+		panel.gap(editorMetrics.gap());
 		panel.surface(ModernUiTheme.PANEL_SURFACE);
 
 		panel.child(Components.label(Text.translatable("chat_canvas.settings.title")
 				.formatted(Formatting.WHITE, Formatting.BOLD)));
-		panel.child(Components.label(Text.translatable("chat_canvas.settings.subtitle")
-				.formatted(Formatting.GRAY)));
+		if (editorMetrics.showSubtitle()) {
+			panel.child(Components.label(Text.translatable("chat_canvas.settings.subtitle")
+					.formatted(Formatting.GRAY)));
+		}
 		panel.child(categoryTabs());
 
 		pageHost = new ClippedPageViewport(
 				Sizing.fill(100),
-				Sizing.fixed(contentHeight(panelHeight))
+				Sizing.fixed(contentHeight())
 		);
 		CategoryPage layoutPage = buildPage(buildLayoutBody());
 		CategoryPage textPage = buildPage(buildTextBody());
@@ -244,7 +245,8 @@ public final class AnimatedSettingsPanel {
 		panel.child(pageHost);
 		pageHost.setActivePage(Category.LAYOUT.ordinal());
 
-		FlowLayout actions = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(FOOTER_HEIGHT));
+		FlowLayout actions = Containers.horizontalFlow(
+				Sizing.fill(100), Sizing.fixed(editorMetrics.footerHeight()));
 		actions.padding(Insets.top(4));
 		actions.gap(6);
 		actions.horizontalAlignment(HorizontalAlignment.RIGHT);
@@ -255,14 +257,14 @@ public final class AnimatedSettingsPanel {
 					footer.y(),
 					footer.x() + footer.width(),
 					footer.y() + 1,
-					0x554F6079
+					ModernUiTheme.DIVIDER
 			);
 			context.fill(
 					footer.x(),
 					footer.y() + 1,
 					footer.x() + footer.width(),
 					footer.y() + footer.height(),
-					0x33191C26
+					ModernUiTheme.CONTROL_BACKGROUND
 			);
 		});
 		ButtonComponent cancel = ModernUiTheme.button(Text.translatable("chat_canvas.action.cancel"),
@@ -277,11 +279,17 @@ public final class AnimatedSettingsPanel {
 		return panel;
 	}
 
-	private StackLayout categoryTabs() {
-		StackLayout stack = Containers.stack(Sizing.fill(100), Sizing.fixed(24));
+	private ScrollContainer<StackLayout> categoryTabs() {
+		int tabWidth = 52;
+		for (Category category : Category.values()) {
+			tabWidth = Math.max(tabWidth, MinecraftClient.getInstance().textRenderer.getWidth(
+					Text.translatable(category.translationKey)) + 12);
+		}
+		int tabsWidth = tabWidth * Category.values().length;
+		StackLayout stack = Containers.stack(Sizing.fixed(tabsWidth), Sizing.fixed(CATEGORY_HEIGHT));
 		stack.child(SelectionIndicatorComponent.following(
 				this::categoryPageProgress, Category.values().length));
-		FlowLayout buttons = Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(100));
+		FlowLayout buttons = Containers.horizontalFlow(Sizing.fixed(tabsWidth), Sizing.fill(100));
 		for (Category category : Category.values()) {
 			ButtonComponent button = transparentButton(
 					Text.translatable(category.translationKey),
@@ -291,11 +299,15 @@ public final class AnimatedSettingsPanel {
 				switchCategory(category);
 				return true;
 			});
-			button.sizing(Sizing.fill(100 / Category.values().length), Sizing.fill(100));
+			button.sizing(Sizing.fixed(tabWidth), Sizing.fill(100));
 			buttons.child(button);
 		}
 		stack.child(buttons);
-		return stack;
+		ScrollContainer<StackLayout> scroll = Containers.horizontalScroll(
+				Sizing.fill(100), Sizing.fixed(CATEGORY_HEIGHT), stack);
+		scroll.scrollbarThiccness(1);
+		scroll.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(ModernUiTheme.SCROLLBAR)));
+		return scroll;
 	}
 
 	private FlowLayout buildLayoutBody() {
@@ -312,8 +324,7 @@ public final class AnimatedSettingsPanel {
 		SplitMessageRatioScrubberComponent splitRatio =
 				new SplitMessageRatioScrubberComponent(
 						session,
-						Text.translatable("chat_canvas.player_layout.max_width")
-								.formatted(Formatting.LIGHT_PURPLE),
+						settingLabel("chat_canvas.player_layout.max_width"),
 						geometryChanged,
 						committed);
 		registerScrubber(Category.LAYOUT, splitRatio);
@@ -387,8 +398,7 @@ public final class AnimatedSettingsPanel {
 		MentionNumericScrubberComponent interval = new MentionNumericScrubberComponent(
 				session,
 				MentionNumericScrubberComponent.Property.DOUBLE_CLICK,
-				Text.translatable("chat_canvas.mention.double_click_interval")
-						.formatted(Formatting.LIGHT_PURPLE),
+				settingLabel("chat_canvas.mention.double_click_interval"),
 				geometryChanged,
 				committed);
 		registerScrubber(Category.MENTION, interval);
@@ -426,17 +436,17 @@ public final class AnimatedSettingsPanel {
 		mentionColorButton.sizing(Sizing.fill(100), Sizing.fixed(22));
 		mentionColorButton.renderer((context, component, delta) -> {
 			int background = component.active()
-					? component.isHovered() ? 0xE04B5970 : 0xC8374256
-					: 0x55343A48;
+					? component.isHovered() ? ModernUiTheme.CONTROL_HOVER : ModernUiTheme.CONTROL_BACKGROUND
+					: ModernUiTheme.CONTROL_DISABLED;
 			ModernUiTheme.roundedRect(context, component.getX(), component.getY(),
-					component.getWidth(), component.getHeight(), 5, background);
+					component.getWidth(), component.getHeight(), 2, background);
 			ModernUiTheme.border(context, component.getX(), component.getY(),
-					component.getWidth(), component.getHeight(), 0x554F6079);
+					component.getWidth(), component.getHeight(), ModernUiTheme.PANEL_BORDER);
 			ModernUiTheme.roundedRect(context, component.getX() + 5, component.getY() + 4,
-					14, component.getHeight() - 8, 3,
+					14, component.getHeight() - 8, 1,
 					0xFF000000 | session.mention().highlightColor());
 			context.drawRectOutline(component.getX() + 5, component.getY() + 4,
-					14, component.getHeight() - 8, 0x997B899D);
+					14, component.getHeight() - 8, ModernUiTheme.PANEL_BORDER);
 		});
 		registerPageButton(Category.MENTION, mentionColorButton);
 		body.child(mentionColorButton);
@@ -537,8 +547,7 @@ public final class AnimatedSettingsPanel {
 				"chat_canvas.mention.quick_actions",
 				config -> config.withPlayerQuickActionsEnabled(!config.playerQuickActionsEnabled()));
 		body.child(mentionQuickActionsButton);
-		body.child(Components.label(Text.translatable(
-				"chat_canvas.mention.private_template").formatted(Formatting.LIGHT_PURPLE)));
+		body.child(Components.label(settingLabel("chat_canvas.mention.private_template")));
 		mentionPrivateTemplateBox = Components.textBox(Sizing.fill(100));
 		mentionPrivateTemplateBox.text(session.mention().privateMessageTemplate());
 		mentionPrivateTemplateBox.onChanged().subscribe(value -> {
@@ -873,7 +882,7 @@ public final class AnimatedSettingsPanel {
 	private MentionNumericScrubberComponent mentionScrubber(
 			MentionNumericScrubberComponent.Property property, String key) {
 		MentionNumericScrubberComponent component = new MentionNumericScrubberComponent(
-				session, property, Text.translatable(key).formatted(Formatting.LIGHT_PURPLE),
+				session, property, settingLabel(key),
 				geometryChanged, committed);
 		registerScrubber(Category.MENTION, component);
 		return component;
@@ -916,8 +925,7 @@ public final class AnimatedSettingsPanel {
 		registerPageButton(Category.PLAYER_COLORS, playerColorsEnabledButton);
 		body.child(playerColorsEnabledButton);
 
-		body.child(Components.label(Text.translatable("chat_canvas.player_colors.mode")
-				.formatted(Formatting.LIGHT_PURPLE)));
+		body.child(Components.label(settingLabel("chat_canvas.player_colors.mode")));
 		FlowLayout modes = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
 		modes.gap(6);
 		playerAutomaticButton = ModernUiTheme.button(Text.empty(), button ->
@@ -950,9 +958,9 @@ public final class AnimatedSettingsPanel {
 				int color = session.playerColors().palette().get(
 						Math.min(paletteIndex, session.playerColors().palette().size() - 1));
 				ModernUiTheme.roundedRect(context, component.getX(), component.getY(),
-						component.getWidth(), component.getHeight(), 4, 0xFF000000 | color);
+						component.getWidth(), component.getHeight(), 1, 0xFF000000 | color);
 				ModernUiTheme.border(context, component.getX(), component.getY(),
-						component.getWidth(), component.getHeight(), 0xAAFFFFFF);
+						component.getWidth(), component.getHeight(), ModernUiTheme.PANEL_BORDER);
 			});
 			registerPageButton(Category.PLAYER_COLORS, swatch);
 			paletteRow.child(swatch);
@@ -1020,8 +1028,7 @@ public final class AnimatedSettingsPanel {
 		body.gap(7);
 
 		body.child(sectionLabel("chat_canvas.background.message"));
-		body.child(Components.label(Text.translatable("chat_canvas.background.mode")
-				.formatted(Formatting.LIGHT_PURPLE)));
+		body.child(Components.label(settingLabel("chat_canvas.background.mode")));
 		body.child(messageModeSelector());
 
 		messageColorButton = colorButton(
@@ -1100,8 +1107,7 @@ public final class AnimatedSettingsPanel {
 				"chat_canvas.option.text_opacity"));
 		body.child(textScrubber(TextNumericScrubberComponent.Property.CHARACTER_SPACING,
 				"chat_canvas.option.character_spacing"));
-		body.child(Components.label(Text.translatable("chat_canvas.option.text_alignment")
-				.formatted(Formatting.LIGHT_PURPLE)));
+		body.child(Components.label(settingLabel("chat_canvas.option.text_alignment")));
 		body.child(alignmentSelector());
 
 		shadowButton = ModernUiTheme.button(Text.empty(), button -> {
@@ -1139,6 +1145,7 @@ public final class AnimatedSettingsPanel {
 		ScrollContainer<FlowLayout> scroll = Containers.verticalScroll(
 				Sizing.fill(100), Sizing.fill(100), body);
 		scroll.scrollbarThiccness(2);
+		scroll.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(ModernUiTheme.SCROLLBAR)));
 		StackLayout stack = Containers.stack(Sizing.fill(100), Sizing.fill(100));
 		stack.allowOverflow(false);
 		stack.child(scroll);
@@ -1234,7 +1241,7 @@ public final class AnimatedSettingsPanel {
 		NumericScrubberComponent scrubber = new NumericScrubberComponent(
 				session,
 				property,
-				Text.translatable(translationKey).formatted(Formatting.LIGHT_PURPLE),
+				settingLabel(translationKey),
 				screenWidth,
 				screenHeight,
 				geometryChanged,
@@ -1249,7 +1256,7 @@ public final class AnimatedSettingsPanel {
 		TextNumericScrubberComponent scrubber = new TextNumericScrubberComponent(
 				session,
 				property,
-				Text.translatable(translationKey).formatted(Formatting.LIGHT_PURPLE),
+				settingLabel(translationKey),
 				geometryChanged,
 				committed
 		);
@@ -1263,7 +1270,7 @@ public final class AnimatedSettingsPanel {
 		BackgroundNumericScrubberComponent scrubber = new BackgroundNumericScrubberComponent(
 				session,
 				property,
-				Text.translatable(translationKey).formatted(Formatting.LIGHT_PURPLE),
+				settingLabel(translationKey),
 				geometryChanged,
 				committed
 		);
@@ -1295,17 +1302,17 @@ public final class AnimatedSettingsPanel {
 		button.sizing(Sizing.fill(100), Sizing.fixed(22));
 		button.renderer((context, component, delta) -> {
 			int background = component.active()
-					? component.isHovered() ? 0xE04B5970 : 0xC8374256
-					: 0x55343A48;
+					? component.isHovered() ? ModernUiTheme.CONTROL_HOVER : ModernUiTheme.CONTROL_BACKGROUND
+					: ModernUiTheme.CONTROL_DISABLED;
 			ModernUiTheme.roundedRect(context, component.getX(), component.getY(),
-					component.getWidth(), component.getHeight(), 5, background);
+					component.getWidth(), component.getHeight(), 2, background);
 			ModernUiTheme.border(context, component.getX(), component.getY(),
-					component.getWidth(), component.getHeight(), 0x554F6079);
+					component.getWidth(), component.getHeight(), ModernUiTheme.PANEL_BORDER);
 			int color = target.read(session.background());
 			ModernUiTheme.roundedRect(context, component.getX() + 5, component.getY() + 4,
-					14, component.getHeight() - 8, 3, 0xFF000000 | color);
+					14, component.getHeight() - 8, 1, 0xFF000000 | color);
 			context.drawRectOutline(component.getX() + 5, component.getY() + 4,
-					14, component.getHeight() - 8, 0x997B899D);
+					14, component.getHeight() - 8, ModernUiTheme.PANEL_BORDER);
 		});
 		button.id(translationKey);
 		registerPageButton(Category.BACKGROUND, button);
@@ -1383,9 +1390,9 @@ public final class AnimatedSettingsPanel {
 			playerColorProvider.updateConfig(session.playerColors());
 			int rgb = playerColorProvider.colorFor(player).orElse(0xFFFFFF);
 			ModernUiTheme.roundedRect(context, component.getX(), component.getY(),
-					component.getWidth(), component.getHeight(), 4, 0xFF000000 | rgb);
+					component.getWidth(), component.getHeight(), 1, 0xFF000000 | rgb);
 			ModernUiTheme.border(context, component.getX(), component.getY(),
-					component.getWidth(), component.getHeight(), 0xAAFFFFFF);
+					component.getWidth(), component.getHeight(), ModernUiTheme.PANEL_BORDER);
 		});
 		color.mouseDown().subscribe((mouseX, mouseY, button) -> {
 			if (button != 1) return false;
@@ -1465,7 +1472,8 @@ public final class AnimatedSettingsPanel {
 		if (ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA) {
 			return Text.translatable(key);
 		}
-		return Text.translatable(key).formatted(Formatting.LIGHT_PURPLE);
+		return Text.translatable(key).styled(style -> style.withColor(
+				ModernUiTheme.TEXT_SECONDARY & 0xFFFFFF));
 	}
 
 	private void switchCategory(Category category) {
@@ -1730,7 +1738,8 @@ public final class AnimatedSettingsPanel {
 		}
 		int maxX = Math.max(4, screenWidth - panelWidth - 4);
 		int x = clamp((int) Math.round(spring.update(deltaSeconds)), 4, maxX);
-		component.moveTo(x, Math.min(PANEL_TOP, Math.max(4, screenHeight - panelHeight - 4)));
+		component.moveTo(x, Math.min(editorMetrics.top(),
+				Math.max(4, screenHeight - panelHeight - 4)));
 	}
 
 	private void updateCategoryTransition(double deltaSeconds) {
@@ -1777,11 +1786,14 @@ public final class AnimatedSettingsPanel {
 				: categorySpring.value() / previousPageWidth;
 		this.screenWidth = width;
 		this.screenHeight = height;
-		this.panelWidth = panelWidth(width);
-		this.panelHeight = panelHeight(height);
+		this.editorMetrics = UiLayoutMetrics.editorPanel(width, height);
+		this.panelWidth = editorMetrics.width();
+		this.panelHeight = editorMetrics.height();
 		component.sizing(Sizing.fixed(panelWidth), Sizing.fixed(panelHeight));
+		component.padding(Insets.of(editorMetrics.padding()));
+		component.gap(editorMetrics.gap());
 		if (pageHost != null) {
-			pageHost.sizing(Sizing.fill(100), Sizing.fixed(contentHeight(panelHeight)));
+			pageHost.sizing(Sizing.fill(100), Sizing.fixed(contentHeight()));
 			pageHost.setActivePage(activeCategory.ordinal());
 			pageHost.setTransitionPage(-1);
 		}
@@ -1818,23 +1830,12 @@ public final class AnimatedSettingsPanel {
 		return Math.max(4, screenWidth - panelWidth - PANEL_MARGIN);
 	}
 
-	private static int panelWidth(int screenWidth) {
-		return Math.min(300, Math.max(180, (int) Math.round(screenWidth * 0.42)));
-	}
-
-	private static int panelHeight(int screenHeight) {
-		return Math.max(1, screenHeight - PANEL_TOP - 16);
-	}
-
-	private static int contentHeight(int panelHeight) {
-		int fixedChildrenHeight = LABEL_HEIGHT * 2 + CATEGORY_HEIGHT + FOOTER_HEIGHT;
-		int fixedGaps = PANEL_GAP * 4;
-		int verticalPadding = PANEL_PADDING * 2;
-		return Math.max(1, panelHeight - fixedChildrenHeight - fixedGaps - verticalPadding);
+	private int contentHeight() {
+		return editorMetrics.contentHeight(LABEL_HEIGHT, CATEGORY_HEIGHT);
 	}
 
 	private int pageWidth() {
-		return Math.max(1, panelWidth - PANEL_PADDING * 2);
+		return Math.max(1, panelWidth - editorMetrics.padding() * 2);
 	}
 
 	private double categoryPageProgress() {
@@ -1851,7 +1852,8 @@ public final class AnimatedSettingsPanel {
 
 	private static ButtonComponent transparentButton(Text text, Consumer<ButtonComponent> action) {
 		ButtonComponent button = ModernUiTheme.button(text, action);
-		button.renderer(ButtonComponent.Renderer.flat(0x00000000, 0x332F435A, 0x00000000));
+		button.renderer(ButtonComponent.Renderer.flat(
+				0x00000000, 0x333A3A3A, 0x00000000));
 		return button;
 	}
 
