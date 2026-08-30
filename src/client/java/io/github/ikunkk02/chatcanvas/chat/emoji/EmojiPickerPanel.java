@@ -244,8 +244,10 @@ public final class EmojiPickerPanel {
 			context.getMatrices().push();
 			context.getMatrices().translate(0.0f, 0.0f, 360.0f);
 			context.drawTooltip(MinecraftClient.getInstance().textRenderer,
-					Text.literal(hovered.unicode() + "  "
-							+ hovered.chineseName() + " / " + hovered.englishName()),
+					Text.literal(hovered.unicode() + "  ")
+							.append(Text.translatable("chat_canvas.emoji.tooltip",
+									hovered.chineseName(), hovered.englishName(),
+									Text.translatable(hovered.translationKey()))),
 					mouseX, mouseY);
 			context.getMatrices().pop();
 		}
@@ -323,8 +325,14 @@ public final class EmojiPickerPanel {
 		String query = searchField == null ? "" : searchField.getText();
 		List<EmojiEntry> values;
 		if (!query.isBlank()) {
-			values = EmojiRegistry.instance().search(query).stream()
-					.filter(supported::contains).toList();
+			String normalized = query.toLowerCase(java.util.Locale.ROOT);
+			java.util.Set<EmojiEntry> registryMatches = java.util.Set.copyOf(
+					EmojiRegistry.instance().search(query));
+			values = supported.stream().filter(entry ->
+					registryMatches.contains(entry)
+							|| Text.translatable(entry.translationKey()).getString()
+									.toLowerCase(java.util.Locale.ROOT).contains(normalized))
+					.toList();
 		} else if (category == EmojiCategory.RECENT) {
 			values = EmojiRuntime.recent().entries().stream()
 					.filter(supported::contains).toList();

@@ -736,7 +736,8 @@ public final class CommandToolPanel {
 			clipboard = new ClipboardCommandParseResult(List.of(), false, false);
 			clipboardLoaded = true;
 			statusKey = "chat_canvas.command.clipboard.read_failed";
-			CommandToolRuntime.reportToolError("无法读取系统剪贴板", failure);
+			CommandToolRuntime.reportToolError(
+					"chat_canvas.command.clipboard.read_failed", failure);
 		}
 		invalidateRows();
 	}

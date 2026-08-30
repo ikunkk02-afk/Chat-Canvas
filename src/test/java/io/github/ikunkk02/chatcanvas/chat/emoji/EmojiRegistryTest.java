@@ -40,6 +40,16 @@ class EmojiRegistryTest {
 	}
 
 	@Test
+	void everyEmojiHasAUniqueStableTranslationKey() {
+		EmojiRegistry registry = EmojiRegistry.instance();
+
+		assertEquals(81, registry.entries().stream()
+				.map(EmojiEntry::translationKey).distinct().count());
+		assertEquals("chat_canvas.emoji.name.u2764_fe0f",
+				registry.find("❤️").translationKey());
+	}
+
+	@Test
 	void constructorDeduplicatesUnicode() {
 		EmojiEntry first = new EmojiEntry(
 				"😀", "笑脸", "grinning", List.of("笑"), EmojiCategory.SMILEYS);

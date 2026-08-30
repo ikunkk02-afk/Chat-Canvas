@@ -105,10 +105,12 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		title.horizontalSizing(Sizing.fill(28));
 		bar.child(title);
 		ButtonComponent playerButton = ModernUiTheme.button(
-				Text.literal("玩家栏"), button -> selectChannel(EditorChannel.PLAYER_CHAT));
+				Text.translatable("chat_canvas.editor.channel.player"),
+				button -> selectChannel(EditorChannel.PLAYER_CHAT));
 		playerButton.sizing(Sizing.fixed(64), Sizing.fixed(22));
 		ButtonComponent commandButton = ModernUiTheme.button(
-				Text.literal("命令栏"), button -> selectChannel(EditorChannel.COMMAND_SYSTEM));
+				Text.translatable("chat_canvas.editor.channel.command"),
+				button -> selectChannel(EditorChannel.COMMAND_SYSTEM));
 		commandButton.sizing(Sizing.fixed(64), Sizing.fixed(22));
 		bar.child(playerButton);
 		bar.child(commandButton);
