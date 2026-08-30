@@ -31,9 +31,12 @@ public final class VirtualizedEmojiGrid extends BaseComponent {
 	}
 
 	public void entries(List<EmojiEntry> values) {
-		entries = List.copyOf(values == null ? List.of() : values);
+		List<EmojiEntry> next = List.copyOf(values == null ? List.of() : values);
+		boolean contentChanged = !entries.equals(next);
+		entries = next;
 		selected = Math.max(0, Math.min(selected, Math.max(0, entries.size() - 1)));
-		scrollRow = 0;
+		if (contentChanged) scrollRow = 0;
+		else ensureSelectedVisible();
 	}
 
 	public List<EmojiEntry> entries() {

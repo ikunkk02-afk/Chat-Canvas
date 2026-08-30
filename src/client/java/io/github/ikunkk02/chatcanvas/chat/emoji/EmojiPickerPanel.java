@@ -49,7 +49,7 @@ public final class EmojiPickerPanel {
 	private VirtualizedEmojiGrid grid;
 	private List<EmojiEntry> supported = List.of();
 	private List<EmojiCategory> availableCategories = List.of();
-	private EmojiCategory category = EmojiCategory.RECENT;
+	private EmojiCategory category = EmojiCategory.SMILEYS;
 	private FocusTarget focus = FocusTarget.CHAT;
 	private boolean open;
 	private float openProgress;

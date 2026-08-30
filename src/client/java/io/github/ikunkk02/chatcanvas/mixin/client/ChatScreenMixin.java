@@ -398,7 +398,6 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		if (chat_canvas$inputMode == ChatCanvasInputMode.PLAYER_CHAT) {
 			chat_canvas$playerChatField.render(context, mouseX, mouseY, delta);
 		}
-		TextFieldWidget activeField = chat_canvas$activeInputField();
 		if (chat_canvas$inputMode == ChatCanvasInputMode.PLAYER_CHAT) {
 			context.getMatrices().push();
 			context.getMatrices().translate(0.0f, 0.0f, 200.0f);
@@ -423,7 +422,6 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 			chat_canvas$emojiPicker.render(context, mouseX, mouseY, delta);
 			chat_canvas$voiceOverlay.render(context, mouseX, mouseY, delta);
 		}
-		chat_canvas$renderInputLength(context, activeField);
 	}
 
 	@WrapOperation(
@@ -690,26 +688,6 @@ public abstract class ChatScreenMixin implements ChatCanvasInputScreenBridge, Ch
 		} finally {
 			chat_canvas$suppressInputUpdates = previousSuppression;
 		}
-	}
-
-	@Unique
-	private void chat_canvas$renderInputLength(
-			DrawContext context, TextFieldWidget activeField) {
-		if (chat_canvas$inputMode != ChatCanvasInputMode.PLAYER_CHAT
-				|| activeField == null) return;
-		String text = activeField.getText();
-		int graphemes = UnicodeTextNavigator.graphemeCount(text);
-		Text counter = Text.translatable(
-				"chat_canvas.emoji.length", graphemes, text.length(), 256);
-		int color = text.length() >= 256 ? 0xFFFF6B6B
-				: text.length() >= 230 ? 0xFFF6C85F : 0xFFADB6C7;
-		int width = MinecraftClient.getInstance().textRenderer.getWidth(counter);
-		int counterY = Math.max(2, activeField.getY() - 10);
-		context.drawTextWithShadow(
-				MinecraftClient.getInstance().textRenderer, counter,
-				Math.max(activeField.getX(),
-						activeField.getX() + activeField.getWidth() - width),
-				counterY, color);
 	}
 
 	@Unique
