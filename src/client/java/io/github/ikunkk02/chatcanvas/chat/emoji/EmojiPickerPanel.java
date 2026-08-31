@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
 
 public final class EmojiPickerPanel {
 	public static final int BUTTON_SPACE = 20;
@@ -50,7 +49,7 @@ public final class EmojiPickerPanel {
 	private VirtualizedEmojiGrid grid;
 	private List<EmojiEntry> supported = List.of();
 	private List<EmojiCategory> availableCategories = List.of();
-	private EmojiCategory category = EmojiCategory.RECENT;
+	private EmojiCategory category = EmojiCategory.SMILEYS;
 	private FocusTarget focus = FocusTarget.CHAT;
 	private boolean open;
 	private float openProgress;
@@ -138,9 +137,8 @@ public final class EmojiPickerPanel {
 		}
 		if (adapter != null && adapter.mouseClicked(
 				new net.minecraft.client.gui.Click(
-					mouseX - x, mouseY - y,
-					new net.minecraft.client.input.MouseInput(button, 0)),
-				false)) {
+						mouseX - x, mouseY - y,
+						new net.minecraft.client.input.MouseInput(button, 0)), false)) {
 			if (searchField != null && searchField.isFocused()) {
 				focus = FocusTarget.SEARCH;
 				playerField.setFocused(false);
@@ -184,7 +182,8 @@ public final class EmojiPickerPanel {
 		}
 		if (focus == FocusTarget.SEARCH) {
 			return adapter != null
-					&& adapter.keyPressed(new net.minecraft.client.input.KeyInput(keyCode, scanCode, modifiers));
+					&& adapter.keyPressed(new net.minecraft.client.input.KeyInput(
+							keyCode, scanCode, modifiers));
 		}
 		if (focus == FocusTarget.CATEGORIES) {
 			if (keyCode == GLFW.GLFW_KEY_LEFT
@@ -206,7 +205,8 @@ public final class EmojiPickerPanel {
 
 	public boolean charTyped(char character, int modifiers) {
 		return open && focus == FocusTarget.SEARCH && adapter != null
-				&& adapter.charTyped(new net.minecraft.client.input.CharInput(character, modifiers));
+				&& adapter.charTyped(new net.minecraft.client.input.CharInput(
+						character, modifiers));
 	}
 
 	public boolean writeComposedText(String text) {
@@ -239,7 +239,8 @@ public final class EmojiPickerPanel {
 			adapterHeight = height;
 		}
 		context.getMatrices().pushMatrix();
-		context.getMatrices().translate(0.0f, Math.round((1.0f - openProgress) * 8.0f));
+		context.getMatrices().translate(0.0f,
+				Math.round((1.0f - openProgress) * 8.0f));
 		adapter.render(context, mouseX, mouseY, delta);
 		context.getMatrices().popMatrix();
 		EmojiEntry hovered = grid == null ? null : grid.hoveredEntry();
@@ -247,8 +248,10 @@ public final class EmojiPickerPanel {
 			context.getMatrices().pushMatrix();
 			context.getMatrices().translate(0.0f, 0.0f);
 			context.drawTooltip(MinecraftClient.getInstance().textRenderer,
-					Text.literal(hovered.unicode() + "  "
-							+ hovered.chineseName() + " / " + hovered.englishName()),
+					Text.literal(hovered.unicode() + "  ")
+							.append(Text.translatable("chat_canvas.emoji.tooltip",
+									hovered.chineseName(), hovered.englishName(),
+									Text.translatable(hovered.translationKey()))),
 					mouseX, mouseY);
 			context.getMatrices().popMatrix();
 		}
@@ -256,7 +259,7 @@ public final class EmojiPickerPanel {
 			context.drawTextWithShadow(
 					MinecraftClient.getInstance().textRenderer,
 					Text.translatable(statusKey), x + 7, y + height - 12,
-					0xFFFF858D);
+					ModernUiTheme.DANGER);
 		}
 	}
 
@@ -271,7 +274,7 @@ public final class EmojiPickerPanel {
 		adapterWidth = width;
 		adapterHeight = height;
 		FlowLayout root = adapter.rootComponent;
-		root.surface(ModernUiTheme.PANEL_SURFACE);
+		root.surface(ModernUiTheme.FIXED_PANEL_SURFACE);
 		root.padding(Insets.of(6));
 		root.gap(4);
 
@@ -294,7 +297,7 @@ public final class EmojiPickerPanel {
 				int index = rowIndex * 5 + column;
 				if (index >= availableCategories.size()) break;
 				EmojiCategory target = availableCategories.get(index);
-				ButtonComponent button = ModernUiTheme.button(
+				ButtonComponent button = ModernUiTheme.fixedButton(
 						categoryText(target), clicked -> {
 							category = target;
 							focus = FocusTarget.CATEGORIES;
@@ -302,6 +305,10 @@ public final class EmojiPickerPanel {
 							updateCategoryButtons();
 							updateGrid();
 						});
+				button.renderer((context, component, delta) -> ModernUiTheme.drawFixedControl(
+						context, component.getX(), component.getY(), component.getWidth(),
+						component.getHeight(), component.isHovered(), target == category,
+						component.active()));
 				button.sizing(Sizing.fixed(categoryWidth), Sizing.fixed(20));
 				categoryButtons.put(target, button);
 				row.child(button);
@@ -322,8 +329,14 @@ public final class EmojiPickerPanel {
 		String query = searchField == null ? "" : searchField.getText();
 		List<EmojiEntry> values;
 		if (!query.isBlank()) {
-			values = EmojiRegistry.instance().search(query).stream()
-					.filter(supported::contains).toList();
+			String normalized = query.toLowerCase(java.util.Locale.ROOT);
+			java.util.Set<EmojiEntry> registryMatches = java.util.Set.copyOf(
+					EmojiRegistry.instance().search(query));
+			values = supported.stream().filter(entry ->
+					registryMatches.contains(entry)
+							|| Text.translatable(entry.translationKey()).getString()
+									.toLowerCase(java.util.Locale.ROOT).contains(normalized))
+					.toList();
 		} else if (category == EmojiCategory.RECENT) {
 			values = EmojiRuntime.recent().entries().stream()
 					.filter(supported::contains).toList();
@@ -392,8 +405,8 @@ public final class EmojiPickerPanel {
 		if (owner == null || playerField == null) return;
 		buttonX = playerField.getX() + playerField.getWidth() + 1;
 		buttonY = playerField.getY() - 1;
-		int nextWidth = Math.max(80, Math.min(MAX_WIDTH, owner.width - 8));
-		int nextHeight = Math.max(90, Math.min(MAX_HEIGHT, owner.height - 8));
+		int nextWidth = Math.max(1, Math.min(MAX_WIDTH, owner.width - 8));
+		int nextHeight = Math.max(1, Math.min(MAX_HEIGHT, owner.height - 8));
 		if (nextWidth != width || nextHeight != height) {
 			width = nextWidth;
 			height = nextHeight;
@@ -423,15 +436,12 @@ public final class EmojiPickerPanel {
 	private void renderButton(DrawContext context, int mouseX, int mouseY) {
 		boolean hovered = hit(mouseX, mouseY,
 				buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT);
-		context.fill(buttonX, buttonY,
-				buttonX + BUTTON_WIDTH, buttonY + BUTTON_HEIGHT,
-				open ? 0xE0526684 : hovered ? 0xD0445066 : 0xB02A3240);
-		ChatBackgroundDraw.drawBorder(context, buttonX, buttonY,
-				BUTTON_WIDTH, BUTTON_HEIGHT, open ? 0xFFF6C85F : 0xFF71809A);
+		ModernUiTheme.drawFixedControl(context, buttonX, buttonY,
+				BUTTON_WIDTH, BUTTON_HEIGHT, hovered, open, true);
 		context.drawCenteredTextWithShadow(
 				MinecraftClient.getInstance().textRenderer,
 				Text.literal("😀"), buttonX + BUTTON_WIDTH / 2,
-				buttonY + 3, 0xFFFFFFFF);
+				buttonY + 3, ModernUiTheme.TEXT_PRIMARY);
 	}
 
 	private void focusSearch() {

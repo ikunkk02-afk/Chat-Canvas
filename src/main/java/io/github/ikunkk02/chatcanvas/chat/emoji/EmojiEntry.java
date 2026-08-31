@@ -18,4 +18,13 @@ public record EmojiEntry(
 		category = Objects.requireNonNull(category, "category");
 		if (unicode.isBlank()) throw new IllegalArgumentException("unicode");
 	}
+
+	public String translationKey() {
+		StringBuilder key = new StringBuilder("chat_canvas.emoji.name.u");
+		unicode.codePoints().forEach(codePoint -> {
+			if (key.charAt(key.length() - 1) != 'u') key.append('_');
+			key.append(Integer.toHexString(codePoint));
+		});
+		return key.toString();
+	}
 }

@@ -10,11 +10,11 @@ import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.text.OrderedText;
+import net.minecraft.text.Style;
 import net.minecraft.util.Colors;
 import net.minecraft.util.StringHelper;
 import net.minecraft.util.Util;
@@ -30,8 +30,6 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-
-import java.util.List;
 @Mixin(TextFieldWidget.class)
 public abstract class TextFieldWidgetMixin {
 	@Shadow @Final
@@ -65,8 +63,6 @@ public abstract class TextFieldWidgetMixin {
 	public abstract void setCursor(int cursor, boolean shiftKeyPressed);
 	@Shadow
 	public abstract int getWordSkipPosition(int wordOffset);
-
-
 	@Inject(method = "onClick", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$locateSpacedClick(
 			net.minecraft.client.gui.Click click, boolean doubled, CallbackInfo ci) {
@@ -211,7 +207,7 @@ public abstract class TextFieldWidgetMixin {
 		int selectionOffset = MathHelper.clamp(selectionEnd - first, 0, visible.length());
 		int textX = self.getX();
 		int textY = self.getY();
-		OrderedText rendered = OrderedText.styledForwardsVisitedString(visible, net.minecraft.text.Style.EMPTY);
+		OrderedText rendered = OrderedText.styledForwardsVisitedString(visible, Style.EMPTY);
 		SpacedTextRenderer.draw(
 				context, textRenderer, rendered, textX, textY, color, true, spacing);
 
@@ -243,7 +239,8 @@ public abstract class TextFieldWidgetMixin {
 			}
 		}
 		if (selectionOffset != cursorOffset) {
-			context.drawSelection(cursorX, textY - 1, selectionX - 1, textY + 10, true);
+			context.drawSelection(
+					cursorX, textY - 1, selectionX - 1, textY + 10, true);
 		}
 	}
 

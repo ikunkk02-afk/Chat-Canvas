@@ -31,22 +31,25 @@ public interface AbstractParentElementMixin {
 	private void chat_canvas$commandClipboardMouseReleased(
 			net.minecraft.client.gui.Click click,
 			CallbackInfoReturnable<Boolean> cir) {
+		int button = click.button();
 		if ((Object) this instanceof ChatScreen screen
-				&& CommandToolPanel.dispatchMouseReleased(screen, click.button())) {
+				&& CommandToolPanel.dispatchMouseReleased(screen, button)) {
 			cir.setReturnValue(true);
 		}
 	}
 
 	@Inject(method = "charTyped", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$commandClipboardCharTyped(
-			net.minecraft.client.input.CharInput chr, CallbackInfoReturnable<Boolean> cir) {
+			net.minecraft.client.input.CharInput input, CallbackInfoReturnable<Boolean> cir) {
+		char chr = (char) input.codepoint();
+		int modifiers = input.modifiers();
 		if (!((Object) this instanceof ChatScreen screen)) return;
-		if (CommandToolPanel.dispatchCharTyped(screen, (char) chr.codepoint(), chr.modifiers())) {
+		if (CommandToolPanel.dispatchCharTyped(screen, chr, modifiers)) {
 			cir.setReturnValue(true);
 			return;
 		}
 		if (screen instanceof ChatCanvasInputScreenBridge bridge
-				&& bridge.chat_canvas$dispatchUnicodeChar((char) chr.codepoint(), chr.modifiers())) {
+				&& bridge.chat_canvas$dispatchUnicodeChar(chr, modifiers)) {
 			cir.setReturnValue(true);
 		}
 	}

@@ -25,6 +25,7 @@ import java.nio.charset.Charset;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
@@ -69,6 +70,8 @@ public final class ChatCanvasClient implements ClientModInitializer {
 					VoiceInputManager.instance().shutdown();
 					LocalChatLogService.instance().close();
 				});
+		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
+				VoiceInputManager.instance().warmSelectedModel());
 		openEditor = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 				"key.chat_canvas.open_editor",
 				InputUtil.Type.KEYSYM,

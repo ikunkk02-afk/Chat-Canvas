@@ -159,7 +159,7 @@ public final class ClippedPageViewport extends FlowLayout {
 
         // Let the active page's own component tree resolve the
         // deepest interactable child.  Works for FlowLayout,
-        // StackLayout, ScrollContainer, and any ParentComponent.
+        // StackLayout, ScrollContainer, and any ParentUIComponent.
         if (active instanceof ParentUIComponent parent) {
             UIComponent deepest = parent.childAt(x, y);
             if (deepest != null) return deepest;

@@ -1,9 +1,11 @@
 package io.github.ikunkk02.chatcanvas.chat.emoji;
 
+import io.github.ikunkk02.chatcanvas.ui.ModernUiTheme;
 import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
+import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.text.Text;
@@ -11,7 +13,6 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 import java.util.function.Consumer;
-import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
 
 public final class VirtualizedEmojiGrid extends BaseUIComponent {
 	private static final int CELL_WIDTH = 28;
@@ -31,9 +32,12 @@ public final class VirtualizedEmojiGrid extends BaseUIComponent {
 	}
 
 	public void entries(List<EmojiEntry> values) {
-		entries = List.copyOf(values == null ? List.of() : values);
+		List<EmojiEntry> next = List.copyOf(values == null ? List.of() : values);
+		boolean contentChanged = !entries.equals(next);
+		entries = next;
 		selected = Math.max(0, Math.min(selected, Math.max(0, entries.size() - 1)));
-		scrollRow = 0;
+		if (contentChanged) scrollRow = 0;
+		else ensureSelectedVisible();
 	}
 
 	public List<EmojiEntry> entries() {
@@ -87,9 +91,8 @@ public final class VirtualizedEmojiGrid extends BaseUIComponent {
 		return true;
 	}
 
-	// @Override — owo-lib 0.12.24 signature changed
-	public boolean onMouseScroll(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-		double amount = verticalAmount;
+	@Override
+	public boolean onMouseScroll(double mouseX, double mouseY, double amount) {
 		if (!containsLocal(mouseX, mouseY)) return false;
 		int max = maxScrollRow();
 		scrollRow = Math.max(0, Math.min(max,
@@ -101,14 +104,15 @@ public final class VirtualizedEmojiGrid extends BaseUIComponent {
 	public void draw(
 			OwoUIGraphics context, int mouseX, int mouseY,
 			float partialTicks, float delta) {
-		context.fill(x(), y(), x() + width(), y() + height(), 0x70202531);
+		context.fill(x(), y(), x() + width(), y() + height(),
+				ModernUiTheme.CONTROL_BACKGROUND);
 		hoveredEntry = null;
 		if (entries.isEmpty()) {
 			Text empty = Text.translatable(emptyMessageKey);
 			context.drawCenteredTextWithShadow(
 					MinecraftClient.getInstance().textRenderer,
 					empty, x() + width() / 2,
-					y() + Math.max(2, height() / 2 - 4), 0xFFADB6C7);
+					y() + Math.max(2, height() / 2 - 4), ModernUiTheme.TEXT_SECONDARY);
 			return;
 		}
 		context.enableScissor(x(), y(), x() + width(), y() + height());
@@ -127,20 +131,20 @@ public final class VirtualizedEmojiGrid extends BaseUIComponent {
 				hoveredEntry = entries.get(index);
 				context.fill(cellX + 1, cellY + 1,
 						cellX + CELL_WIDTH - 1, cellY + CELL_HEIGHT - 1,
-						0xB04B5970);
+						ModernUiTheme.CONTROL_HOVER);
 			}
 			if (index == selected) {
 				ChatBackgroundDraw.drawBorder(context, cellX, cellY,
-						CELL_WIDTH, CELL_HEIGHT, 0xFFF6C85F);
+						CELL_WIDTH, CELL_HEIGHT, ModernUiTheme.ACCENT);
 				context.fill(cellX + 3, cellY + CELL_HEIGHT - 3,
 						cellX + CELL_WIDTH - 3, cellY + CELL_HEIGHT - 1,
-						0xFFF6C85F);
+						ModernUiTheme.ACCENT);
 			}
 			String emoji = entries.get(index).unicode();
 			context.drawTextWithShadow(renderer, emoji,
 					cellX + (CELL_WIDTH - renderer.getWidth(emoji)) / 2,
 					cellY + (CELL_HEIGHT - renderer.fontHeight) / 2,
-					0xFFFFFFFF);
+					ModernUiTheme.TEXT_PRIMARY);
 		}
 		context.disableScissor();
 		if (maxScrollRow() > 0) {
@@ -149,7 +153,7 @@ public final class VirtualizedEmojiGrid extends BaseUIComponent {
 			int track = Math.max(1, height() - thumbHeight);
 			int thumbY = y() + track * scrollRow / maxScrollRow();
 			context.fill(x() + width() - 2, thumbY,
-					x() + width(), thumbY + thumbHeight, 0xFF8190AA);
+					x() + width(), thumbY + thumbHeight, ModernUiTheme.SCROLLBAR);
 		}
 	}
 

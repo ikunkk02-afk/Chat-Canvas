@@ -1,175 +1,252 @@
 package io.github.ikunkk02.chatcanvas.voice;
 
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.TargetDataLine;
+import io.github.ikunkk02.chatcanvas.ChatCanvas;
+
 import java.util.Arrays;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
+import java.util.concurrent.atomic.AtomicReference;
 
 public final class VoiceInputSession {
-	private static final Chunk END = new Chunk(new byte[0], 0, true);
+	private static final Chunk END = new Chunk(new byte[0], true);
 	private final long token;
-	private final MicrophoneManager.Lease microphone;
-	private final RecognitionSession recognizer;
+	private final AudioCaptureBackend capture;
+	private final AsrSession recognizer;
+	private final VadProcessor vad;
 	private final ExecutorService recognitionExecutor;
-	private final ArrayBlockingQueue<Chunk> queue = new ArrayBlockingQueue<>(8);
-	private final AudioLevelMeter meter = new AudioLevelMeter();
 	private final VoiceSettings settings;
-	private final Consumer<String> partialConsumer;
-	private final Consumer<VoiceRecognitionResult> completion;
-	private final Consumer<Throwable> failure;
-	private final Runnable automaticLimitReached;
+	private final Listener listener;
+	private final ArrayBlockingQueue<Chunk> queue = new ArrayBlockingQueue<>(32);
+	private final AudioLevelMeter meter = new AudioLevelMeter();
 	private final AtomicBoolean cancelled = new AtomicBoolean();
-	private final AtomicBoolean finishing = new AtomicBoolean();
 	private final AtomicBoolean endEnqueued = new AtomicBoolean();
+	private final AtomicBoolean failureReported = new AtomicBoolean();
+	private final AtomicBoolean resourcesClosed = new AtomicBoolean();
+	private final AtomicReference<VoiceFinishReason> finishReason = new AtomicReference<>();
+	private final CountDownLatch recognitionClosed = new CountDownLatch(1);
+	private final long startedAt = System.currentTimeMillis();
+	private volatile long finishRequestedAt;
+	private volatile boolean speechDetected;
+	private volatile long trailingSilenceMillis;
+	private volatile VoiceInputState recognitionState = VoiceInputState.WAITING_FOR_SPEECH;
 	private volatile double level;
 	private volatile Future<?> recognitionFuture;
-	private volatile TargetDataLine captureLine;
-	private final long startedAt = System.currentTimeMillis();
 
-	public VoiceInputSession(long token, MicrophoneManager.Lease microphone,
-							 RecognitionSession recognizer,
-							 ExecutorService recognitionExecutor,
-							 VoiceSettings settings,
-							 Consumer<String> partialConsumer,
-							 Consumer<VoiceRecognitionResult> completion,
-							 Consumer<Throwable> failure,
-							 Runnable automaticLimitReached) {
+	public VoiceInputSession(long token, AudioCaptureBackend capture, AsrSession recognizer,
+							 VadProcessor vad, ExecutorService recognitionExecutor,
+							 VoiceSettings settings, Listener listener) {
 		this.token = token;
-		this.microphone = microphone;
+		this.capture = capture;
 		this.recognizer = recognizer;
+		this.vad = vad;
 		this.recognitionExecutor = recognitionExecutor;
 		this.settings = settings;
-		this.partialConsumer = partialConsumer;
-		this.completion = completion;
-		this.failure = failure;
-		this.automaticLimitReached = automaticLimitReached;
+		this.listener = listener;
 	}
 
+	/** Runs on the dedicated capture worker. */
 	public void startCapture() {
-		recognitionFuture = recognitionExecutor.submit(this::recognize);
-		AudioDeviceManager.OpenedMicrophone opened = microphone.openedOrThrow();
-		TargetDataLine line = opened.line();
-		AudioFormat format = opened.format();
-		captureLine = line;
-		Pcm16MonoResampler resampler =
-				new Pcm16MonoResampler(format.getSampleRate(), format.getChannels());
-		byte[] source = new byte[Math.max(2048, format.getFrameSize() * 2048)];
+		if (cancelled.get()) {
+			closeUnstartedResources();
+			return;
+		}
 		try {
-			line.start();
-			while (!cancelled.get() && !finishing.get()) {
-				if (System.currentTimeMillis() - startedAt >= settings.maximumSeconds() * 1000L) {
-					finishing.set(true);
-					automaticLimitReached.run();
-					break;
-				}
-				int read = line.read(source, 0, source.length);
-				if (read <= 0) continue;
-				byte[] converted = resampler.convert(source, read, format.isBigEndian());
-				if (converted.length == 0) continue;
-				long chunkMillis = converted.length * 1000L / 32_000L;
-				level = meter.acceptPcm16Le(converted, converted.length,
-						settings.noiseThreshold(), chunkMillis);
-				if (!queue.offer(new Chunk(converted, converted.length, false),
-						500L, TimeUnit.MILLISECONDS)) {
+			recognitionFuture = recognitionExecutor.submit(this::recognize);
+			listener.state(VoiceInputState.WAITING_FOR_SPEECH);
+			capture.start(settings.microphoneId(), pcm -> {
+				if (cancelled.get() || finishReason.get() != null || pcm.length == 0) return;
+				long millis = pcm.length * 1_000L / 32_000L;
+				level = meter.acceptPcm16Le(pcm, pcm.length, settings.noiseThreshold(), millis);
+				if (!queue.offer(new Chunk(pcm, false), 300L, TimeUnit.MILLISECONDS)) {
 					throw new IllegalStateException("Voice audio queue is full");
 				}
+			});
+			if (!cancelled.get() && finishReason.get() == null) {
+				fail(new IllegalStateException("Microphone capture stopped unexpectedly"));
 			}
 		} catch (Throwable throwable) {
-			if (!cancelled.get() && !finishing.get()) failure.accept(throwable);
-			cancelled.set(true);
+			if (!cancelled.get() && finishReason.get() == null) fail(throwable);
 		} finally {
-			captureLine = null;
-			microphone.close();
+			try { capture.close(); } catch (Throwable ignored) { }
 			enqueueEndOnce();
+			if (recognitionFuture == null) closeUnstartedResources();
 		}
 	}
 
 	private void recognize() {
-		String finalText = "";
-		try (recognizer) {
+		VoiceRecognitionResult completedResult = null;
+		Throwable problem = null;
+		try (recognizer; vad) {
 			while (true) {
 				Chunk chunk = queue.take();
 				if (chunk.end()) break;
 				if (cancelled.get()) continue;
-				String partial = recognizer.accept(chunk.bytes(), chunk.length());
-				if (!partial.isBlank()) partialConsumer.accept(partial);
+				VadDecision decision = vad == null ? VadDecision.SILENCE : vad.accept(chunk.bytes(), chunk.bytes().length);
+				boolean feedAsr = shouldFeedAsr(decision, chunk.bytes().length * 1_000L / 32_000L);
+				AsrAcceptResult asr = feedAsr
+						? recognizer.acceptAudio(chunk.bytes(), chunk.bytes().length)
+						: AsrAcceptResult.EMPTY;
+				if (vad != null) applyVadDecision(decision);
+				else applyDecoderDecision(asr);
+				if (!asr.partial().isBlank()) listener.partial(asr.partial());
+				if (vad == null && asr.endpoint() && asr.speechDetected()) requestFinish(VoiceFinishReason.ENDPOINT);
 			}
-			if (!cancelled.get() && meter.hasClearSpeech()) finalText = recognizer.finish();
-			if (!cancelled.get()) {
-				completion.accept(new VoiceRecognitionResult(
-						finalText, finalText.isBlank(),
-						System.currentTimeMillis() - startedAt));
-			}
+			if (cancelled.get()) return;
+			VoiceFinishReason reason = finishReason.get();
+			if (reason == null) throw new IllegalStateException("ASR input ended without a finish reason");
+			String text = reason == VoiceFinishReason.NO_SPEECH ? "" : recognizer.finish();
+			completedResult = new VoiceRecognitionResult(text, text.isBlank(),
+					System.currentTimeMillis() - startedAt, reason);
+		} catch (InterruptedException interrupted) {
+			Thread.currentThread().interrupt();
+			if (!cancelled.get()) problem = interrupted;
 		} catch (Throwable throwable) {
-			if (!cancelled.get()) failure.accept(throwable);
+			if (!cancelled.get()) problem = throwable;
 		} finally {
 			queue.clear();
+			resourcesClosed.set(true);
+			recognitionClosed.countDown();
+		}
+		// Never publish completion while the recognizer still owns native model state.
+		// Model hot-swap may begin as soon as the client receives this callback.
+		if (problem != null) fail(problem);
+		else if (completedResult != null && !cancelled.get()) listener.completed(completedResult);
+	}
+
+	private boolean shouldFeedAsr(VadDecision decision, long chunkMillis) {
+		if (vad == null || !speechDetected) return true;
+		if (decision.speechActive() || decision.speechStarted()) {
+			trailingSilenceMillis = 0L;
+			return true;
+		}
+		if (decision.waitingForEndpoint() || decision.endpoint()) {
+			long before = trailingSilenceMillis;
+			trailingSilenceMillis += Math.max(0L, chunkMillis);
+			return before < settings.tailPaddingMillis();
+		}
+		return true;
+	}
+
+	private void applyVadDecision(VadDecision decision) {
+		if (decision.speechStarted()) {
+			speechDetected = true;
+			setRecognitionState(VoiceInputState.SPEAKING);
+			ChatCanvas.LOGGER.info("Voice session {}: speech detected", token);
+		} else if (decision.speechActive() && speechDetected) {
+			setRecognitionState(VoiceInputState.SPEAKING);
+		} else if (decision.waitingForEndpoint() && speechDetected) {
+			setRecognitionState(VoiceInputState.WAITING_FOR_ENDPOINT);
+		}
+		if (decision.endpoint()) {
+			ChatCanvas.LOGGER.info("Voice session {}: endpoint detected", token);
+			requestFinish(VoiceFinishReason.ENDPOINT);
 		}
 	}
 
-	public void finish() {
-		if (!finishing.compareAndSet(false, true)) {
+	private void applyDecoderDecision(AsrAcceptResult result) {
+		if (result.speechDetected() && !speechDetected) {
+			speechDetected = true;
+			setRecognitionState(VoiceInputState.SPEAKING);
+			ChatCanvas.LOGGER.info("Voice session {}: decoder speech detected", token);
+		}
+	}
+
+	private void setRecognitionState(VoiceInputState next) {
+		if (recognitionState == next || finishReason.get() != null) return;
+		recognitionState = next;
+		listener.state(next);
+	}
+
+	public void tick(long now) {
+		if (cancelled.get()) return;
+		VoiceFinishReason reason = finishReason.get();
+		if (reason == null) {
+			long elapsed = now - startedAt;
+			if (!speechDetected && elapsed >= settings.noSpeechTimeoutMillis()) {
+				requestFinish(VoiceFinishReason.NO_SPEECH);
+			} else if (elapsed >= settings.maximumSeconds() * 1_000L) {
+				requestFinish(VoiceFinishReason.MAXIMUM_DURATION);
+			}
 			return;
 		}
-		stopCaptureLine();
+		long finishingFor = now - finishRequestedAt;
+		if (finishingFor >= 2_500L) enqueueEndOnce();
+		if (finishingFor >= 8_000L && failureReported.compareAndSet(false, true)) {
+			cancelled.set(true);
+			listener.failure(new IllegalStateException("Voice finalization timed out"));
+		}
+	}
+
+	public boolean requestFinish(VoiceFinishReason reason) {
+		if (cancelled.get() || !finishReason.compareAndSet(null, reason)) return false;
+		finishRequestedAt = System.currentTimeMillis();
+		listener.state(VoiceInputState.FINALIZING);
+		ChatCanvas.LOGGER.info("Voice session {}: finalize ({})", token, reason);
+		capture.stop();
+		return true;
 	}
 
 	public void cancel() {
-		if (!cancelled.compareAndSet(false, true)) {
-			return;
-		}
-		finishing.set(true);
-		stopCaptureLine();
+		if (!cancelled.compareAndSet(false, true)) return;
+		finishReason.compareAndSet(null, VoiceFinishReason.CANCELLED);
+		capture.stop();
 		queue.clear();
-		queue.offer(END);
+		enqueueEndOnce();
 		Future<?> future = recognitionFuture;
-		if (future != null) future.cancel(true);
+		if (future == null) {
+			closeUnstartedResources();
+		} else if (future.isDone()) {
+			future.cancel(false);
+		}
 	}
 
-	private void stopCaptureLine() {
-		TargetDataLine line = captureLine;
-		if (line == null) return;
-		try {
-			if (line.isRunning()) {
-				line.stop();
-			}
-		} catch (RuntimeException ignored) {
-		}
-		try {
-			line.close();
-		} catch (RuntimeException ignored) {
-		}
+	private void fail(Throwable throwable) {
+		if (!failureReported.compareAndSet(false, true)) return;
+		cancelled.set(true);
+		finishReason.compareAndSet(null, VoiceFinishReason.ERROR);
+		try { capture.stop(); } catch (Throwable ignored) { }
+		queue.clear();
+		enqueueEndOnce();
+		listener.failure(throwable);
+	}
+
+	private void enqueueEndOnce() {
+		if (!endEnqueued.compareAndSet(false, true)) return;
+		while (!queue.offer(END)) queue.poll();
 	}
 
 	public long token() { return token; }
 	public double level() { return level; }
-	public boolean finishing() { return finishing.get(); }
-
-	private void enqueueEndOnce() {
-		if (!endEnqueued.compareAndSet(false, true)) {
-			return;
-		}
-		while (true) {
-			try {
-				if (queue.offer(END, 500L, TimeUnit.MILLISECONDS)) return;
-				if (cancelled.get()) queue.clear();
-			} catch (InterruptedException exception) {
-				Thread.currentThread().interrupt();
-				queue.clear();
-				queue.offer(END);
-				return;
-			}
+	public boolean finishing() { return finishReason.get() != null; }
+	public boolean speechDetected() { return speechDetected; }
+	public boolean awaitClosed(long timeout, TimeUnit unit) {
+		try { return recognitionClosed.await(timeout, unit); }
+		catch (InterruptedException interrupted) {
+			Thread.currentThread().interrupt();
+			return false;
 		}
 	}
 
-	private record Chunk(byte[] bytes, int length, boolean end) {
-		private Chunk {
-			bytes = Arrays.copyOf(bytes, length);
-		}
+	private void closeUnstartedResources() {
+		if (!resourcesClosed.compareAndSet(false, true)) return;
+		try { recognizer.close(); } catch (Throwable ignored) { }
+		if (vad != null) try { vad.close(); } catch (Throwable ignored) { }
+		try { capture.close(); } catch (Throwable ignored) { }
+		recognitionClosed.countDown();
+	}
+
+	private record Chunk(byte[] bytes, boolean end) {
+		private Chunk { bytes = Arrays.copyOf(bytes, bytes.length); }
+	}
+
+	public interface Listener {
+		void state(VoiceInputState state);
+		void partial(String text);
+		void completed(VoiceRecognitionResult result);
+		void failure(Throwable throwable);
 	}
 }

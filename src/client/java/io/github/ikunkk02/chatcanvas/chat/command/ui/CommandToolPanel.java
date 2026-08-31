@@ -15,6 +15,8 @@ import io.github.ikunkk02.chatcanvas.chat.interaction.ChatFieldActions;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.config.CommandClipboardConfig;
 import io.github.ikunkk02.chatcanvas.config.CommandInsertMode;
+import io.github.ikunkk02.chatcanvas.ui.ModernUiTheme;
+import io.github.ikunkk02.chatcanvas.ui.UiLayoutMetrics;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -30,13 +32,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.WeakHashMap;
-import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
 
 public final class CommandToolPanel {
-	private static final int WIDTH = 292;
-	private static final int HEIGHT = 260;
 	private static final int ROW_HEIGHT = 31;
-	private static final int VISIBLE_ROWS = 5;
 	private static final WeakHashMap<ChatScreen, CommandToolPanel> ACTIVE =
 			new WeakHashMap<>();
 	private static boolean openNextScreen;
@@ -55,6 +53,11 @@ public final class CommandToolPanel {
 	private int x;
 	private int y;
 	private int visualX;
+	private int panelWidth = 292;
+	private int panelHeight = 260;
+	private int visibleRows = 5;
+	private UiLayoutMetrics.CommandPanel layoutMetrics =
+			new UiLayoutMetrics.CommandPanel(panelWidth, panelHeight, visibleRows);
 	private int scroll;
 	private int selected;
 	private boolean listFocused;
@@ -74,24 +77,30 @@ public final class CommandToolPanel {
 	public void init(ChatScreen screen, TextFieldWidget commandField) {
 		owner = screen;
 		ACTIVE.put(screen, this);
+		UiLayoutMetrics.CommandPanel metrics = UiLayoutMetrics.commandPanel(
+				screen.width, screen.height);
+		layoutMetrics = metrics;
+		panelWidth = metrics.width();
+		panelHeight = metrics.height();
+		visibleRows = metrics.visibleRows();
 		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
-		searchField = new TextFieldWidget(renderer, 0, 0, WIDTH - 46, 18,
+		searchField = new TextFieldWidget(renderer, 0, 0, panelWidth - 46, 18,
 				Text.translatable("chat_canvas.command.search"));
 		searchField.setPlaceholder(Text.translatable("chat_canvas.command.search"));
 		searchField.setMaxLength(128);
-		nameField = new TextFieldWidget(renderer, 0, 0, WIDTH - 32, 18,
+		nameField = new TextFieldWidget(renderer, 0, 0, panelWidth - 32, 18,
 				Text.translatable("chat_canvas.command.name"));
 		nameField.setPlaceholder(Text.translatable("chat_canvas.command.name"));
-		favoriteCommandField = new TextFieldWidget(renderer, 0, 0, WIDTH - 32, 18,
+		favoriteCommandField = new TextFieldWidget(renderer, 0, 0, panelWidth - 32, 18,
 				Text.translatable("chat_canvas.command.command"));
 		favoriteCommandField.setPlaceholder(Text.translatable(
 				"chat_canvas.command.command"));
 		favoriteCommandField.setMaxLength(CommandTextSanitizer.MAX_COMMAND_LENGTH);
 		int rightSpace = screen.width - commandField.getX() - commandField.getWidth();
-		x = rightSpace >= WIDTH + 8
+		x = rightSpace >= panelWidth + 8
 				? commandField.getX() + commandField.getWidth() + 4
-				: Math.max(4, commandField.getX() - WIDTH - 4);
-		y = Math.max(4, commandField.getY() - HEIGHT - 4);
+				: Math.max(4, commandField.getX() - panelWidth - 4);
+		y = Math.max(4, commandField.getY() - panelHeight - 4);
 		clamp(screen);
 		visualX = x;
 		if (openNextScreen) {
@@ -161,17 +170,18 @@ public final class CommandToolPanel {
 			return true;
 		}
 		for (int i = 0; i < CommandToolTab.values().length; i++) {
-			if (hit(mouseX, mouseY, px + 8 + i * 92, y + 20, 88, 18)) {
+			if (hit(mouseX, mouseY, tabX(px, i), y + 20, tabWidth(), 18)) {
 				selectTab(CommandToolTab.values()[i]);
 				return true;
 			}
 		}
-		if (searchField.mouseClicked(new net.minecraft.client.gui.Click(mouseX, mouseY, new net.minecraft.client.input.MouseInput(button, 0)), false)) {
+		if (searchField.mouseClicked(new net.minecraft.client.gui.Click(
+				mouseX, mouseY, new net.minecraft.client.input.MouseInput(button, 0)), false)) {
 			setSearchFocused(true);
 			listFocused = false;
 			return true;
 		}
-		if (hit(mouseX, mouseY, px + WIDTH - 32, y + 43, 24, 18)) {
+		if (hit(mouseX, mouseY, px + panelWidth - 32, y + 43, 24, 18)) {
 			if (tab == CommandToolTab.CLIPBOARD) refreshClipboard();
 			else {
 				searchField.setText("");
@@ -179,7 +189,7 @@ public final class CommandToolPanel {
 			}
 			return true;
 		}
-		if (hit(mouseX, mouseY, px + 8, y + 66, 116, 18)) {
+		if (hit(mouseX, mouseY, px + 8, y + 66, toolbarPrimaryWidth(), 18)) {
 			if (tab == CommandToolTab.FAVORITES) openFavoriteDialog(
 					null, commandField.getText());
 			else if (tab == CommandToolTab.RECENT) {
@@ -188,12 +198,13 @@ public final class CommandToolPanel {
 			return true;
 		}
 		if (tab == CommandToolTab.RECENT
-				&& hit(mouseX, mouseY, px + WIDTH - 124, y + 66, 116, 18)) {
+				&& hit(mouseX, mouseY, toolbarSecondaryX(px), y + 66,
+						toolbarSecondaryWidth(), 18)) {
 			dialog = Dialog.CONFIRM_CLEAR_RECENT;
 			return true;
 		}
 		if (mouseY < y + 88
-				|| mouseY >= y + 88 + VISIBLE_ROWS * ROW_HEIGHT) return true;
+				|| mouseY >= y + 88 + visibleRows * ROW_HEIGHT) return true;
 		int rowIndex = ((int) mouseY - (y + 88)) / ROW_HEIGHT + scroll;
 		List<Row> rows = rows();
 		if (rowIndex < 0 || rowIndex >= rows.size()) return true;
@@ -201,7 +212,7 @@ public final class CommandToolPanel {
 		listFocused = true;
 		setSearchFocused(false);
 		Row row = rows.get(rowIndex);
-		int right = px + WIDTH - 8;
+		int right = px + panelWidth - 8;
 		if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
 			MinecraftClient.getInstance().keyboard.setClipboard(row.command());
 		} else if (tab == CommandToolTab.FAVORITES && mouseX >= right - 18) {
@@ -270,10 +281,10 @@ public final class CommandToolPanel {
 
 	public boolean mouseScrolled(double amount) {
 		if (!open || dialog != Dialog.NONE) return false;
-		int max = Math.max(0, rows().size() - VISIBLE_ROWS);
+		int max = Math.max(0, rows().size() - visibleRows);
 		scroll = Math.max(0, Math.min(max, scroll + (amount < 0 ? 1 : -1)));
 		selected = Math.max(scroll,
-				Math.min(selected, scroll + VISIBLE_ROWS - 1));
+				Math.min(selected, scroll + visibleRows - 1));
 		return true;
 	}
 
@@ -305,7 +316,8 @@ public final class CommandToolPanel {
 							? favoriteCommandField : nameField);
 					return true;
 				}
-				return focusedDialogField().keyPressed(new net.minecraft.client.input.KeyInput(keyCode, scanCode, modifiers));
+				return focusedDialogField().keyPressed(new net.minecraft.client.input.KeyInput(
+						keyCode, scanCode, modifiers));
 			}
 			return true;
 		}
@@ -328,7 +340,8 @@ public final class CommandToolPanel {
 				listFocused = true;
 				return true;
 			}
-			return searchField.keyPressed(new net.minecraft.client.input.KeyInput(keyCode, scanCode, modifiers));
+			return searchField.keyPressed(new net.minecraft.client.input.KeyInput(
+					keyCode, scanCode, modifiers));
 		}
 		if (!listFocused) return false;
 		if (keyCode == GLFW.GLFW_KEY_TAB
@@ -344,8 +357,8 @@ public final class CommandToolPanel {
 				selected = Math.max(0, Math.min(rows.size() - 1,
 						selected + (keyCode == GLFW.GLFW_KEY_UP ? -1 : 1)));
 				if (selected < scroll) scroll = selected;
-				if (selected >= scroll + VISIBLE_ROWS) {
-					scroll = selected - VISIBLE_ROWS + 1;
+				if (selected >= scroll + visibleRows) {
+					scroll = selected - visibleRows + 1;
 				}
 			}
 			return true;
@@ -376,10 +389,12 @@ public final class CommandToolPanel {
 	public boolean charTyped(char character, int modifiers) {
 		if (dialog == Dialog.ADD_FAVORITE
 				|| dialog == Dialog.EDIT_FAVORITE) {
-			return focusedDialogField().charTyped(new net.minecraft.client.input.CharInput(character, modifiers));
+			return focusedDialogField().charTyped(new net.minecraft.client.input.CharInput(
+					character, modifiers));
 		}
 		return open && searchField.isFocused()
-				&& searchField.charTyped(new net.minecraft.client.input.CharInput(character, modifiers));
+				&& searchField.charTyped(new net.minecraft.client.input.CharInput(
+						character, modifiers));
 	}
 
 	public void removed() {
@@ -402,11 +417,12 @@ public final class CommandToolPanel {
 		if (Math.abs(target - openProgress) < 0.01f) openProgress = target;
 		if (config.showPanelButton() && !open && openProgress <= 0.01f) {
 			int bx = buttonX(screen, commandField);
-			fillButton(context, bx, commandField.getY(), 54, 14, false);
+			fillButton(context, bx, commandField.getY(), 54, 14,
+					mouseX, mouseY, false);
 			context.drawCenteredTextWithShadow(
 					MinecraftClient.getInstance().textRenderer,
 					Text.translatable("chat_canvas.command.tools"),
-					bx + 27, commandField.getY() + 3, 0xFFFFFFFF);
+					bx + 27, commandField.getY() + 3, ModernUiTheme.TEXT_PRIMARY);
 		}
 		if (openProgress <= 0.01f) return;
 		clamp(screen);
@@ -414,32 +430,33 @@ public final class CommandToolPanel {
 				* (x < screen.width / 2 ? -24 : 24));
 		int px = visualX;
 		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
-		context.fill(px, y, px + WIDTH, y + HEIGHT, 0xF0181B25);
-		ChatBackgroundDraw.drawBorder(context, px, y, WIDTH, HEIGHT, 0xFF59647A);
+		ModernUiTheme.drawFixedPanel(context, px, y, panelWidth, panelHeight, true);
 		context.drawTextWithShadow(renderer,
 				Text.translatable("chat_canvas.command.tools"),
-				px + 8, y + 5, 0xFFFFFFFF);
+				px + 8, y + 5, ModernUiTheme.TEXT_PRIMARY);
 		if (dialog != Dialog.NONE) {
 			renderDialog(context, renderer, mouseX, mouseY, delta);
 			return;
 		}
-		renderTabs(context, renderer, px);
+		renderTabs(context, renderer, px, mouseX, mouseY);
 		searchField.setX(px + 8);
 		searchField.setY(y + 43);
-		searchField.setWidth(WIDTH - 46);
+		searchField.setWidth(panelWidth - 46);
 		searchField.render(context, mouseX, mouseY, delta);
-		fillButton(context, px + WIDTH - 32, y + 43, 24, 18, false);
+		fillButton(context, px + panelWidth - 32, y + 43, 24, 18,
+				mouseX, mouseY, false);
 		context.drawCenteredTextWithShadow(renderer,
 				Text.literal(tab == CommandToolTab.CLIPBOARD ? "↻" : "×"),
-				px + WIDTH - 20, y + 48, 0xFFFFFFFF);
-		renderToolbar(context, renderer, px);
+				px + panelWidth - 20, y + 48, ModernUiTheme.TEXT_PRIMARY);
+		renderToolbar(context, renderer, px, mouseX, mouseY);
 		List<Row> rows = rows();
 		if (rows.isEmpty()) {
 			context.drawCenteredTextWithShadow(renderer,
-					Text.translatable(emptyStateKey()), px + WIDTH / 2,
-					y + 139, 0xFFADB6C7);
+					Text.translatable(emptyStateKey()), px + panelWidth / 2,
+					y + 88 + visibleRows * ROW_HEIGHT / 2,
+					ModernUiTheme.TEXT_SECONDARY);
 		} else {
-			for (int visible = 0; visible < VISIBLE_ROWS; visible++) {
+			for (int visible = 0; visible < visibleRows; visible++) {
 				int index = scroll + visible;
 				if (index >= rows.size()) break;
 				renderRow(context, renderer, rows.get(index), index,
@@ -448,15 +465,16 @@ public final class CommandToolPanel {
 		}
 		if (statusKey != null) {
 			context.drawTextWithShadow(renderer, Text.translatable(statusKey),
-					px + 8, y + HEIGHT - 14, 0xFFFFCC66);
+					px + 8, y + panelHeight - 14, ModernUiTheme.WARNING);
 		} else if (tab == CommandToolTab.CLIPBOARD && clipboard.multipleLines()) {
 			context.drawTextWithShadow(renderer,
 					Text.translatable("chat_canvas.command.clipboard.multiple"),
-					px + 8, y + HEIGHT - 14, 0xFFFFCC66);
+					px + 8, y + panelHeight - 14, ModernUiTheme.WARNING);
 		}
 	}
 
-	private void renderTabs(DrawContext context, TextRenderer renderer, int px) {
+	private void renderTabs(DrawContext context, TextRenderer renderer, int px,
+			int mouseX, int mouseY) {
 		String[] keys = {
 				"chat_canvas.command.tab.recent",
 				"chat_canvas.command.tab.favorites",
@@ -464,28 +482,44 @@ public final class CommandToolPanel {
 		};
 		for (int i = 0; i < keys.length; i++) {
 			boolean active = tab.ordinal() == i;
-			int tabX = px + 8 + i * 92;
-			fillButton(context, tabX, y + 20, 88, 18, active);
+			int tabX = tabX(px, i);
+			int tabWidth = tabWidth();
+			fillButton(context, tabX, y + 20, tabWidth, 18,
+					mouseX, mouseY, active);
+			String fitted = ModernUiTheme.fitText(renderer,
+					Text.translatable(keys[i]), Math.max(1, tabWidth - 6));
 			context.drawCenteredTextWithShadow(renderer,
-					Text.translatable(keys[i]), tabX + 44, y + 25, 0xFFFFFFFF);
-			if (active) context.fill(tabX + 6, y + 36, tabX + 82, y + 38,
-					0xFF9CC8FF);
+					Text.literal(fitted), tabX + tabWidth / 2, y + 25,
+					ModernUiTheme.TEXT_PRIMARY);
+			if (active) context.fill(tabX + 3, y + 36,
+					tabX + tabWidth - 3, y + 38, ModernUiTheme.ACCENT);
 		}
 	}
 
-	private void renderToolbar(DrawContext context, TextRenderer renderer, int px) {
-		fillButton(context, px + 8, y + 66, 116, 18, false);
+	private void renderToolbar(DrawContext context, TextRenderer renderer, int px,
+			int mouseX, int mouseY) {
+		int primaryWidth = toolbarPrimaryWidth();
+		fillButton(context, px + 8, y + 66, primaryWidth, 18,
+				mouseX, mouseY, false);
 		String primary = switch (tab) {
 			case RECENT, FAVORITES -> "chat_canvas.command.favorite_current";
 			case CLIPBOARD -> "chat_canvas.command.clipboard.refresh";
 		};
-		context.drawCenteredTextWithShadow(renderer, Text.translatable(primary),
-				px + 66, y + 71, 0xFFFFFFFF);
+		String fittedPrimary = ModernUiTheme.fitText(renderer,
+				Text.translatable(primary), Math.max(1, primaryWidth - 6));
+		context.drawCenteredTextWithShadow(renderer, Text.literal(fittedPrimary),
+				px + 8 + primaryWidth / 2, y + 71, ModernUiTheme.TEXT_PRIMARY);
 		if (tab == CommandToolTab.RECENT) {
-			fillButton(context, px + WIDTH - 124, y + 66, 116, 18, false);
-			context.drawCenteredTextWithShadow(renderer,
+			int secondaryX = toolbarSecondaryX(px);
+			int secondaryWidth = toolbarSecondaryWidth();
+			fillButton(context, secondaryX, y + 66, secondaryWidth, 18,
+					mouseX, mouseY, false);
+			String fittedSecondary = ModernUiTheme.fitText(renderer,
 					Text.translatable("chat_canvas.command.clear_all"),
-					px + WIDTH - 66, y + 71, 0xFFFFB0B0);
+					Math.max(1, secondaryWidth - 6));
+			context.drawCenteredTextWithShadow(renderer,
+					Text.literal(fittedSecondary), secondaryX + secondaryWidth / 2,
+					y + 71, ModernUiTheme.DANGER);
 		}
 	}
 
@@ -494,14 +528,14 @@ public final class CommandToolPanel {
 			int rowY, int mouseX, int mouseY) {
 		int px = visualX;
 		boolean hover = hit(mouseX, mouseY, px + 8, rowY,
-				WIDTH - 16, ROW_HEIGHT - 2);
+				panelWidth - 16, ROW_HEIGHT - 2);
 		boolean active = listFocused && index == selected;
-		context.fill(px + 8, rowY, px + WIDTH - 8, rowY + ROW_HEIGHT - 2,
-				active ? 0xDD40516B : hover ? 0xCC354157 : 0xAA252B39);
+		ModernUiTheme.drawFixedControl(context, px + 8, rowY,
+				panelWidth - 16, ROW_HEIGHT - 2, hover, active, true);
 		context.drawTextWithShadow(renderer,
 				Text.literal(shorten(row.title(), 30)), px + 12, rowY + 3,
-				0xFFFFFFFF);
-		int commandColor = row.dangerous() ? 0xFFFFB36A : 0xFFB7BFCE;
+				ModernUiTheme.TEXT_PRIMARY);
+		int commandColor = row.dangerous() ? ModernUiTheme.WARNING : ModernUiTheme.TEXT_SECONDARY;
 		context.drawTextWithShadow(renderer,
 				Text.literal((row.dangerous() ? "⚠ " : "")
 						+ shorten(row.command(), 34)),
@@ -513,10 +547,10 @@ public final class CommandToolPanel {
 		};
 		if (!actions.isEmpty()) {
 			context.drawTextWithShadow(renderer, Text.literal(actions),
-					px + WIDTH - renderer.getWidth(actions) - 12,
-					rowY + 7, 0xFFFFD36A);
+					px + panelWidth - renderer.getWidth(actions) - 12,
+					rowY + 7, ModernUiTheme.ACCENT);
 		}
-		if (hover && renderer.getWidth(row.command()) > WIDTH - 34) {
+		if (hover && renderer.getWidth(row.command()) > panelWidth - 34) {
 			context.drawTooltip(renderer, Text.literal(row.command()), mouseX, mouseY);
 		} else if (hover && row.dangerous()) {
 			context.drawTooltip(renderer,
@@ -531,13 +565,13 @@ public final class CommandToolPanel {
 		int px = visualX;
 		int dx = px + 8;
 		int dy = y + 22;
-		int dialogWidth = WIDTH - 16;
-		context.fill(px + 1, y + 18, px + WIDTH - 1, y + HEIGHT - 1,
-				0xFF10131B);
-		context.fill(dx, dy, dx + dialogWidth, y + HEIGHT - 8, 0xFF171B25);
-		ChatBackgroundDraw.drawBorder(context, dx, dy, dialogWidth, HEIGHT - 30, 0xFF73809A);
+		int dialogWidth = panelWidth - 16;
+		context.fill(px + 1, y + 18, px + panelWidth - 1, y + panelHeight - 1,
+				ModernUiTheme.PANEL_BACKGROUND);
+		ModernUiTheme.drawFixedPanel(context, dx, dy, dialogWidth,
+				panelHeight - 30, false);
 		context.drawTextWithShadow(renderer, Text.translatable(dialog.titleKey),
-				dx + 8, dy + 8, 0xFFFFFFFF);
+				dx + 8, dy + 8, ModernUiTheme.TEXT_PRIMARY);
 		if (dialog == Dialog.ADD_FAVORITE
 				|| dialog == Dialog.EDIT_FAVORITE) {
 			nameField.setX(dx + 8);
@@ -548,10 +582,10 @@ public final class CommandToolPanel {
 			favoriteCommandField.setWidth(dialogWidth - 16);
 			context.drawTextWithShadow(renderer,
 					Text.translatable("chat_canvas.command.name"),
-					dx + 8, dy + 23, 0xFF9FAABD);
+					dx + 8, dy + 23, ModernUiTheme.TEXT_SECONDARY);
 			context.drawTextWithShadow(renderer,
 					Text.translatable("chat_canvas.command.command"),
-					dx + 8, dy + 65, 0xFF9FAABD);
+					dx + 8, dy + 65, ModernUiTheme.TEXT_SECONDARY);
 			nameField.render(context, mouseX, mouseY, delta);
 			favoriteCommandField.render(context, mouseX, mouseY, delta);
 		} else {
@@ -559,14 +593,21 @@ public final class CommandToolPanel {
 					Text.translatable(dialog == Dialog.CONFIRM_SENSITIVE
 							? "chat_canvas.command.plaintext_warning"
 							: "chat_canvas.command.cannot_restore"),
-					dx + 8, dy + 34, dialogWidth - 16, 0xFFFFB0B0);
+					dx + 8, dy + 34, dialogWidth - 16, ModernUiTheme.DANGER);
 		}
-		fillButton(context, dx + 8, y + HEIGHT - 32, 100, 18, false);
-		fillButton(context, px + WIDTH - 108, y + HEIGHT - 32, 100, 18, true);
+		int buttonWidth = dialogButtonWidth();
+		int cancelX = dialogCancelX(px);
+		int confirmX = dialogConfirmX(px);
+		fillButton(context, cancelX, y + panelHeight - 32, buttonWidth, 18,
+				mouseX, mouseY, false);
+		fillButton(context, confirmX, y + panelHeight - 32, buttonWidth, 18,
+				mouseX, mouseY, true);
 		context.drawCenteredTextWithShadow(renderer, Text.translatable("gui.cancel"),
-				dx + 58, y + HEIGHT - 27, 0xFFFFFFFF);
+				cancelX + buttonWidth / 2, y + panelHeight - 27,
+				ModernUiTheme.TEXT_PRIMARY);
 		context.drawCenteredTextWithShadow(renderer, Text.translatable("gui.ok"),
-				px + WIDTH - 58, y + HEIGHT - 27, 0xFFFFFFFF);
+				confirmX + buttonWidth / 2, y + panelHeight - 27,
+				ModernUiTheme.TEXT_PRIMARY);
 	}
 
 	private boolean dialogClick(double mouseX, double mouseY, int button) {
@@ -575,19 +616,23 @@ public final class CommandToolPanel {
 		int dy = y + 22;
 		if (dialog == Dialog.ADD_FAVORITE
 				|| dialog == Dialog.EDIT_FAVORITE) {
-			if (nameField.mouseClicked(new net.minecraft.client.gui.Click(mouseX, mouseY, new net.minecraft.client.input.MouseInput(button, 0)), false)) {
+			if (nameField.mouseClicked(new net.minecraft.client.gui.Click(
+					mouseX, mouseY, new net.minecraft.client.input.MouseInput(button, 0)), false)) {
 				focusDialogField(nameField);
 				return true;
 			}
-			if (favoriteCommandField.mouseClicked(new net.minecraft.client.gui.Click(mouseX, mouseY, new net.minecraft.client.input.MouseInput(button, 0)), false)) {
+			if (favoriteCommandField.mouseClicked(new net.minecraft.client.gui.Click(
+					mouseX, mouseY, new net.minecraft.client.input.MouseInput(button, 0)), false)) {
 				focusDialogField(favoriteCommandField);
 				return true;
 			}
 		}
-		if (hit(mouseX, mouseY, dx + 8, y + HEIGHT - 32, 100, 18)) {
+		if (hit(mouseX, mouseY, dialogCancelX(px), y + panelHeight - 32,
+				dialogButtonWidth(), 18)) {
 			closeDialog();
 		} else if (hit(mouseX, mouseY,
-				px + WIDTH - 108, y + HEIGHT - 32, 100, 18)) {
+				dialogConfirmX(px), y + panelHeight - 32,
+				dialogButtonWidth(), 18)) {
 			confirmDialog();
 		}
 		return true;
@@ -697,7 +742,8 @@ public final class CommandToolPanel {
 			clipboard = new ClipboardCommandParseResult(List.of(), false, false);
 			clipboardLoaded = true;
 			statusKey = "chat_canvas.command.clipboard.read_failed";
-			CommandToolRuntime.reportToolError("无法读取系统剪贴板", failure);
+			CommandToolRuntime.reportToolError(
+					"chat_canvas.command.clipboard.read_failed", failure);
 		}
 		invalidateRows();
 	}
@@ -755,7 +801,7 @@ public final class CommandToolPanel {
 		cachedRevision = revision;
 		cachedQuery = query;
 		cachedTab = tab;
-		scroll = Math.min(scroll, Math.max(0, cachedRows.size() - VISIBLE_ROWS));
+		scroll = Math.min(scroll, Math.max(0, cachedRows.size() - visibleRows));
 		selected = Math.max(0, Math.min(selected,
 				Math.max(0, cachedRows.size() - 1)));
 		return cachedRows;
@@ -792,13 +838,13 @@ public final class CommandToolPanel {
 	}
 
 	private void clamp(ChatScreen screen) {
-		x = Math.max(4, Math.min(Math.max(4, screen.width - WIDTH - 4), x));
-		y = Math.max(4, Math.min(Math.max(4, screen.height - HEIGHT - 20), y));
+		x = Math.max(4, Math.min(Math.max(4, screen.width - panelWidth - 4), x));
+		y = Math.max(4, Math.min(Math.max(4, screen.height - panelHeight - 4), y));
 	}
 
 	private boolean contains(double mouseX, double mouseY) {
-		return mouseX >= visualX && mouseX < visualX + WIDTH
-				&& mouseY >= y && mouseY < y + HEIGHT;
+		return mouseX >= visualX && mouseX < visualX + panelWidth
+				&& mouseY >= y && mouseY < y + panelHeight;
 	}
 
 	private static boolean hit(
@@ -810,10 +856,41 @@ public final class CommandToolPanel {
 
 	private static void fillButton(
 			DrawContext context, int x, int y,
-			int width, int height, boolean active) {
-		context.fill(x, y, x + width, y + height,
-				active ? 0xFF405C82 : 0xCC30394B);
-		ChatBackgroundDraw.drawBorder(context, x, y, width, height, 0xFF5D6A82);
+			int width, int height, int mouseX, int mouseY, boolean active) {
+		ModernUiTheme.drawFixedControl(context, x, y, width, height,
+				hit(mouseX, mouseY, x, y, width, height), active, true);
+	}
+
+	private int tabWidth() {
+		return layoutMetrics.tabWidth();
+	}
+
+	private int tabX(int px, int index) {
+		return px + layoutMetrics.tabX(index);
+	}
+
+	private int toolbarPrimaryWidth() {
+		return layoutMetrics.toolbarPrimaryWidth(tab == CommandToolTab.RECENT);
+	}
+
+	private int toolbarSecondaryX(int px) {
+		return px + layoutMetrics.toolbarSecondaryX();
+	}
+
+	private int toolbarSecondaryWidth() {
+		return layoutMetrics.toolbarSecondaryWidth();
+	}
+
+	private int dialogButtonWidth() {
+		return Math.max(1, (panelWidth - 40) / 2);
+	}
+
+	private int dialogCancelX(int px) {
+		return px + 16;
+	}
+
+	private int dialogConfirmX(int px) {
+		return dialogCancelX(px) + dialogButtonWidth() + 8;
 	}
 
 	private static String shorten(String value, int limit) {

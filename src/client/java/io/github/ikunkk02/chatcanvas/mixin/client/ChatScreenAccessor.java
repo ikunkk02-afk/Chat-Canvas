@@ -2,6 +2,7 @@ package io.github.ikunkk02.chatcanvas.mixin.client;
 
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.text.Style;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
@@ -9,4 +10,7 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface ChatScreenAccessor {
 	@Accessor("chatField")
 	TextFieldWidget chat_canvas$chatField();
+
+	@org.spongepowered.asm.mixin.gen.Invoker("handleClickEvent")
+	boolean chat_canvas$handleClickEvent(Style style, boolean doubled);
 }

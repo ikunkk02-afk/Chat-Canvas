@@ -16,30 +16,10 @@ import java.util.List;
 import java.util.function.IntConsumer;
 
 public final class ModernColorPickerPopup extends BaseUIComponent {
-	public static final int POPUP_WIDTH = 250;
-	public static final int POPUP_HEIGHT = 266;
-
-	private static final int SV_X = 10;
-	private static final int SV_Y = 24;
-	private static final int SV_WIDTH = 190;
-	private static final int SV_HEIGHT = 90;
-	private static final int HUE_X = 10;
-	private static final int HUE_Y = 122;
-	private static final int HUE_WIDTH = 190;
-	private static final int HUE_HEIGHT = 12;
-	private static final int HEX_X = 10;
-	private static final int HEX_Y = 154;
-	private static final int HEX_WIDTH = 190;
-	private static final int HEX_HEIGHT = 22;
-	private static final int RECENT_X = 10;
-	private static final int RECENT_Y = 202;
-	private static final int RECENT_SIZE = 20;
-	private static final int RECENT_GAP = 4;
-	private static final int BUTTON_Y = 234;
-
 	private final Request request;
 	private final Runnable closeAction;
 	private final ColorPickerState state;
+	private final UiLayoutMetrics.ColorPicker metrics;
 	private final long openedAt = System.nanoTime();
 
 	private DragSection dragging = DragSection.NONE;
@@ -47,11 +27,13 @@ public final class ModernColorPickerPopup extends BaseUIComponent {
 	private boolean selectAllHex;
 	private boolean closed;
 
-	public ModernColorPickerPopup(int x, int y, Request request, Runnable closeAction) {
+	public ModernColorPickerPopup(int x, int y, UiLayoutMetrics.ColorPicker metrics,
+			Request request, Runnable closeAction) {
 		this.request = request;
 		this.closeAction = closeAction;
+		this.metrics = metrics;
 		this.state = new ColorPickerState(request.initialRgb());
-		this.sizing(Sizing.fixed(POPUP_WIDTH), Sizing.fixed(POPUP_HEIGHT));
+		this.sizing(Sizing.fixed(metrics.width()), Sizing.fixed(metrics.height()));
 		this.positioning(Positioning.absolute(x, y));
 	}
 
@@ -60,8 +42,10 @@ public final class ModernColorPickerPopup extends BaseUIComponent {
 		super.update(delta, mouseX, mouseY);
 		double localX = mouseX - x();
 		double localY = mouseY - y();
-		boolean colorArea = inside(localX, localY, SV_X, SV_Y, SV_WIDTH, SV_HEIGHT)
-				|| inside(localX, localY, HUE_X, HUE_Y, HUE_WIDTH, HUE_HEIGHT);
+		boolean colorArea = inside(localX, localY,
+				metrics.svX(), metrics.svY(), metrics.svWidth(), metrics.svHeight())
+				|| inside(localX, localY, metrics.svX(), metrics.hueY(),
+				metrics.svWidth(), metrics.hueHeight());
 		cursorStyle(colorArea ? CursorStyle.MOVE : CursorStyle.NONE);
 	}
 
@@ -78,26 +62,33 @@ public final class ModernColorPickerPopup extends BaseUIComponent {
 		context.getMatrices().translate(-centerX, -centerY);
 
 		ModernUiTheme.shadow(context, x(), y(), width(), height());
-		ModernUiTheme.roundedRect(context, x(), y(), width(), height(), 7, 0xF21A1E28);
-		ModernUiTheme.border(context, x(), y(), width(), height(), 0x8860738F);
+		ModernUiTheme.roundedRect(context, x(), y(), width(), height(), 2,
+				ModernUiTheme.PANEL_ELEVATED);
+		ModernUiTheme.border(context, x(), y(), width(), height(), ModernUiTheme.PANEL_BORDER);
 
 		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
 		context.drawText(renderer, Text.translatable("chat_canvas.color_picker.title"),
-				x() + 10, y() + 8, ModernUiTheme.TEXT_PRIMARY, false);
+				x() + metrics.margin(), y() + (metrics.compact() ? 5 : 8),
+				ModernUiTheme.TEXT_PRIMARY, false);
 
 		int hueColor = 0xFF000000 | ColorPickerState.rgbFromHsv(state.hue(), 1.0f, 1.0f);
 		context.drawGradientRect(
-				x() + SV_X, y() + SV_Y, SV_WIDTH, SV_HEIGHT,
+				x() + metrics.svX(), y() + metrics.svY(), metrics.svWidth(), metrics.svHeight(),
 				0xFFFFFFFF, hueColor, 0xFF000000, 0xFF000000
 		);
-		int selectorX = x() + SV_X + Math.round(state.saturation() * (SV_WIDTH - 1));
-		int selectorY = y() + SV_Y + Math.round((1.0f - state.value()) * (SV_HEIGHT - 1));
+		int selectorX = x() + metrics.svX()
+				+ Math.round(state.saturation() * (metrics.svWidth() - 1));
+		int selectorY = y() + metrics.svY()
+				+ Math.round((1.0f - state.value()) * (metrics.svHeight() - 1));
 		context.drawRectOutline(selectorX - 2, selectorY - 2, 5, 5, 0xFFFFFFFF);
 		context.drawRectOutline(selectorX - 1, selectorY - 1, 3, 3, 0xFF10141C);
 
-		context.drawSpectrum(x() + HUE_X, y() + HUE_Y, HUE_WIDTH, HUE_HEIGHT, false);
-		int hueX = x() + HUE_X + Math.round(state.hue() * (HUE_WIDTH - 1));
-		context.drawRectOutline(hueX - 1, y() + HUE_Y - 1, 3, HUE_HEIGHT + 2, 0xFFFFFFFF);
+		context.drawSpectrum(x() + metrics.svX(), y() + metrics.hueY(),
+				metrics.svWidth(), metrics.hueHeight(), false);
+		int hueX = x() + metrics.svX()
+				+ Math.round(state.hue() * (metrics.svWidth() - 1));
+		context.drawRectOutline(hueX - 1, y() + metrics.hueY() - 1,
+				3, metrics.hueHeight() + 2, 0xFFFFFFFF);
 
 		drawCurrentPreview(context);
 		drawHexInput(context, renderer);
@@ -107,65 +98,78 @@ public final class ModernColorPickerPopup extends BaseUIComponent {
 	}
 
 	private void drawCurrentPreview(OwoUIGraphics context) {
-		int left = x() + 210;
-		int top = y() + SV_Y;
-		ModernUiTheme.roundedRect(context, left, top, 30, 110, 5,
+		int left = x() + metrics.previewX();
+		int top = y() + metrics.svY();
+		ModernUiTheme.roundedRect(context, left, top,
+				metrics.previewWidth(), metrics.previewHeight(), 1,
 				0xFF000000 | state.rgb());
-		context.drawRectOutline(left, top, 30, 110, 0x88798BA5);
+		context.drawRectOutline(left, top, metrics.previewWidth(), metrics.previewHeight(),
+				ModernUiTheme.PANEL_BORDER);
 	}
 
 	private void drawHexInput(OwoUIGraphics context, TextRenderer renderer) {
 		context.drawText(renderer, Text.translatable("chat_canvas.color_picker.hex"),
-				x() + HEX_X, y() + 143, ModernUiTheme.TEXT_SECONDARY, false);
+				x() + metrics.svX(), y() + metrics.hexY() - 11,
+				ModernUiTheme.TEXT_SECONDARY, false);
 		int border = state.hexValid()
-				? hexFocused ? ModernUiTheme.ACCENT : 0x66596A82
-				: 0xFFE36D76;
-		ModernUiTheme.roundedRect(context, x() + HEX_X, y() + HEX_Y,
-				HEX_WIDTH, HEX_HEIGHT, 4, 0xCC242A36);
-		context.drawRectOutline(x() + HEX_X, y() + HEX_Y, HEX_WIDTH, HEX_HEIGHT, border);
+				? hexFocused ? ModernUiTheme.ACCENT : ModernUiTheme.PANEL_BORDER
+				: ModernUiTheme.DANGER;
+		ModernUiTheme.roundedRect(context, x() + metrics.svX(), y() + metrics.hexY(),
+				metrics.svWidth(), metrics.hexHeight(), 1, ModernUiTheme.CONTROL_BACKGROUND);
+		context.drawRectOutline(x() + metrics.svX(), y() + metrics.hexY(),
+				metrics.svWidth(), metrics.hexHeight(), border);
 		String text = state.hexInput();
-		String visible = renderer.trimToWidth(text, HEX_WIDTH - 12, true);
-		context.drawText(renderer, visible, x() + HEX_X + 6,
-				y() + HEX_Y + (HEX_HEIGHT - renderer.fontHeight) / 2,
-				state.hexValid() ? 0xFFF0F3F8 : 0xFFFFA3A8, false);
+		String visible = renderer.trimToWidth(text, metrics.svWidth() - 12, true);
+		context.drawText(renderer, visible, x() + metrics.svX() + 6,
+				y() + metrics.hexY() + (metrics.hexHeight() - renderer.fontHeight) / 2,
+				state.hexValid() ? ModernUiTheme.TEXT_PRIMARY : ModernUiTheme.DANGER, false);
 		if (hexFocused && (System.currentTimeMillis() / 350L) % 2L == 0L) {
-			int cursorX = Math.min(x() + HEX_X + HEX_WIDTH - 5,
-					x() + HEX_X + 6 + renderer.getWidth(visible));
-			context.fill(cursorX, y() + HEX_Y + 5, cursorX + 1,
-					y() + HEX_Y + HEX_HEIGHT - 5, 0xFFFFFFFF);
+			int cursorX = Math.min(x() + metrics.svX() + metrics.svWidth() - 5,
+					x() + metrics.svX() + 6 + renderer.getWidth(visible));
+			context.fill(cursorX, y() + metrics.hexY() + 4, cursorX + 1,
+					y() + metrics.hexY() + metrics.hexHeight() - 4, ModernUiTheme.TEXT_PRIMARY);
 		}
-		if (!state.hexValid()) {
+		if (!state.hexValid() && !metrics.compact()) {
 			context.drawText(renderer, Text.translatable("chat_canvas.color_picker.invalid"),
-					x() + HEX_X, y() + 179, 0xFFFF858D, false);
+					x() + metrics.svX(), y() + metrics.hexY() + metrics.hexHeight() + 3,
+					ModernUiTheme.DANGER, false);
 		}
 	}
 
 	private void drawRecentColors(OwoUIGraphics context, TextRenderer renderer) {
 		context.drawText(renderer, Text.translatable("chat_canvas.color_picker.recent"),
-				x() + RECENT_X, y() + 190, ModernUiTheme.TEXT_SECONDARY, false);
+				x() + metrics.margin(), y() + metrics.recentY() - 10,
+				ModernUiTheme.TEXT_SECONDARY, false);
 		for (int index = 0; index < 8; index++) {
-			int left = x() + RECENT_X + index * (RECENT_SIZE + RECENT_GAP);
+			int left = x() + metrics.margin()
+					+ index * (metrics.recentSize() + metrics.recentGap());
 			int color = index < request.recentColors().size()
 					? 0xFF000000 | request.recentColors().get(index)
-					: 0x552B313E;
-			ModernUiTheme.roundedRect(context, left, y() + RECENT_Y,
-					RECENT_SIZE, RECENT_SIZE, 4, color);
-			context.drawRectOutline(left, y() + RECENT_Y,
-					RECENT_SIZE, RECENT_SIZE, 0x665E6B80);
+					: ModernUiTheme.CONTROL_DISABLED;
+			ModernUiTheme.roundedRect(context, left, y() + metrics.recentY(),
+					metrics.recentSize(), metrics.recentSize(), 1, color);
+			context.drawRectOutline(left, y() + metrics.recentY(),
+					metrics.recentSize(), metrics.recentSize(), ModernUiTheme.PANEL_BORDER);
 		}
 	}
 
 	private void drawActions(OwoUIGraphics context, TextRenderer renderer,
 							 int mouseX, int mouseY) {
-		drawAction(context, renderer, x() + 10, y() + BUTTON_Y, 96, 22,
+		drawAction(context, renderer, x() + metrics.restoreX(), y() + metrics.buttonY(),
+				metrics.restoreWidth(), metrics.buttonHeight(),
 				Text.translatable("chat_canvas.color_picker.restore_default"),
-				inside(mouseX, mouseY, x() + 10, y() + BUTTON_Y, 96, 22), true);
-		drawAction(context, renderer, x() + 112, y() + BUTTON_Y, 60, 22,
+				inside(mouseX, mouseY, x() + metrics.restoreX(), y() + metrics.buttonY(),
+						metrics.restoreWidth(), metrics.buttonHeight()), true);
+		drawAction(context, renderer, x() + metrics.cancelX(), y() + metrics.buttonY(),
+				metrics.cancelWidth(), metrics.buttonHeight(),
 				Text.translatable("chat_canvas.action.cancel"),
-				inside(mouseX, mouseY, x() + 112, y() + BUTTON_Y, 60, 22), true);
-		drawAction(context, renderer, x() + 178, y() + BUTTON_Y, 62, 22,
+				inside(mouseX, mouseY, x() + metrics.cancelX(), y() + metrics.buttonY(),
+						metrics.cancelWidth(), metrics.buttonHeight()), true);
+		drawAction(context, renderer, x() + metrics.confirmX(), y() + metrics.buttonY(),
+				metrics.confirmWidth(), metrics.buttonHeight(),
 				Text.translatable("chat_canvas.action.confirm"),
-				inside(mouseX, mouseY, x() + 178, y() + BUTTON_Y, 62, 22),
+				inside(mouseX, mouseY, x() + metrics.confirmX(), y() + metrics.buttonY(),
+						metrics.confirmWidth(), metrics.buttonHeight()),
 				state.hexValid());
 	}
 
@@ -173,13 +177,15 @@ public final class ModernColorPickerPopup extends BaseUIComponent {
 								   int x, int y, int width, int height,
 								   Text label, boolean hovered, boolean active) {
 		int background = !active
-				? 0x55343A48
-				: hovered ? 0xE04B5970 : 0xC8374256;
-		ModernUiTheme.roundedRect(context, x, y, width, height, 5, background);
-		int color = active ? 0xFFF0F3F8 : 0xFF737C8C;
-		int textX = x + Math.max(3, (width - renderer.getWidth(label)) / 2);
+				? ModernUiTheme.CONTROL_DISABLED
+				: hovered ? ModernUiTheme.CONTROL_HOVER : ModernUiTheme.CONTROL_BACKGROUND;
+		ModernUiTheme.roundedRect(context, x, y, width, height, 1, background);
+		ModernUiTheme.border(context, x, y, width, height, ModernUiTheme.PANEL_BORDER);
+		int color = active ? ModernUiTheme.TEXT_PRIMARY : ModernUiTheme.TEXT_DISABLED;
+		String fitted = ModernUiTheme.fitText(renderer, label, Math.max(1, width - 6));
+		int textX = x + Math.max(3, (width - renderer.getWidth(fitted)) / 2);
 		int textY = y + (height - renderer.fontHeight) / 2;
-		context.drawText(renderer, label, textX, textY, color, false);
+		context.drawText(renderer, fitted, textX, textY, color, false);
 	}
 
 	@Override
@@ -190,42 +196,55 @@ public final class ModernColorPickerPopup extends BaseUIComponent {
 		if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT || closed) {
 			return true;
 		}
-		if (hexFocused && !inside(mouseX, mouseY, HEX_X, HEX_Y, HEX_WIDTH, HEX_HEIGHT)) {
+		if (hexFocused && !inside(mouseX, mouseY, metrics.svX(), metrics.hexY(),
+				metrics.svWidth(), metrics.hexHeight())) {
 			hexFocused = false;
 			selectAllHex = false;
 			if (state.hexValid()) {
 				state.normalizeHexInput();
 			}
 		}
-		if (inside(mouseX, mouseY, SV_X, SV_Y, SV_WIDTH, SV_HEIGHT)) {
+		if (inside(mouseX, mouseY, metrics.svX(), metrics.svY(),
+				metrics.svWidth(), metrics.svHeight())) {
 			dragging = DragSection.SATURATION_VALUE;
 			updateFromPointer(mouseX, mouseY);
-		} else if (inside(mouseX, mouseY, HUE_X, HUE_Y, HUE_WIDTH, HUE_HEIGHT)) {
+		} else if (inside(mouseX, mouseY, metrics.svX(), metrics.hueY(),
+				metrics.svWidth(), metrics.hueHeight())) {
 			dragging = DragSection.HUE;
 			updateFromPointer(mouseX, mouseY);
-		} else if (inside(mouseX, mouseY, HEX_X, HEX_Y, HEX_WIDTH, HEX_HEIGHT)) {
+		} else if (inside(mouseX, mouseY, metrics.svX(), metrics.hexY(),
+				metrics.svWidth(), metrics.hexHeight())) {
 			hexFocused = true;
 			selectAllHex = true;
-		} else if (inside(mouseX, mouseY, RECENT_X, RECENT_Y,
-				8 * (RECENT_SIZE + RECENT_GAP) - RECENT_GAP, RECENT_SIZE)) {
-			int index = (int) ((mouseX - RECENT_X) / (RECENT_SIZE + RECENT_GAP));
-			int within = (int) ((mouseX - RECENT_X) % (RECENT_SIZE + RECENT_GAP));
-			if (within < RECENT_SIZE && index >= 0 && index < request.recentColors().size()) {
+		} else if (inside(mouseX, mouseY, metrics.margin(), metrics.recentY(),
+				8 * (metrics.recentSize() + metrics.recentGap()) - metrics.recentGap(),
+				metrics.recentSize())) {
+			int offset = (int) mouseX - metrics.margin();
+			int index = offset / (metrics.recentSize() + metrics.recentGap());
+			int within = offset % (metrics.recentSize() + metrics.recentGap());
+			if (within < metrics.recentSize()
+					&& index >= 0 && index < request.recentColors().size()) {
 				applyRgb(request.recentColors().get(index));
 			}
-		} else if (inside(mouseX, mouseY, 10, BUTTON_Y, 96, 22)) {
+		} else if (inside(mouseX, mouseY, metrics.restoreX(), metrics.buttonY(),
+				metrics.restoreWidth(), metrics.buttonHeight())) {
 			applyRgb(request.defaultRgb());
-		} else if (inside(mouseX, mouseY, 112, BUTTON_Y, 60, 22)) {
+		} else if (inside(mouseX, mouseY, metrics.cancelX(), metrics.buttonY(),
+				metrics.cancelWidth(), metrics.buttonHeight())) {
 			cancel();
-		} else if (inside(mouseX, mouseY, 178, BUTTON_Y, 62, 22)) {
+		} else if (inside(mouseX, mouseY, metrics.confirmX(), metrics.buttonY(),
+				metrics.confirmWidth(), metrics.buttonHeight())) {
 			confirm();
 		}
 		return true;
 	}
 
-	// @Override — owo-lib 0.12.24 signature changed
-	public boolean onMouseDrag(double mouseX, double mouseY, double deltaX,
-							   double deltaY, int button) {
+	@Override
+	public boolean onMouseDrag(net.minecraft.client.gui.Click click,
+									   double deltaX, double deltaY) {
+		double mouseX = click.x();
+		double mouseY = click.y();
+		int button = click.button();
 		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && dragging != DragSection.NONE) {
 			updateFromPointer(mouseX, mouseY);
 		}
@@ -234,9 +253,6 @@ public final class ModernColorPickerPopup extends BaseUIComponent {
 
 	@Override
 	public boolean onMouseUp(net.minecraft.client.gui.Click click) {
-		double mouseX = click.x();
-		double mouseY = click.y();
-		int button = click.button();
 		dragging = DragSection.NONE;
 		return true;
 	}
@@ -244,8 +260,6 @@ public final class ModernColorPickerPopup extends BaseUIComponent {
 	@Override
 	public boolean onKeyPress(net.minecraft.client.input.KeyInput input) {
 		int keyCode = input.key();
-		int scanCode = input.scancode();
-		int modifiers = input.modifiers();
 		if (!hexFocused || closed) {
 			return true;
 		}
@@ -262,12 +276,12 @@ public final class ModernColorPickerPopup extends BaseUIComponent {
 			return true;
 		}
 		if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
-			String hexInputStr = state.hexInput();
+			String hexInput = state.hexInput();
 			if (selectAllHex) {
 				state.updateHexInput("");
 				selectAllHex = false;
-			} else if (!hexInputStr.isEmpty()) {
-				state.updateHexInput(hexInputStr.substring(0, hexInputStr.length() - 1));
+			} else if (!hexInput.isEmpty()) {
+				state.updateHexInput(hexInput.substring(0, hexInput.length() - 1));
 			}
 			return true;
 		}
@@ -276,8 +290,6 @@ public final class ModernColorPickerPopup extends BaseUIComponent {
 
 	@Override
 	public boolean onCharTyped(net.minecraft.client.input.CharInput chr) {
-		char character = (char) chr.codepoint();
-		int modifiers = chr.modifiers();
 		if (!hexFocused || closed || Character.isISOControl(chr.codepoint())) {
 			return false;
 		}
@@ -316,11 +328,11 @@ public final class ModernColorPickerPopup extends BaseUIComponent {
 
 	private void updateFromPointer(double mouseX, double mouseY) {
 		if (dragging == DragSection.SATURATION_VALUE) {
-			float saturation = clamp01((float) ((mouseX - SV_X) / SV_WIDTH));
-			float value = 1.0f - clamp01((float) ((mouseY - SV_Y) / SV_HEIGHT));
+			float saturation = clamp01((float) ((mouseX - metrics.svX()) / metrics.svWidth()));
+			float value = 1.0f - clamp01((float) ((mouseY - metrics.svY()) / metrics.svHeight()));
 			state.setHsv(state.hue(), saturation, value);
 		} else if (dragging == DragSection.HUE) {
-			float hue = clamp01((float) ((mouseX - HUE_X) / HUE_WIDTH));
+			float hue = clamp01((float) ((mouseX - metrics.svX()) / metrics.svWidth()));
 			state.setHsv(hue, state.saturation(), state.value());
 		}
 		request.livePreview().accept(state.rgb());

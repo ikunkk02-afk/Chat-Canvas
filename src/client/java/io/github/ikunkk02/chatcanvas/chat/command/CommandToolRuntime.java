@@ -59,15 +59,16 @@ public final class CommandToolRuntime {
 		MANAGER.flush();
 	}
 
-	public static void reportToolError(String summary, Throwable throwable) {
-		reportError(summary, throwable);
+	public static void reportToolError(String translationKey, Throwable throwable) {
+		reportError(translationKey, throwable);
 	}
 
-	private static void reportError(String summary, Throwable throwable) {
-		if (throwable == null) ChatCanvas.LOGGER.warn(summary);
+	private static void reportError(String translationKey, Throwable throwable) {
+		Text summary = Text.translatable(translationKey);
+		if (throwable == null) ChatCanvas.LOGGER.warn(summary.getString());
 		try {
 			ChatCanvasMessageIngress.instance().reportError(
-					Text.literal("[Chat Canvas] " + summary), throwable);
+					Text.literal("[Chat Canvas] ").append(summary), throwable);
 		} catch (RuntimeException nested) {
 			ChatCanvas.LOGGER.error("Failed to report command tool error", nested);
 		}

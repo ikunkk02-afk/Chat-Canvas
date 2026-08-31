@@ -226,7 +226,11 @@ public final class PreviewChatWidget extends BaseUIComponent implements EditorPo
 
 	private void drawEditorAssist(OwoUIGraphics context, PixelLayout layout) {
 		if (hoveredHandle == ResizeHandle.NONE && activeHandle == ResizeHandle.NONE) return;
-		int color = activeHandle != ResizeHandle.NONE ? 0xFF8EB8FF : 0xCC70A7FF;
+		boolean vanilla = ModernUiTheme.currentStyle()
+				== io.github.ikunkk02.chatcanvas.editor.EditorUiStyle.VANILLA;
+		int color = vanilla
+				? activeHandle != ResizeHandle.NONE ? 0xFF8EB8FF : 0xCC70A7FF
+				: activeHandle != ResizeHandle.NONE ? ModernUiTheme.ACCENT : ModernUiTheme.ACCENT_MUTED;
 		context.fill(layout.x(), layout.y(), layout.right(), layout.y() + 1, color);
 		context.fill(layout.x(), layout.bottom() - 1, layout.right(), layout.bottom(), color);
 		context.fill(layout.x(), layout.y(), layout.x() + 1, layout.bottom(), color);
@@ -246,8 +250,11 @@ public final class PreviewChatWidget extends BaseUIComponent implements EditorPo
 
 	private void drawHandle(OwoUIGraphics context, int centerX, int centerY, int color) {
 		int half = HANDLE_SIZE / 2;
+		int background = ModernUiTheme.currentStyle()
+				== io.github.ikunkk02.chatcanvas.editor.EditorUiStyle.VANILLA
+				? 0xE6151820 : ModernUiTheme.PANEL_ELEVATED;
 		context.fill(centerX - half, centerY - half, centerX - half + HANDLE_SIZE,
-				centerY - half + HANDLE_SIZE, 0xE6151820);
+				centerY - half + HANDLE_SIZE, background);
 		context.fill(centerX - half + 1, centerY - half + 1, centerX - half + HANDLE_SIZE - 1,
 				centerY - half + HANDLE_SIZE - 1, color);
 	}

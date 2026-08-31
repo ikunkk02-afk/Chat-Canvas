@@ -21,11 +21,10 @@ public final class EmojiFontSupport {
 		if (renderer == null || entry == null) return false;
 		Boolean cached = CACHE.get(entry.unicode());
 		if (cached != null) return cached;
-		// In MC 1.21.9, TextRenderer.getFontStorage() was removed.
-		// Use getWidth() as a heuristic — if the emoji has measurable width,
-		// the font supports it.
 		boolean supported;
 		try {
+			// 1.21.11 no longer exposes TextRenderer font storage/glyph APIs.
+			// A measurable width is the compatible runtime font-support heuristic.
 			supported = renderer.getWidth(entry.unicode()) > 0;
 		} catch (RuntimeException failure) {
 			supported = false;
