@@ -1,535 +1,232 @@
-[简体中文](README.md) | [English](README_EN.md)
+[English](README.md) | [简体中文](README_zh_CN.md)
 
 <p align="center">
   <img src="src/main/resources/assets/chat_canvas/icon.png" width="180" alt="Chat Canvas">
 </p>
 
-# Chat Canvas｜聊天画布
+# Chat Canvas
 
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1-green)
 ![Loader](https://img.shields.io/badge/Loader-Fabric-lightyellow)
 ![Side](https://img.shields.io/badge/Side-Client--only-blue)
 ![Java](https://img.shields.io/badge/Java-21%2B-orange)
-![Version](https://img.shields.io/badge/Version-1.2.0-informational)
+![Version](https://img.shields.io/badge/Version-1.3.0-informational)
 ![License](https://img.shields.io/badge/License-MIT-brightgreen)
 
-Chat Canvas 是一款适用于 **Minecraft 1.21.1 Fabric** 的纯客户端聊天增强模组。
+Chat Canvas is a client-side chat enhancement and redesign mod for **Minecraft 1.21.1 (Fabric)**. It focuses on chat reading, chat input and interface layout, and adds Emoji, offline voice input, local chat history and reliable support for interactive server messages.
 
-玩家可以在实时游戏画面中直接拖拽、缩放并预览聊天栏，同时自定义文字样式、背景、玩家名字颜色、艾特提醒、Emoji 表情、命令工具和语音输入等功能。
+Everything is configured in a visual editor directly in the game — no config-file editing required.
 
-模组提供两套可随时切换的**编辑器视觉主题**，使用相同布局、功能和配置，只改变 UI 控件外观。
+## What's New in 1.3.0
 
----
+- Reworked offline voice input with multiple ASR models
+- VAD automatic endpoint detection (speech starts and ends on its own)
+- Model manager with SHA-256 verified downloads and hot-swap switching
+- Android / iOS compatibility layer for the voice system
+- Expanded Emoji picker (130+ emoji, 10 categories)
+- Traditional Chinese (繁體中文) support
+- Improved server interactive-message support (ClickEvent / HoverEvent)
+- Restyled and responsive settings UI
 
-## 目录
+## Features
 
-- [核心特色](#核心特色)
-- [两种编辑器视觉主题](#两种编辑器视觉主题)
-- [安装要求](#安装要求)
-- [安装方法](#安装方法)
-- [快速开始](#快速开始)
-- [可视化编辑器](#可视化编辑器)
-- [双聊天频道](#双聊天频道)
-- [布局设置](#布局设置)
-- [文字设置](#文字设置)
-- [背景设置](#背景设置)
-- [玩家颜色](#玩家颜色)
-- [艾特与通知](#艾特与通知)
-- [玩家快捷操作](#玩家快捷操作)
-- [命令工具](#命令工具)
-- [Emoji 表情](#emoji-表情)
-- [语音输入](#语音输入)
-- [聊天记录保存](#聊天记录保存)
-- [配置与数据文件](#配置与数据文件)
-- [兼容性](#兼容性)
-- [安全说明](#安全说明)
-- [已知限制](#已知限制)
-- [常见问题](#常见问题)
-- [故障排查](#故障排查)
-- [开发与构建](#开发与构建)
-- [问题反馈](#问题反馈)
-- [作者与视频主页](#作者与视频主页)
-- [许可证](#许可证)
+### Chat Interface
 
----
+- Visual chat editor with real-time in-game preview
+- Drag to reposition and eight-direction resize of the chat HUD, with edge and centre snapping
+- **Two selectable editor visual themes**: Chat Canvas (modern) and Minecraft-style — identical layout, features and configuration
+- **Dual chat channels**: player chat and command & system messages, each with independent position, size, style and scrolling
+- **Split alignment layout**: classic or left/right column layout, with own and other players' messages visually separated and an adjustable message width
+- Player avatars via [Chat Heads](https://modrinth.com/mod/chat-heads) (not bundled)
+- Text size, line spacing, character spacing, opacity, shadow and alignment
+- Message background colour, opacity, display mode and padding; input box background and border
+- Undo / redo while editing (Ctrl+Z / Ctrl+Y)
 
-## 核心特色
+### Player Colours, Mentions and Quick Actions
 
-- ✅ 实时游戏画面中拖拽和缩放聊天栏
-- ✅ 所见即所得的聊天预览
-- ✅ 八方向缩放 + 屏幕边缘与中心吸附
-- ✅ 设置面板自动左右避让
-- ✅ **两套可切换的编辑器视觉主题**（Chat Canvas 原生 / Minecraft 原版风格）
-- ✅ **双聊天频道**：玩家聊天 + 命令与系统消息栏，可分别配置位置和样式
-- ✅ 文字大小、字间距、行间距、透明度、阴影和对齐
-- ✅ 消息背景颜色、透明度和显示模式
-- ✅ **玩家聊天左右分栏布局**（经典 / 左右分栏）
-- ✅ 玩家名字自动分配颜色 + 手动覆盖
-- ✅ 双击 @ 艾特 + 提示音 / Toast / 全屏闪烁
-- ✅ 右键玩家名字快捷菜单
-- ✅ **命令工具**：最近执行 / 收藏指令 / 剪贴板，支持搜索、排序、敏感命令排除
-- ✅ **Emoji 表情面板**：分类浏览、搜索、最近使用
-- ✅ **本地离线中文语音输入**（按住 V 说话，Vosk 模型）
-- ✅ **聊天记录本地保存**：按世界/服务器分目录，UTF-8 JSONL，自动轮换和清理
-- ✅ 兼容 Chat Heads / More Chat History / ChatAnimation / Smooth Scrolling
-- ✅ Ctrl+Z / Ctrl+Y 撤销与重做
-- ✅ 主题偏好持久保存
+- Stable automatic colours assigned by player UUID, with a custom palette and manual per-player overrides
+- Option to keep the server's original name colours
+- Double-click a player name to insert `@name` at the cursor; mention highlighting with custom colour and bold
+- Mention notifications: sound, toast, or full-screen flash (own mentions ignored by default)
+- Right-click a player name for quick actions: mention, private message template (`/msg`, `/tell`, `/w`), or copy name
+- All quick actions only fill the input box — nothing is sent automatically
 
----
+## Interactive Server Messages
 
-## 两种编辑器视觉主题
+Chat Canvas preserves vanilla component interactions in chat messages, including:
 
-Chat Canvas 提供两套编辑器**视觉主题**，不是两套不同的编辑器。两套主题：
+- `ClickEvent`: run command, suggest command, open URL, copy to clipboard
+- `HoverEvent`: tooltips
 
-- 使用完全相同的编辑器布局
-- 使用完全相同的功能
-- 读写同一份配置文件
-- 共享同一个编辑会话（EditorSession）
-- 共享同一个撤销 / 重做历史
-- 切换主题不丢失未保存的修改
-- 只改变按钮、面板、滑块等 UI 控件的外观
+This means server features such as `/tpa` accept/deny buttons, clickable links and copyable text keep working inside the redesigned chat. The exact behaviour depends on what the server sends using vanilla components.
 
-### Chat Canvas 原生主题
+## Voice Input
 
-- 半透明现代化设置面板
-- 圆角、阴影和自定义控件
-- 蓝色与紫色强调色
-- 自定义数值拖拽控件
-- 适合喜欢现代化 UI 的玩家
+Press **V** to open chat and start voice input, and press **V** again to finish. Speech-to-text runs fully offline after a model is installed.
 
-### Minecraft 原版风格主题
+- Hold-free recording: start with V, stop with V, or let VAD end the sentence automatically
+- Silero VAD with configurable listen timeout, endpoint silence and tail padding
+- Partial results are shown live while speaking; the final result is inserted at the cursor
+- Results are never sent automatically — review before pressing Enter
+- Microphone device selection and level testing
+- Optional automatic final punctuation and character limit handling
+- Maximum recording time, noise threshold and ASR thread settings
 
-- 使用 Minecraft 风格按钮、边框、滑块和文本框
-- 方形结构和原版灰色视觉
-- 保持相同的编辑器布局和功能
-- 适合希望界面与原版游戏保持一致的玩家
+## Offline Speech Models
 
-> **切换方式**：点击顶部标题栏中的「界面主题」按钮即可切换，偏好会自动保存。
+Chat Canvas does not bundle speech models in the mod JAR. On first use, the model manager lets you pick one of the following models (each downloaded only after your confirmation):
 
----
+| Model | Languages | Size | Profile |
+|---|---|---|---|
+| Streaming Zipformer Chinese | Mandarin | ~30 MB | Low resource, streaming, very fast — suitable for low-end devices and mobile |
+| SenseVoice INT8 | Mandarin, Cantonese, English, Japanese, Korean | ~240 MB | Balanced; higher quality, fast response, offline decoding |
+| Whisper Tiny INT8 | Multilingual | ~104 MB | Offline decoding, broad multilingual coverage |
+| Vosk Small Chinese (legacy) | Mandarin | ~44 MB | Streaming; compatibility option, desktop x86-64 only |
 
-## 安装要求
+Zipformer and Vosk stream partial results while you speak; SenseVoice and Whisper decode after VAD detects the end of a sentence.
 
-| 依赖 | 类型 | 版本 |
+## Model Manager
+
+- Pick a model from the voice settings page; download progress and sizes are shown
+- All downloads are verified against SHA-256 checksums
+- Switching between installed models is hot-swapped — no game restart needed
+- Cancel downloads, release a loaded model, or open the model folder from the UI
+
+## Mobile Support
+
+The voice system includes a compatibility layer for mobile Minecraft launchers:
+
+- **Android** (FCL / Pojav-class Java Minecraft environments): ARM64 and ARM32 native runtimes are downloaded and staged into the app-private cache.
+- **iOS arm64**: the sherpa-onnx native runtime must be supplied by the launcher through the runtime bridge.
+
+Actual microphone access and native library loading depend on what the launcher provides (microphone permission, native runtime support). Chat Canvas detects capabilities at runtime and safely disables voice input when the environment cannot support it — the rest of the mod keeps working.
+
+## Emoji Picker
+
+- 130+ emoji in 10 categories (Smileys, People, Animals, Food, Activities, Travel, Objects, Symbols, Hearts, Recently Used)
+- Search, recently used history (persisted), and multi-language emoji names
+- Virtualized scrollable grid with tooltips and keyboard navigation
+- Emoji that the active font cannot render are hidden automatically
+
+## Chat History
+
+- Player chat messages are saved locally to `.minecraft/chatcanvas/chat-logs/`, isolated per world/server
+- UTF-8 JSON Lines format with daily and size-based rotation, written asynchronously
+- Separately toggle saving of your own messages, other players' messages and the command/system channel
+- Configurable retention days (0 = keep forever) and one-click access to the log folder
+
+Chat logs are plain local files; there is no cloud sync and no in-game history viewer.
+
+## Command Input
+
+- Typing `/` switches the input to command mode with vanilla (Brigadier-based) command suggestions
+- Command tools panel (Ctrl+F in command mode): recently executed commands, favourites with drag ordering, common presets, and the system clipboard
+- Search, edit, delete and categorise saved commands
+- Insert at cursor or replace the input; sensitive commands (e.g. `/login`, `/password`) are flagged and excluded from logging
+- Commands are only ever inserted into the input box — press Enter yourself to run them
+
+## Languages
+
+- English (en_us)
+- 简体中文 (zh_cn)
+- 繁體中文（台灣） (zh_tw)
+
+## Responsive UI
+
+The editor adapts to Minecraft's logical GUI size, so it works across GUI scales, window sizes, common aspect ratios (16:9, 16:10, 4:3) and windowed/fullscreen modes. The settings panel also moves automatically to avoid overlapping the chat preview.
+
+## Controls
+
+| Key | Action |
+| --- | --- |
+| K | Open/close the Chat Canvas editor |
+| V | Start / finish voice input |
+| T | Open chat (vanilla) |
+| / | Command input (vanilla) |
+| Ctrl+E | Toggle the Emoji picker |
+| Ctrl+F | Command tools / Emoji search |
+| Ctrl+Z / Ctrl+Y | Undo / redo in the editor |
+
+## Installation
+
+1. Install [Fabric Loader](https://fabricmc.net/use/) for Minecraft 1.21.1
+2. Install [Fabric API](https://modrinth.com/mod/fabric-api) and [owo-lib](https://modrinth.com/mod/owo-lib)
+3. Download the Chat Canvas JAR from [Releases](https://github.com/ikunkk02-afk/Chat-Canvas/releases) and put it in `.minecraft/mods/`
+4. Launch the game (Java 21 or higher)
+5. Optional: install [Mod Menu](https://modrinth.com/mod/modmenu) for an in-game configuration entry point
+
+## Requirements
+
+| Dependency | Type | Version |
 |---|---|---|
-| Minecraft | 必需 | 1.21.1 |
-| Java | 必需 | 21 或更高 |
-| Fabric Loader | 必需 | 0.19.3 或更高 |
-| Fabric API | 必需 | 0.116.14+1.21.1 或更高兼容版本 |
-| owo-lib | 必需 | 0.12.15.4+1.21 或更高兼容版本 |
-| Mod Menu | 可选 | 11.0.4 或兼容版本 |
+| Minecraft | Required | 1.21.1 |
+| Java | Required | 21 or higher |
+| Fabric Loader | Required | 0.19.3 or higher |
+| Fabric API | Required | 0.116.14+1.21.1 or compatible |
+| owo-lib | Required | 0.12.15.4+1.21 or compatible |
+| Mod Menu | Optional | 11.0.4 or compatible |
 
-> Chat Canvas 为纯客户端模组，服务器不需要安装，不会绕过服务器权限。
+## Voice Model Storage
 
----
+Speech models are downloaded at runtime and are never included in the mod JAR.
 
-## 安装方法
+- Models: `config/chatcanvas/voice-models/`
+- sherpa-onnx native runtime and Silero VAD: `config/chatcanvas/voice-runtime/sherpa-onnx/<version>/`
 
-1. 下载 [Chat Canvas](https://github.com/ikunkk02-afk/Chat-Canvas/releases) 最新版本 JAR
-2. 将 JAR 放入 `.minecraft/mods/` 目录
-3. 启动 Minecraft 1.21.1 Fabric
+Delete these folders to reclaim disk space; the model manager will offer to re-download when needed.
 
-安装后可以在 Mod Menu 中看到 Chat Canvas 配置入口。
+## Privacy
 
----
+- With an installed offline model, **speech recognition runs locally**. The microphone and decoding are active only during a voice session; audio is never uploaded or saved.
+- Networking is used only for player-requested downloads (models and the native runtime); these require network on first voice setup.
+- Chat logs and saved commands are stored as local plain-text JSON. Do not save passwords or tokens (e.g. `/login`, `/register`, `/password`) on shared computers.
 
-## 快速开始
+## Compatibility
 
-1. 按 **K**（默认快捷键）打开编辑器
-2. 拖拽聊天框到期望位置
-3. 拖拽边角调整聊天框大小
-4. 在右侧设置面板中切换分类标签进行详细自定义
-5. 点击「保存」应用设置
+Chat Canvas is **client-side only**. It does not need to be installed on the server and works with vanilla, Fabric, Paper or Spigot servers. It does not bypass server permissions — commands are executed by the server as usual.
 
-> 编辑器打开时，你可以在左侧实时预览聊天框的最终效果。
+Known-good coexistence with other chat mods:
 
----
+- [Chat Heads](https://modrinth.com/mod/chat-heads) — avatars are rendered inside the Chat Canvas layout
+- [More Chat History](https://modrinth.com/mod/morechathistory) — history capacity is left to More Chat History
+- [ChatAnimation](https://modrinth.com/mod/chatanimation) — message entry animations are left to ChatAnimation
+- [Smooth Scrolling](https://modrinth.com/mod/smooth-scroll) — scroll animation is left to Smooth Scrolling
 
-## 可视化编辑器
+## Known Limitations
 
-- **实时预览**：在游戏画面中直接看到聊天框调整后的效果
-- **拖拽位置**：在预览区域按住鼠标拖拽聊天框
-- **八方向缩放**：拖拽聊天框的边和角来调整宽度和高度
-- **边缘吸附**：靠近屏幕边缘或中心时自动吸附
-- **设置面板**：右侧浮动面板，自动根据聊天框位置左右换边
-- **分类标签**：布局、文字、背景、玩家颜色、艾特、命令输入、语音、聊天记录 — 共 **8 个分类**，横向滑动切换
-- **撤销 / 重做**：Ctrl+Z / Ctrl+Y，或点击顶部按钮
-- **保存 / 取消**：底部固定操作栏
-- **频道切换**：工具栏可切换编辑玩家聊天栏或命令/系统消息栏
+- Fabric 1.21.1 only; no Forge or NeoForge build.
+- On iOS, voice input requires the launcher to provide a signed sherpa-onnx runtime bridge; on Android it depends on the launcher exposing a usable microphone and allowing native library loading. If unavailable, voice input is disabled safely and the rest of the mod still works.
+- The legacy Vosk model only works on desktop x86-64.
+- If a server plugin rewrites player messages into system messages, the sender UUID may be lost; player colours and name quick actions then cannot be applied reliably.
+- Emoji availability depends on the active font; unsupported glyphs are hidden automatically.
+- Chat logs are plain local files — there is no built-in viewer and no synchronization between devices.
 
----
+## Configuration
 
-## 双聊天频道
+Press **K** in-game (or open Chat Canvas from Mod Menu) to access the editor with eight settings tabs:
 
-Chat Canvas 将聊天分为两个独立频道：
+- Layout — position, size, channel and split-layout options
+- Text — size, spacing, opacity, shadow, alignment
+- Background — message and input box backgrounds
+- Player Colours — automatic colours, palette and overrides
+- Mentions — double-click behaviour, highlighting and notifications
+- Commands — command tools and saved commands
+- Voice — voice input, model manager and microphone settings
+- Chat Log — local chat history options
 
-| 频道 | 说明 |
-|---|---|
-| **玩家聊天** | 普通玩家消息、艾特消息、私聊等 |
-| **命令与系统消息** | 命令执行结果、系统通知、玩家加入/离开、死亡消息等 |
+## Screenshots
 
-两个频道：
-- 拥有独立的位置、大小、文字样式和背景设置
-- 分别滚动，互不影响
-- 在编辑器中可切换编辑
-- 命令系统频道支持消息描边和自定义淡出时间
+Screenshots for 1.3.0 will be added with the release assets.
 
----
+## Credits
 
-## 布局设置
+- [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) — offline ASR runtime and Silero VAD model
+- [Vosk](https://alphacephei.com/vosk/) — legacy small Chinese speech model
+- Speech models distributed via [Hugging Face](https://huggingface.co/csukuangfj) (downloaded at runtime)
+- [Fabric API](https://github.com/FabricMC/fabric), [owo-lib](https://github.com/wisp-forest/owo-lib), [Mod Menu](https://github.com/TerraformersMC/ModMenu)
 
-- X 位置（像素）
-- Y 位置（像素）
-- 宽度（像素）
-- 高度（像素）
-- 聊天已打开 / 已关闭预览状态切换
-- **消息布局**：经典布局 / 左右分栏布局
-- **分栏消息最大宽度比例**
-- 配置以实际像素计算，适配分辨率和 GUI Scale
+See [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for dependency licenses.
 
----
+## License
 
-## 文字设置
-
-- **文字大小**：50% ~ 200%
-- **行间距**：0 ~ 20 像素
-- **字间距**：0.0 ~ 8.0 像素
-- **文字透明度**：0% ~ 100%
-- **文字阴影**：开启 / 关闭
-- **文字对齐**：左对齐 / 居中 / 右对齐
-
-所有文字设置支持中文、英文、Unicode 和 Emoji。
-
-### 数值拖拽
-
-- 鼠标放到数值区域，按住左键**左右拖动**
-- **滚轮**微调
-- **Shift** 精细调整
-- **Ctrl** 快速调整
-- **右键**恢复默认值
-- 松开鼠标后只记录一次撤销历史
-
----
-
-## 背景设置
-
-- **显示模式**：跟随文字 / 整行宽度 / 隐藏
-- **消息背景颜色**：RGB 颜色选择器
-- **消息背景透明度**：0% ~ 100%
-- **水平内边距**：0 ~ 12 像素
-- **垂直内边距**：0 ~ 6 像素
-- **输入框背景颜色**
-- **输入框透明度**：0% ~ 100%
-- **输入框边框颜色**及透明度
-
----
-
-## 玩家颜色
-
-- 根据玩家 **UUID 自动稳定分配**颜色
-- 玩家改名后 UUID 不变 → 颜色不变
-- 支持**手动覆盖**单个玩家颜色
-- 自定义颜色调色板
-- 搜索在线玩家
-- 恢复自动颜色
-- 保留服务器原始颜色模式（不强制替换）
-- 不给 Chat Heads 头像染色
-
----
-
-## 艾特与通知
-
-### 艾特
-
-- **双击玩家名字**插入 `@玩家名`（插入到光标位置，不自动发送）
-- 艾特高亮显示
-- 自定义高亮颜色
-- 可选粗体
-- 可配置双击间隔时间
-- 可要求只有带 `@` 前缀的才触发
-
-### 艾特通知
-
-- **提示音**：多种音效类型可选，可调节音量和音高
-- **Toast**：屏幕上方弹出通知，可配置消息摘要长度
-- **全屏闪烁**：自定义颜色、透明度、时长
-- 忽略自己的消息
-
----
-
-## 玩家快捷操作
-
-在聊天栏中**右键玩家名字**：
-
-- **艾特玩家**：插入 `@玩家名`
-- **私聊玩家**：使用模板（`/msg {player}` / `/tell {player}` / `/w {player}`）
-- **复制玩家名**
-
-> 所有快捷操作只修改聊天输入框，不自动发送消息。
-
----
-
-## 命令工具
-
-聊天输入框附近有一个「命令」按钮（或按 Ctrl+F）。点击打开命令工具面板：
-
-- **最近执行**：按时间排序的已执行命令记录
-- **收藏指令**：用户保存的常用命令，可拖拽排序
-- **系统剪贴板**：从系统剪贴板读取命令候选
-- **搜索**：按名称或命令内容搜索
-- **编辑 / 删除 / 排序**收藏命令
-- 插入到**光标位置**或**替换整个输入框**
-- Shift 点击临时反转插入模式
-- **敏感命令排除**：自动过滤 `/login`、`/register`、`/password` 等敏感命令
-- 二次确认防止误删、误清空
-- 退出世界和重启游戏后数据保留
-- **不自动执行命令**
-
----
-
-## Emoji 表情
-
-聊天输入框旁边有一个「Emoji」按钮。点击打开表情面板：
-
-- **10 个分类**：笑脸、人物、动物、食物、活动、旅行、物品、符号、爱心、最近使用
-- **搜索**：按名称搜索 Emoji
-- **最近使用**：自动记录，跨会话保留
-- 点击 Emoji 插入到光标位置
-- 显示字符簇数量和输入长度限制
-- 兼容中文、英文和 Unicode
-
----
-
-## 语音输入
-
-按住 **V**（默认快捷键）进行语音输入，基于本地离线 Vosk 中文语音识别：
-
-- **完全本地运行**，无需联网
-- 中文语音模型（vosk-model-small-cn-0.22，约 42MB）
-- 支持模型下载、安装、释放
-- 麦克风选择和测试
-- 可配置最大录音秒数、噪声阈值
-- 显示输入音量和部分识别结果
-- 自动添加句末标点
-- 语音结果插入聊天输入框光标位置
-- 隐私保护：录音不上传、不保存
-
-> 注意：首次使用需下载中文语音模型。模型仅在主动按住按键时启用麦克风。
-
----
-
-## 聊天记录保存
-
-将玩家聊天消息自动保存到本地文件：
-
-- 保存位置：`.minecraft/chatcanvas/chat-logs/`
-- 按单人世界和多人服务器**分目录隔离**
-- 目录名包含稳定哈希，避免路径穿越
-- 文件格式：UTF-8 JSON Lines（`.jsonl`），每条消息一行
-- 按天自动轮换文件，支持大小轮换
-- **异步写入**，不阻塞游戏
-- 默认保存玩家聊天，可分别开关自己/他人消息
-- 命令与系统消息默认不保存，可独立开启
-- 敏感命令（如 `/login`、`/register`）始终排除
-- 可配置保留天数（0 = 永久保留）
-- 一键打开聊天记录目录
-
----
-
-## 配置与数据文件
-
-配置文件保存在客户端本地：
-
-| 文件 | 路径 |
-|---|---|
-| 主配置 | `.minecraft/config/chat_canvas.json` |
-| 命令工具 | `.minecraft/config/chat_canvas/commands.json` |
-| Emoji 最近使用 | `.minecraft/config/chat_canvas/emoji.json` |
-| 语音设置 | `.minecraft/config/chatcanvas/voice.json` |
-| 语音模型 | `.minecraft/config/chatcanvas/voice-models/` |
-| 聊天记录 | `.minecraft/chatcanvas/chat-logs/` |
-| 聊天记录设置 | `.minecraft/config/chatcanvas/chatlog.json` |
-
-- 切换世界或服务器不会丢失配置
-- 删除主配置文件可恢复默认设置
-- 修改前建议备份
-- 游戏运行期间不建议手动编辑
-- 配置损坏时模组会尝试备份并重建默认配置
-
----
-
-## 兼容性
-
-### Chat Heads
-
-Chat Canvas 不提供玩家头像。安装 Chat Heads 后，头像会正常显示在聊天栏中，参与文字宽度、背景对齐的计算。双击和右键点击只响应玩家名字，不响应头像区域。
-
-### More Chat History
-
-Chat Canvas 不修改聊天历史容量上限，由 More Chat History 管理。
-
-### ChatAnimation
-
-Chat Canvas 不提供消息进入动画。动画交给 ChatAnimation，Chat Canvas 继续负责布局和样式。
-
-### Smooth Scrolling
-
-Chat Canvas 不实现重复的滚动动画，平滑滚动交给 Smooth Scrolling。
-
-> 不同版本组合、资源包、自定义字体、GUI Scale 和大型整合包环境可能存在差异。
-
----
-
-## 安全说明
-
-> [!WARNING]
-> 命令工具和聊天记录以本地明文 JSON 保存。**请勿在公共电脑或不受信任的环境中保存密码、令牌或隐私信息**，例如 `/login`、`/register`、`/password`。
-
-- Chat Canvas**不会上传**用户命令或聊天记录
-- 不会将数据发送给作者或第三方
-- 点击命令**不会自动执行**，只填入输入框
-- 玩家按 Enter 后，命令才由客户端或服务器处理
-- 保存含敏感关键词的命令会显示明文存储警告
-- 语音识别完全本地运行，录音不上传
-- 用户仍应自行判断是否保存敏感信息
-
----
-
-## 已知限制
-
-1. 当前仅支持 Fabric 1.21.1
-2. 为客户端模组，不提供 Forge 或 NeoForge 版本
-3. 不提供玩家头像，需要使用 Chat Heads
-4. 不提供聊天消息进入动画，需要使用 ChatAnimation
-5. 不提供滚动动画，需要使用 Smooth Scrolling
-6. 某些服务器插件将玩家消息转换为系统消息后，可能无法可靠识别发送者 UUID
-7. 无法识别玩家身份时，玩家颜色和名字快捷操作可能不生效
-8. 自定义字体可能改变宽度、换行和点击区域
-9. 特殊聊天格式模组可能需要额外兼容
-10. 私聊命令由服务器决定，不一定支持 `/msg`
-11. 命令权限由服务器决定，Chat Canvas 不会绕过权限
-12. 语音识别仅支持中文，需要单独下载模型
-13. 键盘按住语音（V 键）在部分环境下响应可能不稳定，可改用鼠标点击麦克风按钮
-
----
-
-## 常见问题
-
-### 如何打开编辑器？
-
-按 **K**（默认快捷键），或在 Mod Menu 中点击 Chat Canvas 的配置按钮。可以在 Minecraft 控制设置中修改快捷键。
-
-### 如何切换两种主题？
-
-点击编辑器顶部标题栏中的「界面主题」按钮，选择想要的主题。
-
-### 切换主题会不会丢失修改？
-
-不会。切换主题只改变控件的视觉外观，所有未保存的修改、撤销记录和当前分类都会保留。
-
-### 为什么安装后没有 Mod Menu 配置入口？
-
-请确认已安装 Mod Menu。Chat Canvas 会在 Mod Menu 中自动注册配置入口。
-
-### 为什么某些玩家名字没有自动颜色？
-
-如果服务器将玩家消息转换为系统消息，可能丢失发送者 UUID 信息，导致无法分配颜色。
-
-### 为什么双击名字没有插入艾特？
-
-请确认艾特设置中「双击玩家名字」已启用，且在可配置的时间间隔内双击。
-
-### 为什么命令按钮在面板打开后消失？
-
-这是正常行为。命令工具打开时入口按钮自动隐藏，避免遮挡面板；关闭面板后按钮会恢复。
-
-### 为什么点击命令不会直接执行？
-
-Chat Canvas 设计为只填入命令到输入框，由玩家确认后手动按 Enter 发送。这是为了安全和可控。
-
-### 如何使用语音输入？
-
-按住 **V** 键说话，松手后自动识别。首次使用需在语音设置中下载中文模型。也可用鼠标点击聊天框旁的麦克风图标。
-
-### 聊天记录保存在哪里？
-
-`.minecraft/chatcanvas/chat-logs/`，按世界/服务器分目录，JSONL 格式。
-
-### 为什么我的聊天记录里没有命令？
-
-命令与系统消息默认不保存。可在编辑器的「聊天记录」分类中开启「保存命令与系统栏记录」。
-
-### Chat Canvas 是否需要服务器安装？
-
-不需要。Chat Canvas 是纯客户端模组。
-
-### 是否支持 Forge / NeoForge？
-
-当前版本仅支持 Fabric 1.21.1。
-
----
-
-## 故障排查
-
-1. 确认 Minecraft 版本为 1.21.1
-2. 确认 Fabric Loader 已安装
-3. 确认 Fabric API 和 owo-lib 已安装
-4. 备份 `config/chat_canvas.json` 和相关配置目录
-5. 临时重命名配置文件，测试是否为配置损坏
-6. 只保留 Chat Canvas 和必需依赖测试
-7. 分批恢复其他模组排查冲突
-8. 检查自定义字体和资源包
-9. 提交 `latest.log`、模组列表、截图和复现步骤
-
----
-
-## 开发与构建
-
-```bash
-# 克隆仓库
-git clone https://github.com/ikunkk02-afk/Chat-Canvas.git
-cd Chat-Canvas
-
-# 构建
-./gradlew.bat build
-
-# 运行测试客户端
-./gradlew.bat runClient
-```
-
-- Java 21+
-- Gradle 通过 wrapper 自动下载
-
----
-
-## 问题反馈
-
-请在 [Issues](https://github.com/ikunkk02-afk/Chat-Canvas/issues) 提交问题，并尽可能提供：
-
-- Chat Canvas 版本
-- Minecraft 版本
-- Fabric Loader / Fabric API / owo-lib 版本
-- 其他聊天相关模组
-- GUI Scale
-- 资源包和字体
-- `latest.log`
-- 截图或视频
-- 稳定的复现步骤
-
----
-
-## 作者与视频主页
-
-Chat Canvas 由 **寿云** 开发和维护。
-
-- 哔哩哔哩：[https://space.bilibili.com/1832031043](https://space.bilibili.com/1832031043?spm_id_from=333.1007.0.0)
-- 抖音：[https://www.douyin.com/user/MS4wLjABAAAAXPEr9Q0OnMztYvgDTXt6H3g9_626CRAmMbX1L64pBkxbvbHR2ACMWmL55mIL0-Gi](https://www.douyin.com/user/MS4wLjABAAAAXPEr9Q0OnMztYvgDTXt6H3g9_626CRAmMbX1L64pBkxbvbHR2ACMWmL55mIL0-Gi)
-- GitHub：[https://github.com/ikunkk02-afk/Chat-Canvas](https://github.com/ikunkk02-afk/Chat-Canvas)
-
----
-
-## 许可证
-
-本项目使用 [MIT License](LICENSE)。
-
-Copyright &copy; 2026 寿云
+[MIT](LICENSE) — Copyright &copy; 2026 寿云
