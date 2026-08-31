@@ -1,80 +1,60 @@
-# Test Report: Chat Canvas 1.2.0 for Minecraft 1.21.7
+# Test Report: Chat Canvas 1.3.0 for Minecraft 1.21.7
 
 ## Environment
 
 | Item | Value |
 |------|-------|
-| Date | 2026-07-29 |
+| Date | 2026-08-31 |
 | Minecraft | 1.21.7 |
 | Fabric Loader | 0.19.3 |
 | Fabric API | 0.129.0+1.21.7 |
 | owo-lib | 0.12.21+1.21.6 |
 | Yarn mappings | 1.21.7+build.8 |
-| Java | 21 |
-| OS | Windows 10 |
+| Java | 22 runtime; Java 21 bytecode target |
+| OS | Windows |
 
 ## Build Results
 
 | Step | Status | Notes |
 |------|--------|-------|
-| `./gradlew compileJava` | PENDING | Waiting for compilation |
-| `./gradlew test` | PENDING | |
-| `./gradlew build` | PENDING | |
-| `./gradlew runClient` | PENDING | |
+| `gradlew.bat compileJava compileClientJava` | PASS | Target API adaptations compile |
+| `gradlew.bat test` | PASS | 263 tests, 0 failures, 0 errors, 1 skipped |
+| `gradlew.bat build` | PASS | Remapped mod JAR produced |
+| `gradlew.bat runClient` | PASS | Reached a 1.21.7 single-player world; stopped manually after startup verification |
 
 ## Mixin Runtime Verification
 
-| Mixin | Runtime Status | Notes |
-|-------|---------------|-------|
-| ChatScreenMixin | PENDING | All injections compatible |
-| KeyboardMixin | PENDING | onKey signature unchanged |
-| ChatHudMixin | PENDING | 4 @WrapOperation removed |
-| ChatInputSuggestorMixin | PENDING | |
-| TextFieldWidgetMixin | PENDING | RenderPipelines import fixed |
-| TextRendererDrawerMixin | PENDING | |
-| ClientPlayNetworkHandlerMixin | PENDING | |
-| AbstractParentElementMixin | PENDING | |
+All 16 entries in `chat_canvas.client.mixins.json` loaded during `runClient`; no
+Chat Canvas Mixin apply error was emitted. The vanilla `ChatHud.render` lambda
+refactor is handled by the active `DualChatHudRenderer`; the four old render
+wrappers were removed because their 1.21.1 injection points no longer exist in
+1.21.7.
 
-## Functional Testing
+## Automated Functional Coverage
 
-| Test | Status | Notes |
-|------|--------|-------|
-| Enter main menu | PENDING | |
-| Enter singleplayer world | PENDING | |
-| Press T for player chat | PENDING | |
-| Press / for command mode | PENDING | |
-| Auto-switch to command mode | PENDING | |
-| Player chat channel works | PENDING | |
-| Command system channel works | PENDING | |
-| Classic layout | PENDING | |
-| Split left-right layout | PENDING | |
-| Self messages right-aligned | PENDING | |
-| Other messages left-aligned | PENDING | |
-| Word wrapping | PENDING | |
-| Double-click player name @mention | PENDING | |
-| Mention notification (once) | PENDING | |
-| Emoji panel | PENDING | |
-| Unicode cursor/navigation | PENDING | |
-| Mouse voice input | PENDING | |
-| Keyboard voice input (V) | PENDING | |
-| Chinese recognition | PENDING | |
-| Mic concurrent release | PENDING | |
-| Local chat log saving | PENDING | |
-| Resource cleanup on world exit | PENDING | |
-| Re-enter world (functionality intact) | PENDING | |
+- Interactive component/style preservation, including run/suggest command values: PASS
+- Emoji registry and resource localization: PASS
+- UI layout metrics and responsive sizing: PASS
+- Voice state machine, VAD endpoint logic, model registry, runtime fallback and text transaction: PASS
+- Chat history, command storage and configuration serialization: PASS
+- OpenAL/JavaSound capability paths and Android staging safety paths: PASS
 
-## Compatibility Mod Testing
+## Runtime / Manual Coverage
 
-| Mod | MC 1.21.7 Available | Test Result |
-|-----|---------------------|-------------|
-| Chat Heads | UNKNOWN | PENDING |
-| More Chat History | UNKNOWN | PENDING |
-| ChatAnimation | UNKNOWN | PENDING |
-| Smooth Scrolling | UNKNOWN | PENDING |
+- Fabric startup, Chat Canvas initialization, resource reload, OpenAL initialization and single-player world entry: PASS
+- Main menu, chat screen, command suggestions, ClickEvent/HoverEvent mouse interaction, Emoji picker, settings controls, GUI Scale 2/3/4/Auto: NOT manually exercised in this run
+- Voice V key flow and final ASR result with a real microphone: NOT tested; hardware interaction was not performed
+- Android/iOS physical launcher/device tests: NOT tested; code paths are compiled and covered by capability/fallback tests
+- Chat Heads, More Chat History, ChatAnimation and Smooth Scrolling coexistence: NOT tested in this isolated development profile
+
+## Observed External Warnings
+
+The development client reported authentication/public-key network timeouts and
+optional class-probe warnings from the dev environment. No Chat Canvas resource,
+Native Runtime, renderer, or Mixin application error was reported.
 
 ## Known Limitations
 
-1. Removed 4 @WrapOperation annotations on ChatHud.render due to lambda refactor — vanilla fallback rendering no longer applies custom backgrounds/text styling
-2. DualChatHudRenderer still provides full custom rendering when Chat Canvas is active
-3. owo-lib 0.12.21+1.21.6 is used (no 1.21.7-specific build exists)
-4. No runtime testing performed yet
+1. The 1.21.7 `ChatHud.render` lambda refactor prevents the old fallback render wrappers from being used; when the custom renderer is active, `DualChatHudRenderer` supplies the complete rendering path.
+2. Offline speech models and platform-native sherpa-onnx libraries remain runtime downloads and are not bundled in the mod JAR.
+3. Real microphone recognition and Android/iOS launcher behavior still require device-level verification.

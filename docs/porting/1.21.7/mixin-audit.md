@@ -1,6 +1,6 @@
 # Mixin Audit: Minecraft 1.21.1 → 1.21.7
 
-## Audit Date: 2026-07-29
+## Audit Date: 2026-08-31
 
 ## Summary
 
@@ -8,9 +8,9 @@
 |-------|--------|-----------------|
 | ChatScreenMixin | ✅ COMPATIBLE | None (all targeted methods unchanged) |
 | KeyboardMixin | ✅ COMPATIBLE | None (onKey signature unchanged) |
-| ChatHudMixin | 🔴 BREAKING | Removed 4 @WrapOperation (lambda refactor) |
+| ChatHudMixin | ✅ ADAPTED | Removed 4 @WrapOperation (lambda refactor); custom renderer remains active |
 | ChatInputSuggestorMixin | ✅ COMPATIBLE | None |
-| TextFieldWidgetMixin | 🟡 MINOR | RenderLayer→RenderPipelines import |
+| TextFieldWidgetMixin | ✅ ADAPTED | Uses 1.21.7 five-argument `DrawContext.fill` and `drawSelection` |
 | TextRendererDrawerMixin | ✅ COMPATIBLE | None |
 | ClientPlayNetworkHandlerMixin | ✅ COMPATIBLE | None |
 | AbstractParentElementMixin | ✅ COMPATIBLE | None |
@@ -38,7 +38,7 @@
 | insertText | ChatScreen | `insertText(String,boolean)` | `insertText(String,boolean)` | ✅ Same |
 | setInitialFocus | ChatScreen | `setInitialFocus()` | `setInitialFocus()` | ✅ Same |
 
-### ChatHudMixin — 🔴 BREAKING
+### ChatHudMixin — ✅ ADAPTED
 
 **Root Cause**: `ChatHud.render()` now uses a helper method `method_71990` with lambdas for message rendering. `@WrapOperation` cannot target INVOKE instructions inside synthetic lambda methods from the `render` method scope.
 
@@ -73,10 +73,11 @@
 
 All targeted fields (`Screen.height`, `owner.width`) and methods (`showCommandSuggestions`, `provideRenderText`) verified working.
 
-### TextFieldWidgetMixin — 🟡 MINOR
+### TextFieldWidgetMixin — ✅ ADAPTED
 
 - `renderWidget` — same signature
-- `fill(RenderLayer.getGuiOverlay(), ...)` → `fill(RenderPipelines.GUI, ...)` — import fix
+- Cursor fill uses the preserved five-argument `DrawContext.fill(...)` overload
+- Selection highlight uses 1.21.7 `DrawContext.drawSelection(...)`; the removed 1.21.1 `TextFieldWidget.drawSelectionHighlight(...)` shadow is not present in the target
 - All `@Inject` targets unchanged
 
 ### TextRendererDrawerMixin — ✅ COMPATIBLE

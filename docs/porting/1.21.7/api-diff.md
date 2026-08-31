@@ -80,7 +80,7 @@ public void fill(int x1, int y1, int x2, int y2, int color) {
 
 The old 5-parameter `fill` is still available as a convenience method. However, `RenderLayer.getGuiOverlay()` has been replaced by `RenderPipelines.GUI`.
 
-**Impact on TextFieldWidgetMixin**: `context.fill(RenderLayer.getGuiOverlay(), ...)` needs to change to `context.fill(RenderPipelines.GUI, ...)` or simply use the 5-param `fill(int, int, int, int, int)`.
+**Impact on TextFieldWidgetMixin**: the target implementation uses the preserved 5-param `fill(int, int, int, int, int)` overload.
 
 ### 4. Import Changes 🟢 MINOR
 
