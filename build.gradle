@@ -10,6 +10,19 @@ repositories {
 	maven { name = "WispForest"; url = "https://maven.wispforest.io/releases" }
 	maven { name = "Terraformers"; url = "https://maven.terraformersmc.com/releases" }
 	maven { name = "BMCLAPI"; url = "https://bmclapi2.bangbang93.com/maven" }
+	ivy {
+		name = "SherpaOnnxRelease"
+		url = "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.4"
+		patternLayout {
+			artifact "[artifact]-[revision].[ext]"
+		}
+		metadataSources {
+			artifact()
+		}
+		content {
+			includeModule "com.k2fsa.sherpa.onnx", "sherpa-onnx-jvm"
+		}
+	}
 	mavenCentral()
 }
 
@@ -26,6 +39,10 @@ dependencies {
 	modImplementation "io.wispforest:owo-lib:${project.owo_version}"
 	implementation("com.alphacephei:vosk:0.3.45") { exclude group: "net.java.dev.jna", module: "jna" }
 	include("com.alphacephei:vosk:0.3.45") { transitive = false }
+	implementation("com.k2fsa.sherpa.onnx:sherpa-onnx-jvm:1.13.4@jar")
+	include("com.k2fsa.sherpa.onnx:sherpa-onnx-jvm:1.13.4@jar") {
+		transitive = false
+	}
 	modCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
 	if (providers.gradleProperty("withModMenu").map(String::toBoolean).getOrElse(false)) {
 		modLocalRuntime "com.terraformersmc:modmenu:${project.modmenu_version}"

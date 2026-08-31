@@ -18,6 +18,15 @@ Only 3 classes were added and 1 removed at the structural level:
 
 However, the 1.21.7 intermediate release introduced changes that affect this port:
 
+The functional source baseline for this release is Chat Canvas 1.3.0 on Minecraft
+1.21.1. In addition to the cumulative 1.21.6 → 1.21.8 changes documented below,
+the 1.21.8 mappings expose `ClickEvent` as an interface with concrete nested
+record implementations (`RunCommand`, `SuggestCommand`, `OpenUrl`, and
+`CopyToClipboard`). The production interaction-preservation code uses the
+target's `Style`/`ClickEvent` API, and the source-derived tests were adapted to
+construct and inspect those concrete records instead of the 1.21.1 constructor
+shape.
+
 ## Key API Changes (1.21.6 → 1.21.8 cumulative)
 
 ### 1. TextFieldWidget.drawSelectionHighlight → DrawContext.drawSelection (1.21.7)

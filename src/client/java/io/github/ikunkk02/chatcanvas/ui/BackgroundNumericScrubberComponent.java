@@ -57,31 +57,35 @@ public final class BackgroundNumericScrubberComponent extends BaseComponent impl
 		int valueLeft = valueLeft();
 		boolean vanilla = ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA;
 		int background = dragging
-				? (vanilla ? 0xFF777777 : 0xCC29384D)
+				? (vanilla ? 0xFF777777 : ModernUiTheme.CONTROL_ACTIVE)
 				: (vanilla ? 0xFF555555
-					: interpolateColor(0x88202731, 0xB02A3543, hoverProgress));
+					: interpolateColor(0x88222222, ModernUiTheme.CONTROL_HOVER, hoverProgress));
 		context.fill(valueLeft, y() + 2, x() + width(), y() + height() - 2, background);
 		if (!vanilla) {
-			context.fill(valueLeft, y() + height() - 3, x() + width(), y() + height() - 2, 0x553F526A);
+			context.fill(valueLeft, y() + height() - 3, x() + width(), y() + height() - 2,
+					ModernUiTheme.DIVIDER);
 		}
 
 		int progressRight = valueLeft + (int) Math.round(
 				(width() - (valueLeft - x())) * valueProgress());
 		if (progressRight > valueLeft) {
 			context.fill(valueLeft, y() + height() - 3, progressRight, y() + height() - 2,
-					dragging ? (vanilla ? 0xFFAAAAAA : 0xFF8EB8FF)
-							: (vanilla ? 0xFF999999 : 0xCC6E9ED8));
+					dragging ? (vanilla ? 0xFFAAAAAA : ModernUiTheme.ACCENT)
+							: (vanilla ? 0xFF999999 : ModernUiTheme.ACCENT_MUTED));
 		}
 
 		int textY = y() + (height() - renderer.fontHeight) / 2;
-		int labelColor = vanilla ? 0xFFFFFFFF : 0xFFC7CEDA;
-		context.drawText(renderer, label, x() + 2, textY, labelColor, false);
+		int labelColor = vanilla ? 0xFFFFFFFF : ModernUiTheme.TEXT_SECONDARY;
+		context.drawText(renderer,
+				ModernUiTheme.fitText(renderer, label, Math.max(1, valueLeft - x() - 8)),
+				x() + 2, textY, labelColor, false);
 		String value = displayValue();
 		int valueX = x() + width() - 8 - renderer.getWidth(value);
 		context.drawText(renderer, value, valueX, textY,
-				dragging ? 0xFFFFFFFF : (vanilla ? 0xFFFFFFFF : 0xFFE9EDF4), false);
+				dragging ? 0xFFFFFFFF : (vanilla ? 0xFFFFFFFF : ModernUiTheme.TEXT_PRIMARY), false);
 		if (valueHovered || dragging) {
-			context.drawText(renderer, "\u2194", valueLeft + 6, textY, vanilla ? 0xFFFFFFFF : 0xFFA9B9CF, false);
+			context.drawText(renderer, "\u2194", valueLeft + 6, textY,
+					vanilla ? 0xFFFFFFFF : ModernUiTheme.TEXT_SECONDARY, false);
 		}
 	}
 
