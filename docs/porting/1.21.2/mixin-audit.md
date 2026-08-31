@@ -74,11 +74,14 @@ All 15 Mixin classes passed audit — zero runtime changes required.
 
 ## Runtime Verification
 
-To be completed after `./gradlew runClient`:
-- [ ] No `InvalidInjectionException` in logs
-- [ ] No `MixinApplyError` in logs
-- [ ] Chat screen opens normally
-- [ ] Dual input fields functional
-- [ ] Command suggestor works
-- [ ] Custom rendering applies
-- [ ] Voice shortcut (Keyboard.onKey) fires
+The 1.21.2 development client was launched with `runClient` after the port.
+The startup/resource-reload smoke test completed without an
+`InvalidInjectionException`, `MixinApplyError`, Chat Canvas resource error or
+native initialization failure. Interactive chat, command, UI and voice-input
+hardware scenarios still require manual in-game testing.
+
+- [x] Client reaches resource reload with no Mixin apply error
+- [x] No Chat Canvas resource or native initialization failure in startup log
+- [ ] Chat screen opens normally and dual input fields are manually exercised
+- [ ] Command suggestor and custom rendering are manually exercised
+- [ ] Voice shortcut and microphone capture are manually exercised

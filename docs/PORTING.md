@@ -2,7 +2,7 @@
 
 How to port Chat Canvas to newer Minecraft versions.
 
-## Current Baseline (1.2.0)
+## Current Baseline (1.3.0)
 
 | Item | 1.21.1 | 1.21.2 |
 |------|--------|--------|
@@ -107,7 +107,7 @@ These require the most attention during porting:
 
 - `main` — Current development (currently 1.21.1)
 - `mc/1.21.1` — Maintenance branch for 1.21.1 fixes only
-- `mc/1.21.2` — Maintenance branch for 1.21.2. Ported from v1.2.0 with no code changes needed (Mixin targets identical between 1.21.1 and 1.21.2).
+- `mc/1.21.2` — Maintenance branch for 1.21.2. Ported to the target mappings and dependency baseline with the complete 1.3.0 feature set.
 - Future: `mc/1.21.4`, `mc/1.21.5`, etc.
 
 > Each maintenance branch is created from its release tag and receives only

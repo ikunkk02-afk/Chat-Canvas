@@ -1,6 +1,7 @@
 package io.github.ikunkk02.chatcanvas.ui;
 
 import io.github.ikunkk02.chatcanvas.config.PixelLayout;
+import io.github.ikunkk02.chatcanvas.editor.EditorUiStyle;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.Text;
@@ -13,8 +14,9 @@ public final class AlignmentGuideRenderer {
 							  PixelLayout layout, PreviewChatWidget preview) {
 		if (!preview.dragging()) return;
 		int margin = PixelLayout.DEFAULT_SAFE_MARGIN;
-		int guide = 0x5570A7FF;
-		int active = 0xCC8EB8FF;
+		boolean vanilla = ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA;
+		int guide = vanilla ? 0x5570A7FF : ModernUiTheme.ACCENT_MUTED;
+		int active = vanilla ? 0xCC8EB8FF : ModernUiTheme.ACCENT;
 		context.fill(screenWidth / 2, 0, screenWidth / 2 + 1, screenHeight, preview.snappedX() ? active : guide);
 		context.fill(0, screenHeight / 2, screenWidth, screenHeight / 2 + 1, preview.snappedY() ? active : guide);
 		context.fill(margin, 0, margin + 1, screenHeight, guide);
@@ -27,7 +29,9 @@ public final class AlignmentGuideRenderer {
 		int textWidth = MinecraftClient.getInstance().textRenderer.getWidth(geometry);
 		int x = Math.max(4, Math.min(screenWidth - textWidth - 8, layout.x()));
 		int y = Math.max(4, layout.y() - 18);
-		ModernUiTheme.roundedRect(context, x, y, textWidth + 8, 15, 4, 0xD91A1E28);
-		context.drawText(MinecraftClient.getInstance().textRenderer, geometry, x + 4, y + 3, 0xFFE9EDF4, false);
+		ModernUiTheme.roundedRect(context, x, y, textWidth + 8, 15,
+				vanilla ? 4 : 1, vanilla ? 0xD91A1E28 : ModernUiTheme.PANEL_BACKGROUND);
+		context.drawText(MinecraftClient.getInstance().textRenderer, geometry, x + 4, y + 3,
+				vanilla ? 0xFFE9EDF4 : ModernUiTheme.TEXT_PRIMARY, false);
 	}
 }

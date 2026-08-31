@@ -204,8 +204,8 @@ public final class DualChatHudRenderer {
 				context.getMatrices().pop();
 			}
 			HitLine hit = new HitLine(channel, message, layoutLine.text(),
-					textX, y, lineWidth, lineHeight,
-					text.fontScale(), text.characterSpacing());
+					new ChatLineHitbox(textX, y, lineWidth, lineHeight, text.fontScale()),
+					text.characterSpacing());
 			hitLines.add(hit);
 			if (channel == ChatCanvasChannel.PLAYER_CHAT
 					&& layoutLine.playerNameRange() != null) {
@@ -223,15 +223,16 @@ public final class DualChatHudRenderer {
 		String name = message.senderName().getString();
 		double start = SpacedTextMetrics.xAtCodePoint(
 				client.textRenderer, layoutLine.text(), line.spacing(),
-				layoutLine.playerNameRange().startCodePoint()) * line.scale();
+				layoutLine.playerNameRange().startCodePoint()) * line.bounds().textScale();
 		double end = SpacedTextMetrics.xAtCodePoint(
 				client.textRenderer, layoutLine.text(), line.spacing(),
-				layoutLine.playerNameRange().endCodePoint()) * line.scale();
+				layoutLine.playerNameRange().endCodePoint()) * line.bounds().textScale();
 		double width = Math.max(0.0, end - start);
 		PlayerNameHitboxRegistry.add(new PlayerNameHitbox(
 				message.senderUuid(), name, messageIndex,
-				line.x() + start, line.y(), line.x() + start + width,
-				line.y() + line.height()));
+				line.bounds().x() + start, line.bounds().y(),
+				line.bounds().x() + start + width,
+				line.bounds().y() + line.bounds().height()));
 	}
 
 	public boolean scroll(double mouseX, double mouseY, double amount) {
@@ -254,10 +255,11 @@ public final class DualChatHudRenderer {
 
 	@Nullable
 	public Style styleAt(double mouseX, double mouseY) {
+		if (!active()) return null;
 		HitLine line = hitAt(mouseX, mouseY);
 		if (line == null) return null;
 		return SpacedTextHitTester.styleAt(MinecraftClient.getInstance().textRenderer,
-				line.text(), line.spacing(), (mouseX - line.x()) / line.scale());
+				line.text(), line.spacing(), line.bounds().textX(mouseX));
 	}
 
 	public boolean active() {
@@ -286,8 +288,7 @@ public final class DualChatHudRenderer {
 	private HitLine hitAt(double x, double y) {
 		for (int index = hitLines.size() - 1; index >= 0; index--) {
 			HitLine line = hitLines.get(index);
-			if (x >= line.x() && x <= line.x() + line.width()
-					&& y >= line.y() && y <= line.y() + line.height()) return line;
+			if (line.bounds().contains(x, y)) return line;
 		}
 		return null;
 	}
@@ -381,6 +382,5 @@ public final class DualChatHudRenderer {
 	}
 
 	private record HitLine(ChatCanvasChannel channel, ChatCanvasMessage message,
-						   OrderedText text, int x, int y, int width, int height,
-						   double scale, double spacing) {}
+						   OrderedText text, ChatLineHitbox bounds, double spacing) {}
 }
