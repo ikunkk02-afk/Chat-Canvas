@@ -225,6 +225,20 @@ public final class ModernUiTheme {
                 selected ? ACCENT : enabled ? PANEL_BORDER : DIVIDER);
     }
 
+    public static void drawFixedTab(DrawContext context, int x, int y,
+                                    int width, int height,
+                                    boolean hovered, boolean selected, boolean enabled) {
+        int background = !enabled ? CONTROL_DISABLED
+                : selected ? CONTROL_ACTIVE
+                : hovered ? 0xB5363636 : 0x78242424;
+        roundedRect(context, x, y, width, height, 2, background);
+        border(context, x, y, width, height,
+                selected ? ACCENT_MUTED : hovered ? PANEL_BORDER : DIVIDER);
+        if (selected && width > 4 && height > 2) {
+            context.fill(x + 2, y + height - 2, x + width - 2, y + height - 1, ACCENT);
+        }
+    }
+
     public static String fitText(TextRenderer renderer, Text text, int maxWidth) {
         String value = text == null ? "" : text.getString();
 		if (maxWidth <= 0) return "";

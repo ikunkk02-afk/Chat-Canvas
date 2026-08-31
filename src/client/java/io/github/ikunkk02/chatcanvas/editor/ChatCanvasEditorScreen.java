@@ -11,10 +11,10 @@ import io.github.ikunkk02.chatcanvas.ui.ModernColorPickerPopup;
 import io.github.ikunkk02.chatcanvas.ui.NumericScrubber;
 import io.github.ikunkk02.chatcanvas.ui.NumericScrubberComponent;
 import io.github.ikunkk02.chatcanvas.ui.PreviewChatWidget;
+import io.github.ikunkk02.chatcanvas.ui.SingleLineLabelComponent;
 import io.github.ikunkk02.chatcanvas.ui.UiLayoutMetrics;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.ButtonComponent;
-import io.wispforest.owo.ui.component.Components;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.ScrollContainer;
@@ -92,7 +92,11 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 	private ScrollContainer<FlowLayout> buildToolbar() {
 		UiLayoutMetrics.Toolbar metrics = UiLayoutMetrics.toolbar(width);
-		FlowLayout bar = Containers.horizontalFlow(Sizing.fixed(620), Sizing.fixed(32));
+		boolean compact = UiLayoutMetrics.layoutMode(width, height)
+				== UiLayoutMetrics.LayoutMode.COMPACT;
+		int barWidth = compact ? 454 : UiLayoutMetrics.TOOLBAR_PREFERRED_WIDTH;
+		FlowLayout bar = Containers.horizontalFlow(
+				Sizing.fixed(barWidth), Sizing.fixed(UiLayoutMetrics.TOOLBAR_HEIGHT));
 		bar.padding(Insets.of(5).withLeft(16));
 		bar.gap(6);
 		bar.surface(ModernUiTheme.PANEL_SURFACE);
@@ -100,18 +104,20 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		bar.verticalAlignment(VerticalAlignment.CENTER);
 		bar.zIndex(30);
 
-		var title = Components.label(Text.translatable("chat_canvas.editor.title")
-				.formatted(Formatting.WHITE, Formatting.BOLD));
-		title.horizontalSizing(Sizing.fill(28));
-		bar.child(title);
+		if (!compact) {
+			bar.child(new SingleLineLabelComponent(
+					Text.translatable("chat_canvas.editor.title")
+							.formatted(Formatting.WHITE, Formatting.BOLD),
+					0xFFFFFFFF, 120, 12));
+		}
 		ButtonComponent playerButton = ModernUiTheme.button(
 				Text.translatable("chat_canvas.editor.channel.player"),
 				button -> selectChannel(EditorChannel.PLAYER_CHAT));
-		playerButton.sizing(Sizing.fixed(64), Sizing.fixed(22));
+		playerButton.sizing(Sizing.fixed(76), Sizing.fixed(22));
 		ButtonComponent commandButton = ModernUiTheme.button(
 				Text.translatable("chat_canvas.editor.channel.command"),
 				button -> selectChannel(EditorChannel.COMMAND_SYSTEM));
-		commandButton.sizing(Sizing.fixed(64), Sizing.fixed(22));
+		commandButton.sizing(Sizing.fixed(88), Sizing.fixed(22));
 		bar.child(playerButton);
 		bar.child(commandButton);
 
@@ -121,14 +127,14 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 								? "chat_canvas.ui_theme.chat_canvas"
 								: "chat_canvas.ui_theme.vanilla")),
 				button -> onSwitchTheme());
-		styleButton.sizing(Sizing.fixed(140), Sizing.fixed(22));
+		styleButton.sizing(Sizing.fixed(160), Sizing.fixed(22));
 		this.themeButton = styleButton;
 		bar.child(styleButton);
 
 		undoButton = ModernUiTheme.button(Text.translatable("chat_canvas.action.undo"), button -> undo());
-		undoButton.sizing(Sizing.fixed(72), Sizing.fixed(22));
+		undoButton.sizing(Sizing.fixed(52), Sizing.fixed(22));
 		redoButton = ModernUiTheme.button(Text.translatable("chat_canvas.action.redo"), button -> redo());
-		redoButton.sizing(Sizing.fixed(72), Sizing.fixed(22));
+		redoButton.sizing(Sizing.fixed(52), Sizing.fixed(22));
 		bar.child(undoButton);
 		bar.child(redoButton);
 		ScrollContainer<FlowLayout> viewport = Containers.horizontalScroll(

@@ -6,30 +6,58 @@ package io.github.ikunkk02.chatcanvas.ui;
  * scale bounds directly testable.
  */
 public final class UiLayoutMetrics {
+	public static final int EDITOR_PANEL_MIN_WIDTH = 220;
+	public static final int EDITOR_PANEL_PREFERRED_WIDTH = 300;
+	public static final int EDITOR_PANEL_MAX_WIDTH = 300;
+	public static final int EDITOR_PANEL_MIN_HEIGHT = 160;
+	public static final int EDITOR_PANEL_PREFERRED_HEIGHT = 480;
+	public static final int EDITOR_PANEL_MAX_HEIGHT = 480;
+	public static final int EDITOR_SAFE_MARGIN = 8;
+	public static final int TOOLBAR_PREFERRED_WIDTH = 620;
+	public static final int TOOLBAR_HEIGHT = 32;
+
 	private UiLayoutMetrics() {
+	}
+
+	/**
+	 * Screen dimensions are Minecraft logical GUI pixels. No framebuffer or
+	 * operating-system scale is applied here.
+	 */
+	public static LayoutMode layoutMode(int screenWidth, int screenHeight) {
+		return screenWidth < 420 || screenHeight < 340
+				? LayoutMode.COMPACT
+				: LayoutMode.NORMAL;
 	}
 
 	public static EditorPanel editorPanel(int screenWidth, int screenHeight) {
 		int safeWidth = Math.max(1, screenWidth);
 		int safeHeight = Math.max(1, screenHeight);
-		int availableWidth = Math.max(1, safeWidth - 8);
-		int minimumWidth = Math.min(220, availableWidth);
-		int maximumWidth = Math.min(300, availableWidth);
-		int width = clamp((int) Math.round(safeWidth * 0.42), minimumWidth, maximumWidth);
-		boolean compact = safeHeight < 240;
+		LayoutMode mode = layoutMode(safeWidth, safeHeight);
+		boolean compact = mode == LayoutMode.COMPACT;
+
+		int availableWidth = Math.max(1, safeWidth - EDITOR_SAFE_MARGIN * 2);
+		int minimumWidth = Math.min(EDITOR_PANEL_MIN_WIDTH, availableWidth);
+		int maximumWidth = Math.min(EDITOR_PANEL_MAX_WIDTH, availableWidth);
+		int width = clamp(EDITOR_PANEL_PREFERRED_WIDTH, minimumWidth, maximumWidth);
 		int top = compact ? 42 : 48;
-		int height = Math.max(1, safeHeight - top - 8);
+		int availableHeight = Math.max(1, safeHeight - top - EDITOR_SAFE_MARGIN);
+		int minimumHeight = Math.min(EDITOR_PANEL_MIN_HEIGHT, availableHeight);
+		int maximumHeight = Math.min(EDITOR_PANEL_MAX_HEIGHT, availableHeight);
+		int height = clamp(EDITOR_PANEL_PREFERRED_HEIGHT, minimumHeight, maximumHeight);
 		return new EditorPanel(width, height, top,
 				compact ? 6 : 12,
 				compact ? 4 : 8,
 				compact ? 26 : 30,
-				!compact);
+				!compact,
+				mode);
 	}
 
 	public static Toolbar toolbar(int screenWidth) {
 		int safeWidth = Math.max(1, screenWidth);
-		int width = Math.min(620, Math.max(1, safeWidth - 16));
-		return new Toolbar(Math.max(0, (safeWidth - width) / 2), 8, width, 32);
+		int width = Math.min(TOOLBAR_PREFERRED_WIDTH,
+				Math.max(1, safeWidth - EDITOR_SAFE_MARGIN * 2));
+		return new Toolbar(Math.max(0, (safeWidth - width) / 2),
+				EDITOR_SAFE_MARGIN, width, TOOLBAR_HEIGHT);
 	}
 
 	public static ColorPicker colorPicker(int screenWidth, int screenHeight) {
@@ -78,9 +106,14 @@ public final class UiLayoutMetrics {
 		return Math.max(min, Math.min(max, value));
 	}
 
+	public enum LayoutMode {
+		NORMAL,
+		COMPACT
+	}
+
 	public record EditorPanel(
 			int width, int height, int top, int padding, int gap,
-			int footerHeight, boolean showSubtitle
+			int footerHeight, boolean showSubtitle, LayoutMode mode
 	) {
 		public int contentHeight(int labelHeight, int categoryHeight) {
 			int labels = labelHeight * (showSubtitle ? 2 : 1);

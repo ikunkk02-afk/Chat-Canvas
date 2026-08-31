@@ -31,6 +31,7 @@ import io.github.ikunkk02.chatcanvas.chat.identity.PlayerRosterTracker;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.Components;
+import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.component.TextBoxComponent;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
@@ -64,7 +65,11 @@ public final class AnimatedSettingsPanel {
 
 	private static final int PANEL_MARGIN = 16;
 	private static final int LABEL_HEIGHT = 9;
-	private static final int CATEGORY_HEIGHT = 24;
+	private static final int CATEGORY_COLUMNS = 4;
+	private static final int CATEGORY_ROW_HEIGHT = 22;
+	private static final int CATEGORY_GAP = 3;
+	private static final int CATEGORY_ROWS = 2;
+	private static final int CATEGORY_HEIGHT = CATEGORY_ROW_HEIGHT * CATEGORY_ROWS + CATEGORY_GAP;
 
 	private final EditorSession session;
 	private final Runnable geometryChanged;
@@ -76,6 +81,7 @@ public final class AnimatedSettingsPanel {
 	private final ColorPickerLauncher colorPickerLauncher;
 	private final FlowLayout component;
 	private final List<NumericScrubber> scrubbers = new ArrayList<>();
+	private final List<LabelComponent> descriptionLabels = new ArrayList<>();
 	private final Map<Category, List<ButtonComponent>> pageButtons = new EnumMap<>(Category.class);
 	private final Map<Category, List<NumericScrubber>> pageScrubbers = new EnumMap<>(Category.class);
 	private final Map<Category, CategoryPage> pages = new EnumMap<>(Category.class);
@@ -286,35 +292,45 @@ public final class AnimatedSettingsPanel {
 		return panel;
 	}
 
-	private ScrollContainer<StackLayout> categoryTabs() {
-		int tabWidth = 52;
-		for (Category category : Category.values()) {
-			tabWidth = Math.max(tabWidth, MinecraftClient.getInstance().textRenderer.getWidth(
-					Text.translatable(category.translationKey)) + 12);
+	private FlowLayout categoryTabs() {
+		FlowLayout grid = Containers.verticalFlow(
+				Sizing.fill(100), Sizing.fixed(CATEGORY_HEIGHT));
+		grid.gap(CATEGORY_GAP);
+		grid.allowOverflow(false);
+
+		int availableWidth = pageWidth();
+		int tabWidth = Math.max(1,
+				(availableWidth - CATEGORY_GAP * (CATEGORY_COLUMNS - 1)) / CATEGORY_COLUMNS);
+		Category[] categories = Category.values();
+		for (int rowIndex = 0; rowIndex < CATEGORY_ROWS; rowIndex++) {
+			FlowLayout row = Containers.horizontalFlow(
+					Sizing.fill(100), Sizing.fixed(CATEGORY_ROW_HEIGHT));
+			row.gap(CATEGORY_GAP);
+			for (int column = 0; column < CATEGORY_COLUMNS; column++) {
+				int categoryIndex = rowIndex * CATEGORY_COLUMNS + column;
+				if (categoryIndex >= categories.length) break;
+				Category category = categories[categoryIndex];
+				Text fullText = Text.translatable(category.translationKey);
+				Text tabText = Text.translatable(category.tabTranslationKey);
+				String fitted = ModernUiTheme.fitText(
+						MinecraftClient.getInstance().textRenderer,
+						tabText, Math.max(1, tabWidth - 6));
+				ButtonComponent button = ModernUiTheme.transparentButton(
+						Text.literal(fitted), clicked -> switchCategory(category));
+				button.renderer((context, component, delta) ->
+						ModernUiTheme.drawFixedTab(
+								context,
+								component.getX(), component.getY(),
+								component.getWidth(), component.getHeight(),
+								component.isHovered(), activeCategory == category,
+								component.active()));
+				button.sizing(Sizing.fixed(tabWidth), Sizing.fixed(CATEGORY_ROW_HEIGHT));
+				button.tooltip(fullText);
+				row.child(button);
+			}
+			grid.child(row);
 		}
-		int tabsWidth = tabWidth * Category.values().length;
-		StackLayout stack = Containers.stack(Sizing.fixed(tabsWidth), Sizing.fixed(CATEGORY_HEIGHT));
-		stack.child(SelectionIndicatorComponent.following(
-				this::categoryPageProgress, Category.values().length));
-		FlowLayout buttons = Containers.horizontalFlow(Sizing.fixed(tabsWidth), Sizing.fill(100));
-		for (Category category : Category.values()) {
-			ButtonComponent button = transparentButton(
-					Text.translatable(category.translationKey),
-					clicked -> switchCategory(category));
-			button.mouseDown().subscribe((mouseX, mouseY, mouseButton) -> {
-				if (mouseButton != 0) return false;
-				switchCategory(category);
-				return true;
-			});
-			button.sizing(Sizing.fixed(tabWidth), Sizing.fill(100));
-			buttons.child(button);
-		}
-		stack.child(buttons);
-		ScrollContainer<StackLayout> scroll = Containers.horizontalScroll(
-				Sizing.fill(100), Sizing.fixed(CATEGORY_HEIGHT), stack);
-		scroll.scrollbarThiccness(1);
-		scroll.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(ModernUiTheme.SCROLLBAR)));
-		return scroll;
+		return grid;
 	}
 
 	private FlowLayout buildLayoutBody() {
@@ -394,8 +410,7 @@ public final class AnimatedSettingsPanel {
 		body.padding(Insets.bottom(8));
 		body.gap(7);
 		body.child(sectionLabel("chat_canvas.category.mention"));
-		body.child(Components.label(
-				Text.translatable("chat_canvas.mention.hint").formatted(Formatting.GRAY)));
+		body.child(descriptionLabel("chat_canvas.mention.hint"));
 
 		mentionDoubleClickButton = mentionToggleButton(
 				"chat_canvas.mention.double_click",
@@ -588,8 +603,7 @@ public final class AnimatedSettingsPanel {
 		body.padding(Insets.bottom(8));
 		body.gap(7);
 		body.child(sectionLabel("chat_canvas.category.command"));
-		body.child(Components.label(Text.translatable("chat_canvas.command.settings_hint")
-				.formatted(Formatting.GRAY)));
+		body.child(descriptionLabel("chat_canvas.command.settings_hint"));
 		commandEnabledButton = commandToggle("chat_canvas.command.enabled",
 				config -> config.withEnabled(!config.enabled()));
 		commandPanelButton = commandToggle("chat_canvas.command.show_button",
@@ -681,8 +695,7 @@ public final class AnimatedSettingsPanel {
 		body.padding(Insets.bottom(8));
 		body.gap(7);
 		body.child(sectionLabel("chat_canvas.category.voice"));
-		body.child(Components.label(Text.translatable("chat_canvas.voice.settings_hint")
-				.formatted(Formatting.GRAY)));
+		body.child(descriptionLabel("chat_canvas.voice.settings_hint"));
 		voiceEnabledButton = voiceButton(clicked -> updateVoice(settings ->
 				settings.withEnabled(!settings.enabled())));
 		voiceDeviceButton = voiceButton(clicked -> {
@@ -790,8 +803,7 @@ public final class AnimatedSettingsPanel {
 		body.child(voiceModelButton);
 		body.child(openModel);
 		body.child(releaseModel);
-		body.child(Components.label(Text.translatable("chat_canvas.voice.privacy")
-				.formatted(Formatting.GRAY)));
+		body.child(descriptionLabel("chat_canvas.voice.privacy"));
 		return body;
 	}
 
@@ -800,8 +812,7 @@ public final class AnimatedSettingsPanel {
 		body.padding(Insets.bottom(8));
 		body.gap(7);
 		body.child(sectionLabel("chat_canvas.category.chat_log"));
-		body.child(Components.label(Text.translatable("chat_canvas.chat_log.settings_hint")
-				.formatted(Formatting.GRAY)));
+		body.child(descriptionLabel("chat_canvas.chat_log.settings_hint"));
 		chatLogEnabledButton = chatLogToggle("chat_canvas.chat_log.enabled",
 				config -> config.withEnabled(!config.enabled()));
 		chatLogSelfButton = chatLogToggle("chat_canvas.chat_log.save_self",
@@ -854,8 +865,7 @@ public final class AnimatedSettingsPanel {
 		body.child(chatLogMaxSizeButton);
 		body.child(chatLogOpenDirButton);
 		body.child(chatLogFlushButton);
-		body.child(Components.label(Text.translatable("chat_canvas.chat_log.privacy")
-				.formatted(Formatting.GRAY)));
+		body.child(descriptionLabel("chat_canvas.chat_log.privacy"));
 		return body;
 	}
 
@@ -1837,6 +1847,17 @@ public final class AnimatedSettingsPanel {
 		pageScrubbers.get(category).add(scrubber);
 	}
 
+	/** Descriptions may wrap; setting names, section titles and tabs never do. */
+	private LabelComponent descriptionLabel(String key) {
+		LabelComponent label = Components.label(
+				Text.translatable(key).formatted(Formatting.GRAY));
+		label.horizontalSizing(Sizing.fill(100));
+		label.verticalSizing(Sizing.content());
+		label.maxWidth(pageWidth());
+		descriptionLabels.add(label);
+		return label;
+	}
+
 	public void resizeViewport(int width, int height) {
 		double previousPageWidth = pageWidth();
 		double pageProgress = previousPageWidth <= 0.0
@@ -1868,6 +1889,9 @@ public final class AnimatedSettingsPanel {
 		for (NumericScrubber scrubber : scrubbers) {
 			scrubber.resizeViewport(width, height);
 		}
+		for (LabelComponent description : descriptionLabels) {
+			description.maxWidth(pageWidth());
+		}
 		updateCategoryTransition(0.0);
 	}
 
@@ -1896,10 +1920,6 @@ public final class AnimatedSettingsPanel {
 		return Math.max(1, panelWidth - editorMetrics.padding() * 2);
 	}
 
-	private double categoryPageProgress() {
-		return categorySpring.value() / pageWidth();
-	}
-
 	private static int clamp(int value, int min, int max) {
 		return Math.max(min, Math.min(max, value));
 	}
@@ -1924,19 +1944,21 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private enum Category {
-		LAYOUT("chat_canvas.category.layout"),
-		TEXT("chat_canvas.category.text"),
-		BACKGROUND("chat_canvas.category.background"),
-		PLAYER_COLORS("chat_canvas.category.player_colors"),
-		MENTION("chat_canvas.category.mention"),
-		COMMAND("chat_canvas.category.command"),
-		VOICE("chat_canvas.category.voice"),
-		CHAT_LOG("chat_canvas.category.chat_log");
+		LAYOUT("chat_canvas.category.layout", "chat_canvas.tab.layout"),
+		TEXT("chat_canvas.category.text", "chat_canvas.tab.text"),
+		BACKGROUND("chat_canvas.category.background", "chat_canvas.tab.background"),
+		PLAYER_COLORS("chat_canvas.category.player_colors", "chat_canvas.tab.player_colors"),
+		MENTION("chat_canvas.category.mention", "chat_canvas.tab.mention"),
+		COMMAND("chat_canvas.category.command", "chat_canvas.tab.command"),
+		VOICE("chat_canvas.category.voice", "chat_canvas.tab.voice"),
+		CHAT_LOG("chat_canvas.category.chat_log", "chat_canvas.tab.chat_log");
 
 		private final String translationKey;
+		private final String tabTranslationKey;
 
-		Category(String translationKey) {
+		Category(String translationKey, String tabTranslationKey) {
 			this.translationKey = translationKey;
+			this.tabTranslationKey = tabTranslationKey;
 		}
 	}
 
