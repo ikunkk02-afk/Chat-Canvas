@@ -48,7 +48,7 @@ body:
     id: mc_version
     attributes:
       label: Minecraft Version
-      placeholder: "1.21.1"
+      placeholder: "1.21.5"
     validations:
       required: true
 
@@ -70,13 +70,13 @@ body:
     id: fabric_api
     attributes:
       label: Fabric API Version
-      placeholder: "0.116.14"
+      placeholder: "0.128.2"
 
   - type: input
     id: owo_lib
     attributes:
       label: owo-lib Version
-      placeholder: "0.12.15.4"
+      placeholder: "0.12.21"
 
   - type: input
     id: gui_scale

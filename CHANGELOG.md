@@ -2,23 +2,36 @@
 
 All notable changes to Chat Canvas will be documented in this file.
 
-## [1.2.0] - 2026-07-29
+## [1.3.0] - 2026-08-31
 
 ### Added
 
-- **Minecraft 1.21.5 support**: Ported all features to Minecraft 1.21.5 (Fabric).
-- **Minecraft 1.21.4 support**: Ported all features to Minecraft 1.21.4 (Fabric).
-- Updated Fabric API to 0.128.2+1.21.5 (1.21.5) / 0.119.4+1.21.4 (1.21.4).
-- Updated owo-lib to 0.12.21+1.21.5 (1.21.5) / 0.12.20+1.21.4 (1.21.4).
+- **Reworked offline voice input**: multiple ASR backends powered by sherpa-onnx 1.13.4 — streaming Zipformer Chinese, SenseVoice INT8 multilingual (Mandarin, Cantonese, English, Japanese, Korean) and Whisper Tiny INT8 multilingual — alongside the existing Vosk small Chinese model.
+- **Silero VAD endpoint detection**: automatic speech/silence endpoints with configurable listen timeout, endpoint silence and tail padding.
+- **Model manager**: model selection, download progress, SHA-256 verification, cancel, release, hot-swap switching between installed models, and one-click access to the model folder.
+- **Android / iOS compatibility layer**: platform detection (FCL / Pojav-class launchers), ARM64/ARM32 native runtimes, staged loading into app-private cache, and capability checks that safely disable voice input when a launcher cannot provide a microphone or native runtime.
+- **Expanded emoji picker**: 130+ emoji in 10 categories with a virtualized grid, tooltips, keyboard navigation, multi-language names, and font-based filtering of unsupported glyphs.
+- **Traditional Chinese (zh_tw)** localization.
+- **Improved localization**: refreshed English and Simplified Chinese strings across the editor, voice, emoji and chat log pages.
 
 ### Changed
 
-- Adapted `DrawContext.drawTextWrapped` → `drawWrappedTextWithShadow` for 1.21.4+ API.
-- Updated `ChatHud.getMessageLineIndex` → `getMessageIndex` for 1.21.4 Yarn mappings.
+- **Responsive settings UI**: editor panels, tabs and chat overlays were restyled and stabilized across GUI scales and aspect ratios.
+- **Server interactive-message support**: vanilla `ClickEvent` / `HoverEvent` interactions are preserved through Chat Canvas text wrapping (run/suggest command, open URL, copy to clipboard, hover tooltips).
+- Removed input mode labels and unified player/command chat input handling.
 
 ### Fixed
 
-- All 15 Mixins verified compatible with Minecraft 1.21.4 and 1.21.5.
+- Voice model runtime and control stability (load failures, model switching, keyboard shortcut edge cases).
+
+### Compatibility
+
+- Chat Heads, More Chat History, ChatAnimation, Smooth Scrolling.
+
+### Privacy
+
+- Speech recognition runs entirely locally with an installed offline model.
+- Audio is never uploaded or persisted; networking is used only for player-requested downloads of models and the sherpa-onnx native runtime.
 
 ## [1.2.0] - 2026-07-27
 
@@ -39,7 +52,7 @@ All notable changes to Chat Canvas will be documented in this file.
 
 ### Fixed
 
-- **Voice key release Mixin crash**: Removed invalid `@Inject(method = "keyReleased")` from `ChatScreenMixin` — `ChatScreen` does not declare this method in Minecraft 1.21.1. Replaced with `KeyboardMixin` listening on GLFW `Keyboard.onKey` for a true GLFW_RELEASE event.
+- **Voice key release Mixin crash**: Removed invalid `@Inject(method = "keyReleased")` from `ChatScreenMixin` — `ChatScreen` does not declare this method in Minecraft 1.21.5. Replaced with `KeyboardMixin` listening on GLFW `Keyboard.onKey` for a true GLFW_RELEASE event.
 - **Microphone Lease concurrency** NPE (`this.opened is null`): Rewrote `MicrophoneManager.Lease.close()` using `AtomicReference<OpenedMicrophone>` with atomic `getAndSet(null)` to guarantee exactly-once close across concurrent capture, finish, cancel, and recognition threads.
 - **Voice session cleanup**: Unified `VoiceInputSession` cleanup in a single `finally` block; made `finish()`/`cancel()` use CAS for safe one-shot signalling; made END marker enqueue idempotent via `endEnqueued` guard.
 - **Error classification**: `IllegalStateException` from an already-closed lease no longer shows the misleading "microphone access" error.
@@ -119,4 +132,4 @@ All notable changes to Chat Canvas will be documented in this file.
 - `Ctrl+Z` / `Ctrl+Y` undo and redo support.
 - Compatibility with Chat Heads, More Chat History, ChatAnimation, and Smooth Scrolling.
 - Mod Menu integration.
-- Tested in a large Fabric 1.21.1 modpack environment.
+- Tested in a large Fabric 1.21.5 modpack environment.

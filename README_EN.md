@@ -1,4 +1,4 @@
-[简体中文](README.md) | [English](README_EN.md)
+[English](README_EN.md) | [简体中文](README.md)
 
 <p align="center">
   <img src="src/main/resources/assets/chat_canvas/icon.png" width="180" alt="Chat Canvas">
@@ -6,525 +6,227 @@
 
 # Chat Canvas
 
-![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1-green)
+![Minecraft](https://img.shields.io/badge/Minecraft-1.21.5-green)
 ![Loader](https://img.shields.io/badge/Loader-Fabric-lightyellow)
 ![Side](https://img.shields.io/badge/Side-Client--only-blue)
 ![Java](https://img.shields.io/badge/Java-21%2B-orange)
-![Version](https://img.shields.io/badge/Version-1.2.0-informational)
+![Version](https://img.shields.io/badge/Version-1.3.0-informational)
 ![License](https://img.shields.io/badge/License-MIT-brightgreen)
 
-Chat Canvas is a **client-side only** chat enhancement mod for **Minecraft 1.21.1 Fabric**.
+Chat Canvas is a client-side chat enhancement and redesign mod for **Minecraft 1.21.5 (Fabric)**. It focuses on chat reading, chat input and interface layout, and adds Emoji, offline voice input, local chat history and reliable support for interactive server messages.
 
-Drag, resize and preview your chat overlay directly in-game while customising text styles, backgrounds, player name colours, @‑mention alerts, Emoji, command tools, voice input, and chat log saving — all in real time.
+Everything is configured in a visual editor directly in the game — no config-file editing required.
 
-Chat Canvas ships with **two selectable editor visual themes** that share the same layout, features and configuration — only the UI controls change their appearance.
+## What's New in 1.3.0
 
----
+- Reworked offline voice input with multiple ASR models
+- VAD automatic endpoint detection (speech starts and ends on its own)
+- Model manager with SHA-256 verified downloads and hot-swap switching
+- Android / iOS compatibility layer for the voice system
+- Expanded Emoji picker (130+ emoji, 10 categories)
+- Traditional Chinese (繁體中文) support
+- Improved server interactive-message support (ClickEvent / HoverEvent)
+- Restyled and responsive settings UI
 
-## Table of Contents
+## Features
 
-- [Highlights](#highlights)
-- [Two Editor Visual Themes](#two-editor-visual-themes)
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Visual Editor](#visual-editor)
-- [Dual Chat Channels](#dual-chat-channels)
-- [Layout Settings](#layout-settings)
-- [Text Settings](#text-settings)
-- [Background Settings](#background-settings)
-- [Player Name Colours](#player-name-colours)
-- [Mentions &amp; Notifications](#mentions--notifications)
-- [Player Quick Actions](#player-quick-actions)
-- [Command Tools](#command-tools)
-- [Emoji Picker](#emoji-picker)
-- [Voice Input](#voice-input)
-- [Chat Log Saving](#chat-log-saving)
-- [Configuration &amp; Data Files](#configuration--data-files)
-- [Compatibility](#compatibility)
-- [Security Notice](#security-notice)
-- [Known Limitations](#known-limitations)
-- [FAQ](#faq)
-- [Troubleshooting](#troubleshooting)
-- [Building](#building)
-- [Issue Tracker](#issue-tracker)
-- [Author &amp; Links](#author--links)
-- [License](#license)
+### Chat Interface
 
----
+- Visual chat editor with real-time in-game preview
+- Drag to reposition and eight-direction resize of the chat HUD, with edge and centre snapping
+- **Two selectable editor visual themes**: Chat Canvas (modern) and Minecraft-style — identical layout, features and configuration
+- **Dual chat channels**: player chat and command & system messages, each with independent position, size, style and scrolling
+- **Split alignment layout**: classic or left/right column layout, with own and other players' messages visually separated and an adjustable message width
+- Player avatars via [Chat Heads](https://modrinth.com/mod/chat-heads) (not bundled)
+- Text size, line spacing, character spacing, opacity, shadow and alignment
+- Message background colour, opacity, display mode and padding; input box background and border
+- Undo / redo while editing (Ctrl+Z / Ctrl+Y)
 
-## Highlights
+### Player Colours, Mentions and Quick Actions
 
-- ✅ Drag and resize the chat HUD directly in-game
-- ✅ WYSIWYG chat preview
-- ✅ Eight-direction resizing with edge &amp; centre snapping
-- ✅ Settings panel auto‑avoids the chat preview
-- ✅ **Two switchable editor visual themes** (Chat Canvas &amp; Minecraft‑style)
-- ✅ **Dual chat channels**: player chat + command &amp; system messages, independently positioned and styled
-- ✅ Text size, character spacing, line spacing, opacity, shadow &amp; alignment
-- ✅ Message background colour, opacity and display mode
-- ✅ **Player chat layout modes**: classic / split alignment
-- ✅ Automatic per‑player name colours + manual overrides
-- ✅ Double‑click @‑mentions + sound / toast / full‑screen flash
-- ✅ Right‑click player name quick menu
-- ✅ **Command tools**: recent / favourites / clipboard, search, sort, sensitive command exclusion
-- ✅ **Emoji picker**: categories, search, recent history
-- ✅ **Local offline Chinese speech‑to‑text** (hold V to speak, powered by Vosk)
-- ✅ **Chat log saving**: per‑world/server directories, UTF‑8 JSONL, automatic rotation &amp; retention
-- ✅ Compatible with Chat Heads, More Chat History, ChatAnimation &amp; Smooth Scrolling
-- ✅ Ctrl+Z / Ctrl+Y undo &amp; redo
-- ✅ Theme preference persisted across sessions
+- Stable automatic colours assigned by player UUID, with a custom palette and manual per-player overrides
+- Option to keep the server's original name colours
+- Double-click a player name to insert `@name` at the cursor; mention highlighting with custom colour and bold
+- Mention notifications: sound, toast, or full-screen flash (own mentions ignored by default)
+- Right-click a player name for quick actions: mention, private message template (`/msg`, `/tell`, `/w`), or copy name
+- All quick actions only fill the input box — nothing is sent automatically
 
----
+## Interactive Server Messages
 
-## Two Editor Visual Themes
+Chat Canvas preserves vanilla component interactions in chat messages, including:
 
-Chat Canvas provides two **visual themes** for the editor — they are **not** two different editors. Both themes:
+- `ClickEvent`: run command, suggest command, open URL, copy to clipboard
+- `HoverEvent`: tooltips
 
-- Use the exact same editor layout
-- Offer the exact same features
-- Read and write the same configuration file
-- Share the same editing session (EditorSession)
-- Share the same undo / redo history
-- Never lose unsaved changes when switching
-- Only change the appearance of buttons, panels, sliders and text controls
+This means server features such as `/tpa` accept/deny buttons, clickable links and copyable text keep working inside the redesigned chat. The exact behaviour depends on what the server sends using vanilla components.
 
-### Chat Canvas Theme
+## Voice Input
 
-- Semi‑transparent modern panels
-- Rounded corners, shadows and custom controls
-- Blue and purple accent colours
-- Custom numeric scrubbers
-- For players who prefer a modern UI
+Press **V** to open chat and start voice input, and press **V** again to finish. Speech-to-text runs fully offline after a model is installed.
 
-### Minecraft‑style Theme
+- Hold-free recording: start with V, stop with V, or let VAD end the sentence automatically
+- Silero VAD with configurable listen timeout, endpoint silence and tail padding
+- Partial results are shown live while speaking; the final result is inserted at the cursor
+- Results are never sent automatically — review before pressing Enter
+- Microphone device selection and level testing
+- Optional automatic final punctuation and character limit handling
+- Maximum recording time, noise threshold and ASR thread settings
 
-- Minecraft‑style buttons, borders, sliders and text fields
-- Square edges and vanilla grey visuals
-- The exact same editor layout and features
-- For players who prefer an appearance that matches the vanilla game
+## Offline Speech Models
 
-> **How to switch:** Click the "UI Theme" button in the editor header — your preference is saved automatically.
+Chat Canvas does not bundle speech models in the mod JAR. On first use, the model manager lets you pick one of the following models (each downloaded only after your confirmation):
 
----
+| Model | Languages | Size | Profile |
+|---|---|---|---|
+| Streaming Zipformer Chinese | Mandarin | ~30 MB | Low resource, streaming, very fast — suitable for low-end devices and mobile |
+| SenseVoice INT8 | Mandarin, Cantonese, English, Japanese, Korean | ~240 MB | Balanced; higher quality, fast response, offline decoding |
+| Whisper Tiny INT8 | Multilingual | ~104 MB | Offline decoding, broad multilingual coverage |
+| Vosk Small Chinese (legacy) | Mandarin | ~44 MB | Streaming; compatibility option, desktop x86-64 only |
+
+Zipformer and Vosk stream partial results while you speak; SenseVoice and Whisper decode after VAD detects the end of a sentence.
+
+## Model Manager
+
+- Pick a model from the voice settings page; download progress and sizes are shown
+- All downloads are verified against SHA-256 checksums
+- Switching between installed models is hot-swapped — no game restart needed
+- Cancel downloads, release a loaded model, or open the model folder from the UI
+
+## Mobile Support
+
+The voice system includes a compatibility layer for mobile Minecraft launchers:
+
+- **Android** (FCL / Pojav-class Java Minecraft environments): ARM64 and ARM32 native runtimes are downloaded and staged into the app-private cache.
+- **iOS arm64**: the sherpa-onnx native runtime must be supplied by the launcher through the runtime bridge.
+
+Actual microphone access and native library loading depend on what the launcher provides (microphone permission, native runtime support). Chat Canvas detects capabilities at runtime and safely disables voice input when the environment cannot support it — the rest of the mod keeps working.
+
+## Emoji Picker
+
+- 130+ emoji in 10 categories (Smileys, People, Animals, Food, Activities, Travel, Objects, Symbols, Hearts, Recently Used)
+- Search, recently used history (persisted), and multi-language emoji names
+- Virtualized scrollable grid with tooltips and keyboard navigation
+- Emoji that the active font cannot render are hidden automatically
+
+## Chat History
+
+- Player chat messages are saved locally to `.minecraft/chatcanvas/chat-logs/`, isolated per world/server
+- UTF-8 JSON Lines format with daily and size-based rotation, written asynchronously
+- Separately toggle saving of your own messages, other players' messages and the command/system channel
+- Configurable retention days (0 = keep forever) and one-click access to the log folder
+
+Chat logs are plain local files; there is no cloud sync and no in-game history viewer.
+
+## Command Input
+
+- Typing `/` switches the input to command mode with vanilla (Brigadier-based) command suggestions
+- Command tools panel (Ctrl+F in command mode): recently executed commands, favourites with drag ordering, common presets, and the system clipboard
+- Search, edit, delete and categorise saved commands
+- Insert at cursor or replace the input; sensitive commands (e.g. `/login`, `/password`) are flagged and excluded from logging
+- Commands are only ever inserted into the input box — press Enter yourself to run them
+
+## Languages
+
+- English (en_us)
+- 简体中文 (zh_cn)
+- 繁體中文（台灣） (zh_tw)
+
+## Responsive UI
+
+The editor adapts to Minecraft's logical GUI size, so it works across GUI scales, window sizes, common aspect ratios (16:9, 16:10, 4:3) and windowed/fullscreen modes. The settings panel also moves automatically to avoid overlapping the chat preview.
+
+## Controls
+
+| Key | Action |
+| --- | --- |
+| K | Open/close the Chat Canvas editor |
+| V | Start / finish voice input |
+| T | Open chat (vanilla) |
+| / | Command input (vanilla) |
+| Ctrl+E | Toggle the Emoji picker |
+| Ctrl+F | Command tools / Emoji search |
+| Ctrl+Z / Ctrl+Y | Undo / redo in the editor |
+
+## Installation
+
+1. Install [Fabric Loader](https://fabricmc.net/use/) for Minecraft 1.21.5
+2. Install [Fabric API](https://modrinth.com/mod/fabric-api) and [owo-lib](https://modrinth.com/mod/owo-lib)
+3. Download the Chat Canvas JAR from [Releases](https://github.com/ikunkk02-afk/Chat-Canvas/releases) and put it in `.minecraft/mods/`
+4. Launch the game (Java 21 or higher)
+5. Optional: install [Mod Menu](https://modrinth.com/mod/modmenu) for an in-game configuration entry point
 
 ## Requirements
 
 | Dependency | Type | Version |
 |---|---|---|
-| Minecraft | Required | 1.21.1 |
+| Minecraft | Required | 1.21.5 |
 | Java | Required | 21 or higher |
 | Fabric Loader | Required | 0.19.3 or higher |
-| Fabric API | Required | 0.116.14+1.21.1 or compatible |
-| owo‑lib | Required | 0.12.15.4+1.21 or compatible |
-| Mod Menu | Optional | 11.0.4 or compatible |
+| Fabric API | Required | 0.128.2+1.21.5 or compatible |
+| owo-lib | Required | 0.12.21+1.21.5 or compatible |
+| Mod Menu | Optional | 13.0.2 or compatible |
 
-> Chat Canvas is client‑side only. It does not need to be installed on the server and does not bypass server permissions.
+## Voice Model Storage
 
----
+Speech models are downloaded at runtime and are never included in the mod JAR.
 
-## Installation
+- Models: `config/chatcanvas/voice-models/`
+- sherpa-onnx native runtime and Silero VAD: `config/chatcanvas/voice-runtime/sherpa-onnx/<version>/`
 
-1. Download the latest Chat Canvas JAR from [Releases](https://github.com/ikunkk02-afk/Chat-Canvas/releases)
-2. Place the JAR in your `.minecraft/mods/` folder
-3. Launch Minecraft 1.21.1 Fabric
+Delete these folders to reclaim disk space; the model manager will offer to re-download when needed.
 
-Chat Canvas registers a configuration entry in Mod Menu automatically.
+## Privacy
 
----
-
-## Quick Start
-
-1. Press **K** (default keybind) to open the editor
-2. Drag the chat overlay to your desired position
-3. Drag the corners to resize the chat area
-4. Use the category tabs in the settings panel for detailed customisations
-5. Click **Save** to apply
-
-> While the editor is open you can see a live preview of your chat HUD on the left.
-
----
-
-## Visual Editor
-
-- **Live preview**: See exactly how the chat HUD will look
-- **Drag position**: Click and drag the chat preview to move it
-- **Eight‑direction resize**: Drag the edges and corners to adjust width and height
-- **Snapping**: Snaps to screen edges, corners and centre
-- **Settings panel**: A floating panel on the right that auto‑switches sides to avoid the preview
-- **Category tabs**: Layout, Text, Background, Player Colours, Mentions, Command Input, Voice, Chat Log — **8 tabs** with horizontal sliding
-- **Undo / Redo**: Ctrl+Z / Ctrl+Y, or the toolbar buttons
-- **Save / Cancel**: Fixed footer bar
-- **Channel switch**: Toolbar buttons to edit player chat or command/system message channel
-
----
-
-## Dual Chat Channels
-
-Chat Canvas separates chat into two independent channels:
-
-| Channel | Description |
-|---|---|
-| **Player Chat** | Normal player messages, mentions, whispers, etc. |
-| **Command &amp; System** | Command results, system notifications, join/leave, death messages, etc. |
-
-Both channels:
-- Have independent position, size, text style and background settings
-- Scroll independently
-- Can be edited separately in the editor
-- The command system channel supports text outline and customisable fade time
-
----
-
-## Layout Settings
-
-- X position (pixels)
-- Y position (pixels)
-- Width (pixels)
-- Height (pixels)
-- Chat open / closed preview state toggle
-- **Message layout**: Classic / Split Alignment
-- **Split message max width ratio**
-- Values adapt to your resolution and GUI Scale
-
----
-
-## Text Settings
-
-- **Font scale**: 50% – 200%
-- **Line spacing**: 0 – 20 px
-- **Character spacing**: 0.0 – 8.0 px
-- **Text opacity**: 0% – 100%
-- **Text shadow**: on / off
-- **Text alignment**: left / centre / right
-
-All text settings support Chinese, English, Unicode and emoji.
-
-### Numeric Scrubbing
-
-- Hover the value area, hold left mouse button and **drag left / right**
-- **Scroll wheel** for fine adjustment
-- **Shift** for precise control
-- **Ctrl** for rapid adjustment
-- **Right‑click** to restore the default
-- Only one undo history entry is created on release
-
----
-
-## Background Settings
-
-- **Display mode**: follow text / full width / hidden
-- **Message background colour**: RGB colour picker
-- **Message background opacity**: 0% – 100%
-- **Horizontal padding**: 0 – 12 px
-- **Vertical padding**: 0 – 6 px
-- **Input field background colour**
-- **Input field opacity**: 0% – 100%
-- **Input field border colour** and opacity
-
----
-
-## Player Name Colours
-
-- Automatically assigns a **stable colour per player UUID**
-- Player colour persists across name changes (same UUID)
-- **Manual per‑player colour override**
-- Custom colour palette editing
-- Search online players
-- Restore automatic colour
-- Respects the server's original colour mode (does not force override)
-- Does not tint Chat Heads avatars
-
----
-
-## Mentions &amp; Notifications
-
-### Mention Behaviour
-
-- **Double‑click a player name** to insert `@playername` (inserts at cursor, does not send)
-- Mention text highlighting with customisable colour
-- Optional bold
-- Configurable double‑click interval
-- Optional requirement for an `@` prefix
-
-### Mention Notifications
-
-- **Sound alert**: multiple sound types, adjustable volume and pitch
-- **Toast**: on‑screen popup with configurable message preview length
-- **Full‑screen flash**: customisable colour, opacity and duration
-- Ignore your own messages
-
----
-
-## Player Quick Actions
-
-**Right‑click** a player name in chat to:
-
-- **Mention player**: insert `@playername`
-- **Whisper player**: using a configurable template (`/msg {player}`, `/tell {player}`, `/w {player}`)
-- **Copy player name**
-
-> All quick actions only modify the chat input field — they never send messages automatically.
-
----
-
-## Command Tools
-
-A "Commands" button appears next to the chat input field (or press Ctrl+F). Click it to open the command tools panel:
-
-- **Recent**: executed commands sorted by time
-- **Favorites**: saved frequently‑used commands, drag to reorder
-- **Clipboard**: command candidates from system clipboard
-- **Search** by name or command text
-- **Edit / Delete / Reorder** favorites
-- Insert at **cursor position** or **replace the entire input**
-- Shift‑click to temporarily invert the insert mode
-- **Sensitive command exclusion**: automatically filters `/login`, `/register`, `/password`, etc.
-- Confirmation dialogs prevent accidental deletion or clearing
-- Data persists across worlds, servers and restarts
-- **Commands are never executed automatically**
-
----
-
-## Emoji Picker
-
-An "Emoji" button appears next to the chat input field. Click it to open the emoji panel:
-
-- **10 categories**: Faces, People, Animals, Food, Activities, Travel, Objects, Symbols, Hearts, Recent
-- **Search** by name
-- **Recent history** persists across sessions
-- Click an emoji to insert at cursor position
-- Displays grapheme cluster count and input length limit
-- Compatible with Chinese, English and Unicode
-
----
-
-## Voice Input
-
-Hold **V** (default keybind) for voice input, powered by local offline Vosk Chinese speech recognition:
-
-- **Fully local** — no internet required
-- Chinese voice model (vosk‑model‑small‑cn‑0.22, ~42 MB)
-- Model download, installation and release
-- Microphone selection and testing
-- Configurable max recording seconds and noise threshold
-- Input level meter and partial recognition display
-- Auto‑append final punctuation
-- Results inserted at cursor position
-- Privacy: audio is never uploaded or saved
-
-> Note: You need to download the Chinese voice model on first use. The microphone is only active while the key is held.
-
----
-
-## Chat Log Saving
-
-Automatically saves player chat messages to local files:
-
-- Save location: `.minecraft/chatcanvas/chat-logs/`
-- **Isolated per world/server** directories
-- Directory names include stable hashes to prevent path traversal
-- File format: UTF‑8 JSON Lines (`.jsonl`), one message per line
-- Automatic daily file rotation with size‑based rotation
-- **Asynchronous writing** — no game lag
-- Player chat saved by default; self / others can be toggled independently
-- Command &amp; system messages default to off, can be enabled separately
-- Sensitive commands (e.g. `/login`, `/register`) are always excluded
-- Configurable retention days (0 = keep forever)
-- One‑click open chat logs directory
-
----
-
-## Configuration &amp; Data Files
-
-Settings are stored locally on your client:
-
-| File | Path |
-|---|---|
-| Main config | `.minecraft/config/chat_canvas.json` |
-| Command tools | `.minecraft/config/chat_canvas/commands.json` |
-| Emoji recent | `.minecraft/config/chat_canvas/emoji.json` |
-| Voice settings | `.minecraft/config/chatcanvas/voice.json` |
-| Voice model | `.minecraft/config/chatcanvas/voice-models/` |
-| Chat logs | `.minecraft/chatcanvas/chat-logs/` |
-| Chat log settings | `.minecraft/config/chatcanvas/chatlog.json` |
-
-- Switching worlds or servers does not lose your settings
-- Delete the main config file to reset all settings
-- Back up before modifying
-- Manual editing during play is not recommended
-- Corrupted configs are backed up and replaced with defaults automatically
-
----
+- With an installed offline model, **speech recognition runs locally**. The microphone and decoding are active only during a voice session; audio is never uploaded or saved.
+- Networking is used only for player-requested downloads (models and the native runtime); these require network on first voice setup.
+- Chat logs and saved commands are stored as local plain-text JSON. Do not save passwords or tokens (e.g. `/login`, `/register`, `/password`) on shared computers.
 
 ## Compatibility
 
-### Chat Heads
+Chat Canvas is **client-side only**. It does not need to be installed on the server and works with vanilla, Fabric, Paper or Spigot servers. It does not bypass server permissions — commands are executed by the server as usual.
 
-Chat Canvas does not provide player avatars. With Chat Heads installed, avatars display normally and participate in text width, background and alignment calculations. Double‑click and right‑click only respond to the player name, not the avatar area.
+Known-good coexistence with other chat mods:
 
-### More Chat History
-
-Chat Canvas does not alter the chat history size — More Chat History handles that.
-
-### ChatAnimation
-
-Chat Canvas does not provide message entry animations — ChatAnimation does.
-
-### Smooth Scrolling
-
-Chat Canvas does not implement scroll animation — Smooth Scrolling provides it.
-
-> Behaviour may differ across mod combinations, resource packs, custom fonts, GUI Scales and large modpacks.
-
----
-
-## Security Notice
-
-> [!WARNING]
-> Command tools and chat logs store data as **local plain‑text JSON**. **Do not save passwords, tokens or private information** on shared or untrusted computers — for example, `/login`, `/register`, `/password`.
-
-- Chat Canvas **never uploads** your commands or chat logs
-- Data is never sent to the author or third parties
-- Clicking a command **only fills the input field** — it never executes automatically
-- Commands are only processed after you press Enter
-- A plain‑text storage warning is shown when saving commands containing sensitive keywords
-- Voice recognition runs entirely locally; audio is never uploaded
-- You are responsible for what you choose to save
-
----
+- [Chat Heads](https://modrinth.com/mod/chat-heads) — avatars are rendered inside the Chat Canvas layout
+- [More Chat History](https://modrinth.com/mod/morechathistory) — history capacity is left to More Chat History
+- [ChatAnimation](https://modrinth.com/mod/chatanimation) — message entry animations are left to ChatAnimation
+- [Smooth Scrolling](https://modrinth.com/mod/smooth-scroll) — scroll animation is left to Smooth Scrolling
 
 ## Known Limitations
 
-1. Currently supports Fabric 1.21.1 only
-2. Client‑side only — no Forge or NeoForge version
-3. Does not provide player avatars (use Chat Heads)
-4. Does not provide message entry animations (use ChatAnimation)
-5. Does not provide scroll animations (use Smooth Scrolling)
-6. Some server plugins that convert player messages to system messages may strip sender UUIDs
-7. Player colour and quick actions may not work when player identity cannot be determined
-8. Custom fonts may alter text width, wrapping and click hit‑testing
-9. Specialised chat‑format mods may require additional compatibility work
-10. Whisper commands are server‑dependent — `/msg` may not be available
-11. Command permissions are determined by the server — Chat Canvas cannot bypass them
-12. Voice recognition supports Chinese only and requires a separate model download
-13. Hold‑to‑talk via V key may be unstable in some environments; use mouse click on the mic button as a fallback
+- Fabric 1.21.5 only; no Forge or NeoForge build.
+- On iOS, voice input requires the launcher to provide a signed sherpa-onnx runtime bridge; on Android it depends on the launcher exposing a usable microphone and allowing native library loading. If unavailable, voice input is disabled safely and the rest of the mod still works.
+- The legacy Vosk model only works on desktop x86-64.
+- If a server plugin rewrites player messages into system messages, the sender UUID may be lost; player colours and name quick actions then cannot be applied reliably.
+- Emoji availability depends on the active font; unsupported glyphs are hidden automatically.
+- Chat logs are plain local files — there is no built-in viewer and no synchronization between devices.
 
----
+## Configuration
 
-## FAQ
+Press **K** in-game (or open Chat Canvas from Mod Menu) to access the editor with eight settings tabs:
 
-### How do I open the editor?
+- Layout — position, size, channel and split-layout options
+- Text — size, spacing, opacity, shadow, alignment
+- Background — message and input box backgrounds
+- Player Colours — automatic colours, palette and overrides
+- Mentions — double-click behaviour, highlighting and notifications
+- Commands — command tools and saved commands
+- Voice — voice input, model manager and microphone settings
+- Chat Log — local chat history options
 
-Press **K** (default) or use the Mod Menu config button. The keybind can be changed in Minecraft's Controls menu.
+## Screenshots
 
-### How do I switch between themes?
+Screenshots for 1.3.0 will be added with the release assets.
 
-Click the "UI Theme" button in the editor header and select your preferred theme.
+## Credits
 
-### Will switching themes lose my changes?
+- [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) — offline ASR runtime and Silero VAD model
+- [Vosk](https://alphacephei.com/vosk/) — legacy small Chinese speech model
+- Speech models distributed via [Hugging Face](https://huggingface.co/csukuangfj) (downloaded at runtime)
+- [Fabric API](https://github.com/FabricMC/fabric), [owo-lib](https://github.com/wisp-forest/owo-lib), [Mod Menu](https://github.com/TerraformersMC/ModMenu)
 
-No. Switching only changes visual control styles. All unsaved edits, undo history and your current category tab are preserved.
-
-### Why don't I see a Mod Menu config entry?
-
-Make sure Mod Menu is installed. Chat Canvas registers its entry automatically.
-
-### Why do some player names lack automatic colours?
-
-If the server converts player messages to system messages, the sender UUID may be lost, making colour assignment impossible.
-
-### Why doesn't double‑clicking a name insert a mention?
-
-Ensure "Double‑click mention" is enabled in the Mentions settings, and that you double‑click within the configured time interval.
-
-### Why does the command button disappear when the panel opens?
-
-This is by design. The launcher button hides while the tools panel is open so it does not obstruct the panel. It reappears when you close the panel.
-
-### Why doesn't clicking a command execute it immediately?
-
-Chat Canvas only fills the input field. You must press Enter to send — this keeps you in control.
-
-### How do I use voice input?
-
-Hold the **V** key while speaking, then release. On first use, download the Chinese voice model from the Voice settings page. You can also click the microphone icon next to the chat field.
-
-### Where are chat logs saved?
-
-`.minecraft/chatcanvas/chat-logs/`, organised by world/server in JSONL format.
-
-### Why aren't commands in my chat log?
-
-Command and system messages are not saved by default. Enable "Save Command & System Messages" in the Chat Log settings category.
-
-### Does Chat Canvas need to be installed on the server?
-
-No. It is client‑side only.
-
-### Does it support Forge / NeoForge?
-
-The current version supports Fabric 1.21.1 only.
-
----
-
-## Troubleshooting
-
-1. Verify Minecraft version is 1.21.1
-2. Verify Fabric Loader is installed
-3. Verify Fabric API and owo‑lib are installed
-4. Back up `config/chat_canvas.json` and related config directories
-5. Temporarily rename config files to test for corruption
-6. Test with only Chat Canvas and its required dependencies
-7. Re‑enable other mods in batches to isolate conflicts
-8. Check custom fonts and resource packs
-9. Provide `latest.log`, mod list, screenshots and reproduction steps when reporting
-
----
-
-## Building
-
-```bash
-git clone https://github.com/ikunkk02-afk/Chat-Canvas.git
-cd Chat-Canvas
-
-./gradlew.bat build
-./gradlew.bat runClient
-```
-
-- Java 21+
-- Gradle is bootstrapped via the included wrapper
-
----
-
-## Issue Tracker
-
-Please report issues at [GitHub Issues](https://github.com/ikunkk02-afk/Chat-Canvas/issues) with:
-
-- Chat Canvas version
-- Minecraft version
-- Fabric Loader / Fabric API / owo‑lib versions
-- Other chat‑related mods
-- GUI Scale
-- Resource packs &amp; fonts
-- `latest.log`
-- Screenshots or video
-- Reliable reproduction steps
-
----
-
-## Author &amp; Links
-
-Chat Canvas is developed and maintained by **寿云 (Shou Yun)**.
-
-- Bilibili: [https://space.bilibili.com/1832031043](https://space.bilibili.com/1832031043?spm_id_from=333.1007.0.0)
-- Douyin: [https://www.douyin.com/user/MS4wLjABAAAAXPEr9Q0OnMztYvgDTXt6H3g9_626CRAmMbX1L64pBkxbvbHR2ACMWmL55mIL0-Gi](https://www.douyin.com/user/MS4wLjABAAAAXPEr9Q0OnMztYvgDTXt6H3g9_626CRAmMbX1L64pBkxbvbHR2ACMWmL55mIL0-Gi)
-- GitHub: [https://github.com/ikunkk02-afk/Chat-Canvas](https://github.com/ikunkk02-afk/Chat-Canvas)
-
----
+See [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for dependency licenses.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
-
-Copyright &copy; 2026 寿云
+[MIT](LICENSE) — Copyright &copy; 2026 寿云

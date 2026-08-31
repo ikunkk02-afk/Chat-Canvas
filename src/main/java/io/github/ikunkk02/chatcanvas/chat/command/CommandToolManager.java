@@ -193,7 +193,7 @@ public final class CommandToolManager {
 		if (saved) {
 			saveAt = 0L;
 		} else {
-			errors.report("命令工具数据保存失败，修改已保留在内存中", null);
+			errors.report("chat_canvas.command.error.save_pending", null);
 			saveAt = System.currentTimeMillis() + SAVE_DELAY_MS;
 		}
 		return saved;
@@ -204,9 +204,9 @@ public final class CommandToolManager {
 		recent.addAll(result.data().recent());
 		favorites.addAll(result.data().favorites());
 		if (result.status() == CommandToolStorage.LoadStatus.RECOVERED_CORRUPT) {
-			errors.report("命令工具数据损坏，已备份并恢复为空数据", null);
+			errors.report("chat_canvas.command.error.corrupt_recovered", null);
 		} else if (result.status() == CommandToolStorage.LoadStatus.PARTIAL_RECOVERY) {
-			errors.report("命令工具数据包含无效记录，已跳过损坏项目", null);
+			errors.report("chat_canvas.command.error.partial_recovery", null);
 		}
 		if (!result.data().migrationCompleted()) migrateLegacy();
 		trimRecent(config.get().maxRecentCommands());
@@ -231,11 +231,11 @@ public final class CommandToolManager {
 			}
 			normalizeFavoriteOrder();
 			if (!storage.save(snapshot(true))) {
-				errors.report("旧指令数据迁移完成，但新数据暂时无法保存", null);
+				errors.report("chat_canvas.command.error.migration_save_pending", null);
 				saveAt = now + SAVE_DELAY_MS;
 			}
 		} catch (RuntimeException failure) {
-			errors.report("旧指令数据迁移失败，已保留旧文件", failure);
+			errors.report("chat_canvas.command.error.migration_failed", failure);
 			if (!storage.save(snapshot(true))) saveAt = now + SAVE_DELAY_MS;
 		}
 	}

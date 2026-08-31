@@ -2,18 +2,19 @@
 
 How to port Chat Canvas to newer Minecraft versions.
 
-## Current Baseline (1.2.0)
+## Current Baseline (1.3.0)
 
 | Item | Value |
 |------|-------|
-| Minecraft | 1.21.1 |
+| Minecraft | 1.21.5 |
 | Fabric Loader | 0.19.3 |
-| Fabric API | 0.116.14+1.21.1 |
-| Yarn mappings | 1.21.1+build.3 |
+| Fabric API | 0.128.2+1.21.5 |
+| Yarn mappings | 1.21.5+build.1 |
 | Fabric Loom | 1.17 |
-| owo-lib | 0.12.15.4+1.21 |
+| owo-lib | 0.12.21+1.21.5 |
 | Java | 21 |
 | Vosk Java | 0.3.45 (bundled, JNA excluded) |
+| sherpa-onnx JVM | 1.13.4 (bundled, transitive dependencies excluded) |
 
 ## High-Risk Porting Areas
 
@@ -52,15 +53,19 @@ carefully reviewed for each target version:
 | TextRendererDrawerMixin | `TextRenderer$Drawer` | Various | Font rendering hooks |
 | AbstractParentElementMixin | `AbstractParentElement` | Focus management | Focus routing |
 
-### Lessons from 1.21.1
+### Lessons from the 1.21.5 port
 
-- **Do not inject `keyReleased` into `ChatScreen`**. In Minecraft 1.21.1,
+- **Do not inject `keyReleased` into `ChatScreen`**. In Minecraft 1.21.5,
   `ChatScreen` inherits `keyReleased` from `Screen` but does not declare it.
   Mixin `@Inject` requires the target class to *declare* the method. Use
   `Keyboard.onKey` instead.
 - **Mixin compilation success ≠ runtime success**. `./gradlew build` only
   verifies Java compilation — Mixin target resolution happens at game launch.
   Always run `./gradlew runClient` and verify the chat screen opens.
+- **ClickEvent constructors are version-specific**. Minecraft 1.21.5 exposes
+  concrete `ClickEvent.RunCommand`, `SuggestCommand` and
+  `CopyToClipboard` records instead of the older two-argument constructor;
+  production code must preserve the target version's component API.
 - **Lease/closing patterns must be thread-safe**. The voice pipeline involves
   render thread, capture thread, and recognition thread all potentially
   closing the same microphone resource.
@@ -93,7 +98,7 @@ These require the most attention during porting:
 
 ## Recommended Porting Workflow
 
-1. Create a target version branch: `git switch -c mc/1.21.x` from `mc/1.21.1`
+1. Work only on the prepared target branch: `git switch mc/1.21.5`
 2. Update `gradle.properties`: `minecraft_version`, `yarn_mappings`,
    `loader_version`, `fabric_api_version`, `owo_version`, `loom_version`
 3. Run `./gradlew compileJava compileClientJava` and fix compilation errors
@@ -105,9 +110,9 @@ These require the most attention during porting:
 
 ## Branch Strategy
 
-- `main` — Current development (currently 1.21.1)
-- `mc/1.21.1` — Maintenance branch for 1.21.1 fixes only
-- Future: `mc/1.21.4`, `mc/1.21.5`, etc.
+- `main` — Current development branch
+- `mc/1.21.5` — Maintenance branch for Minecraft 1.21.5
+- Other Minecraft versions are maintained on their own branches.
 
 > Each maintenance branch is created from its release tag and receives only
 > targeted fixes for that Minecraft version.

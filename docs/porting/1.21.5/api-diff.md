@@ -24,6 +24,14 @@ Generated for Chat Canvas porting.
 
 **Action**: Changed `drawTextWrapped` → `drawWrappedTextWithShadow` in `CommandToolPanel.java`.
 
+### ClickEvent
+
+| 1.21.1 | 1.21.5 | Notes |
+|--------|--------|-------|
+| `new ClickEvent(Action, String)` | `new ClickEvent.RunCommand(String)` / `SuggestCommand(String)` / `CopyToClipboard(String)` | `ClickEvent` is an interface in 1.21.5; value accessors are event-specific (`command()` or `value()`) |
+
+**Action**: Adapted the interaction-preservation tests to the concrete 1.21.5 event records. Production code continues to retain the original `Style` and `ClickEvent` objects.
+
 ### ChatHud
 
 | 1.21.1 | 1.21.5 | Notes |
