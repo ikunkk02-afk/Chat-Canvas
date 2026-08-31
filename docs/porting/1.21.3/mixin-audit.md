@@ -1,6 +1,6 @@
 # Mixin Audit: Chat Canvas 1.21.1 → 1.21.3
 
-## Audit Date: 2026-07-28
+## Audit Date: 2026-08-31
 ## Source: MC MCP (yarn mappings, 1.21.3 decompiled)
 
 ---
@@ -200,4 +200,5 @@ Inner class structure unchanged.
 ## Conclusion
 
 **All 15 Mixins require ZERO changes.** The Minecraft 1.21.3 client API is binary-compatible
-with 1.21.1 for all Chat Canvas Mixin targets. Only build configuration files needed updating.
+with 1.21.1 for all Chat Canvas Mixin targets. The 1.3.0 source Mixin changes are
+functional fixes from the 1.2.0 baseline, not version-specific API work.

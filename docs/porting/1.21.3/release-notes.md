@@ -1,10 +1,13 @@
-# Chat Canvas 1.2.0 for Minecraft 1.21.3
+# Chat Canvas 1.3.0 for Minecraft 1.21.3
 
 ## Summary
 
-Port of Chat Canvas v1.2.0 to Minecraft 1.21.3 (Fabric).
+Port of Chat Canvas v1.3.0 to Minecraft 1.21.3 (Fabric), using the 1.21.1 / 1.3.0
+release as the functional reference.
 
-**Zero Java source changes required** — all 15 Mixin targets have identical method signatures between 1.21.1 and 1.21.3.
+All 1.3.0 source and resource changes are included. The Minecraft 1.21.1 → 1.21.3
+Mixin audit found identical target signatures, so no version-specific Java API
+adaptation was required.
 
 ## Changes
 
@@ -18,8 +21,8 @@ Port of Chat Canvas v1.2.0 to Minecraft 1.21.3 (Fabric).
 ### Build
 - `./gradlew build` ✅ PASS (all unit tests)
 - Zero compilation errors
-- JAR: chat-canvas-1.2.0.jar (27.9 MB)
-- SHA-256: `a2998cb087ddfdd6bce2545956d8929236b0e8b05851afb9baa99bce0698629c`
+- JAR: chat-canvas-1.3.0.jar (28,217,728 bytes)
+- SHA-256: `56aad5ff319ae0362e318e86a6df1af34554780a254bd2b69572b45156b37746`
 
 ### Mixins
 All 15 Mixin targets verified against MC 1.21.3 decompiled source (yarn):
@@ -32,15 +35,15 @@ All 15 Mixin targets verified against MC 1.21.3 decompiled source (yarn):
 1. Install Fabric Loader 0.19.3+ for Minecraft 1.21.3
 2. Install Fabric API 0.106.1+
 3. Install owo-lib 0.12.18+
-4. Place chat-canvas-1.2.0.jar in mods folder
+4. Place chat-canvas-1.3.0.jar in mods folder
 
 ## Files
 
 | File | SHA-256 |
 |------|---------|
-| chat-canvas-1.2.0.jar | a2998cb087ddfdd6bce2545956d8929236b0e8b05851afb9baa99bce0698629c |
+| chat-canvas-1.3.0.jar | 56aad5ff319ae0362e318e86a6df1af34554780a254bd2b69572b45156b37746 |
 
 ## Known Limitations
 
 - Runtime testing pending (requires graphical Minecraft client)
-- Compat mods (Chat Heads, More Chat History, ChatAnimation, Smooth Scrolling) not verified for 1.21.3
+- Live UI, server interaction, microphone, model download, and Android/iOS hardware testing remain environment-dependent; see `test-report.md`.

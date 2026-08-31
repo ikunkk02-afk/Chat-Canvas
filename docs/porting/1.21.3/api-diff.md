@@ -3,8 +3,10 @@
 ## Summary
 
 Minecraft 1.21.3 is a minor protocol patch over 1.21.2. Both share the same Fabric blog post (2024/10/14).
-**Zero Java source changes were required** — all Mixin target class method signatures are identical
-between 1.21.1 and 1.21.3.
+The Chat Canvas 1.3.0 source from the 1.21.1 reference branch was applied first;
+the Minecraft 1.21.1 → 1.21.3 API audit then found **zero Java source changes
+required** — all Mixin target class method signatures are identical between the
+two Minecraft versions.
 
 ## Baseline
 
@@ -55,10 +57,11 @@ All 15 Mixin target classes verified via MC MCP decompilation of 1.21.3 (yarn):
 - owo-lib 0.12.18+1.21.2: Confirmed on WispForest Maven. No specific 1.21.3 build exists, but 1.21.3 is binary-compatible with 1.21.2.
 - Mod Menu: Optional dependency only (modCompileOnly), version 11.0.4 kept
 
-## Changes Required
+## Minecraft API Changes Required
 
 Only build configuration files needed updating:
 - `gradle.properties`: minecraft_version, yarn_mappings, fabric_api_version, owo_version
 - `fabric.mod.json`: minecraft version range, dependency version ranges
 
-Zero Java source file changes.
+The Chat Canvas 1.2.0 → 1.3.0 functional changes are tracked separately in the
+source-to-target port checklist and are not Minecraft API changes.

@@ -2,18 +2,19 @@
 
 How to port Chat Canvas to newer Minecraft versions.
 
-## Current Baseline (1.2.0)
+## Current Baseline (1.3.0)
 
 | Item | Value |
 |------|-------|
-| Minecraft | 1.21.1 |
+| Minecraft | 1.21.3 |
 | Fabric Loader | 0.19.3 |
-| Fabric API | 0.116.14+1.21.1 |
-| Yarn mappings | 1.21.1+build.3 |
+| Fabric API | 0.106.1+1.21.3 |
+| Yarn mappings | 1.21.3+build.2 |
 | Fabric Loom | 1.17 |
-| owo-lib | 0.12.15.4+1.21 |
+| owo-lib | 0.12.18+1.21.2 |
 | Java | 21 |
 | Vosk Java | 0.3.45 (bundled, JNA excluded) |
+| sherpa-onnx JVM | 1.13.4 (bundled, native runtime downloaded) |
 
 ## High-Risk Porting Areas
 
@@ -52,9 +53,9 @@ carefully reviewed for each target version:
 | TextRendererDrawerMixin | `TextRenderer$Drawer` | Various | Font rendering hooks |
 | AbstractParentElementMixin | `AbstractParentElement` | Focus management | Focus routing |
 
-### Lessons from 1.21.1
+### Lessons from 1.21.x
 
-- **Do not inject `keyReleased` into `ChatScreen`**. In Minecraft 1.21.1,
+- **Do not inject `keyReleased` into `ChatScreen`**. In Minecraft 1.21.x,
   `ChatScreen` inherits `keyReleased` from `Screen` but does not declare it.
   Mixin `@Inject` requires the target class to *declare* the method. Use
   `Keyboard.onKey` instead.
@@ -93,7 +94,8 @@ These require the most attention during porting:
 
 ## Recommended Porting Workflow
 
-1. Create a target version branch: `git switch -c mc/1.21.x` from `mc/1.21.1`
+1. Use the prepared target branch `mc/1.21.3` and keep its Minecraft/Fabric
+   dependency versions as provided by the target template.
 2. Update `gradle.properties`: `minecraft_version`, `yarn_mappings`,
    `loader_version`, `fabric_api_version`, `owo_version`, `loom_version`
 3. Run `./gradlew compileJava compileClientJava` and fix compilation errors
@@ -105,8 +107,8 @@ These require the most attention during porting:
 
 ## Branch Strategy
 
-- `main` — Current development (currently 1.21.1)
-- `mc/1.21.1` — Maintenance branch for 1.21.1 fixes only
+- `mc/1.21.1` — Chat Canvas 1.3.0 reference branch
+- `mc/1.21.3` — Chat Canvas 1.3.0 target branch
 - Future: `mc/1.21.4`, `mc/1.21.5`, etc.
 
 > Each maintenance branch is created from its release tag and receives only

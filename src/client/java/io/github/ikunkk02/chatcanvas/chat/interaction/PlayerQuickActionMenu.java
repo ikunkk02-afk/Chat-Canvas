@@ -5,6 +5,7 @@ import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameHitboxRegistry;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.mixin.client.ChatInputSuggestorAccessor;
 import io.github.ikunkk02.chatcanvas.mixin.client.SuggestionWindowAccessor;
+import io.github.ikunkk02.chatcanvas.ui.ModernUiTheme;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ChatInputSuggestor;
@@ -71,14 +72,13 @@ public final class PlayerQuickActionMenu {
 
 	public void render(ChatScreen screen, DrawContext context, int mouseX, int mouseY) {
 		if (owner != screen || target == null) return;
-		context.fill(x, y, x + WIDTH, y + HEIGHT, 0xEE171B24);
-		context.drawBorder(x, y, WIDTH, HEIGHT, 0xFF59677C);
+		ModernUiTheme.drawFixedPanel(context, x, y, WIDTH, HEIGHT, true);
 		for (int row = 0; row < 3; row++) {
 			int rowY = y + row * ROW_HEIGHT;
 			if (mouseX >= x && mouseX < x + WIDTH
 					&& mouseY >= rowY && mouseY < rowY + ROW_HEIGHT) {
 				context.fill(x + 1, rowY + 1, x + WIDTH - 1,
-						rowY + ROW_HEIGHT - 1, 0xAA3B4C66);
+						rowY + ROW_HEIGHT - 1, ModernUiTheme.CONTROL_HOVER);
 			}
 			context.drawText(
 					MinecraftClient.getInstance().textRenderer,
@@ -87,7 +87,7 @@ public final class PlayerQuickActionMenu {
 						case 1 -> "chat_canvas.quick_action.private_message";
 						default -> "chat_canvas.quick_action.copy_name";
 					}),
-					x + 7, rowY + 6, 0xFFF1F4FA, false);
+					x + 7, rowY + 6, ModernUiTheme.TEXT_PRIMARY, false);
 		}
 	}
 

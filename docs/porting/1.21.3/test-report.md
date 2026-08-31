@@ -1,108 +1,65 @@
-# Test Report: Chat Canvas 1.2.0 for Minecraft 1.21.3
+# Test Report: Chat Canvas 1.3.0 for Minecraft 1.21.3
 
 ## Environment
 
 | Item | Value |
 |------|-------|
 | Minecraft | 1.21.3 |
+| Chat Canvas | 1.3.0 |
 | Fabric Loader | 0.19.3 |
 | Fabric API | 0.106.1+1.21.3 |
-| Fabric Loom | 1.17.17 (remap) |
+| Fabric Loom | 1.17.20 |
 | owo-lib | 0.12.18+1.21.2 |
-| Java | 21 (OpenJDK) |
-| OS | Windows 10 |
+| Java | 22 (target release 21) |
+| OS | Windows |
 
 ## Build
 
 | Step | Result |
 |------|--------|
-| `./gradlew compileJava` | ✅ PASS (3m 2s, zero errors) |
-| `./gradlew test` | ✅ PASS (all unit tests) |
-| `./gradlew build` | ✅ PASS (16s) |
-| JAR size | 27.9 MB |
-| Sources JAR | 1.8 MB |
+| `gradlew.bat build` | PASS |
+| Java/client compilation | PASS |
+| Unit tests | 263 tests, 0 failures, 0 errors, 1 skipped |
+| JAR | `chat-canvas-1.3.0.jar` (28,217,728 bytes) |
+| Sources JAR | `chat-canvas-1.3.0-sources.jar` (1,862,782 bytes) |
 
-## Unit Tests
+The final JAR contains `sherpa-onnx-jvm-1.13.4.jar` and `vosk-0.3.45.jar` as
+nested jars. Speech models and platform-native runtime libraries remain runtime
+downloads; no large model is bundled.
 
-All existing unit tests passed without modification:
-- Config tests (ChatCanvasConfig, ChatBackgroundConfig, ChatTextConfig, etc.)
-- Command tests (ClipboardCommandParser, CommandClipboardStorage, CommandTextSanitizer, etc.)
-- Emoji tests (EmojiRegistry, EmojiRecentManager, EmojiRecentStorage)
-- History tests (ChatLogWriter, ChatLogContext, StoredChatMessage)
-- Input tests (ChatCanvasInputController, MentionInsertionController)
-- Layout tests (ChatBackgroundMetrics, ChatHudTransform, ChatTextLayout, etc.)
-- Message tests (ChatCanvasMessageManager, ChatChannelHistory, DefaultMessageClassifier)
-- Mention tests (MentionMatcher, MentionMessageIdRegistry)
-- Text tests (SpacedAdvanceMath, UnicodeTextNavigator, TextIndexing)
-- Voice tests (AudioLevelMeter, Pcm16MonoResampler, MicrophoneManagerLeaseConcurrency, etc.)
-- Editor tests (ColorPickerState, EditorHistory, LayoutEditorMath, etc.)
+## Runtime
 
-## Mixin Verification
+`gradlew.bat runClient` completed successfully. The client loaded Minecraft
+1.21.3, initialized Chat Canvas 1.3.0, reloaded Chat Canvas resources, detected
+Windows x86-64 voice capability, initialized OpenAL, loaded an integrated world,
+and logged a normal chat message. No `MixinApplyError`, `InvalidInjectionException`,
+`NoSuchMethodError`, or Chat Canvas resource/native initialization error occurred.
 
-All 15 Mixin targets verified against MC 1.21.3 decompiled source (yarn mappings):
-- **Zero Java source changes required**
-- All method descriptors match 1.21.1 signatures
-- `Keyboard.onKey(long, int, int, int, int)` confirmed identical
-- `ChatHud.addMessage(Text, MessageSignatureData, MessageIndicator)` confirmed identical
-- `ChatScreen` all injection targets confirmed identical
-- See `docs/porting/1.21.3/mixin-audit.md` for full audit
+The log also contains non-blocking environment warnings: optional absent classes
+from other integrations, a missing vanilla spawner sound, and a Mojang session
+server connection reset while looking up profile properties.
 
-## Runtime Tests
+## Automated coverage
 
-**Status: Requires user verification (no graphical environment)**
+- Chat component interaction preservation test: PASS
+- Emoji registry, recent entries, and font evaluation paths: PASS
+- Chat history, input modes, command tools, layout, UI metrics: PASS
+- Voice key edge handling, VAD/endpoint detection, session state machine,
+  text transaction, model registry, SHA-256 artifact validation, and fallback
+  backends: PASS
+- Runtime model registry: Vosk Chinese, streaming Zipformer Chinese,
+  SenseVoice INT8, Whisper Tiny INT8 (4 models): PASS
 
-The following tests require a Minecraft client with display:
+## Manual / hardware coverage
 
-- [ ] Game reaches main menu
-- [ ] Single-player world loads
-- [ ] Press T → ChatScreen opens
-- [ ] Press / → command mode
-- [ ] Player chat input works
-- [ ] Command input works
-- [ ] Dual channel split layout
-- [ ] Current player right-aligned
-- [ ] Other players left-aligned
-- [ ] Auto word wrap
-- [ ] Double-click player name for @mention
-- [ ] Mention notification
-- [ ] Emoji picker panel
-- [ ] Unicode cursor/grapheme cluster
-- [ ] Mouse hold-to-talk voice input
-- [ ] Keyboard hold-to-talk voice input
-- [ ] Chinese voice recognition (no garbled text)
-- [ ] Local chat log saving (JSONL)
-- [ ] Config persistence across sessions
-- [ ] No InvalidInjectionException in logs
-- [ ] No NoSuchMethodError in logs
-- [ ] No MixinApplyError in logs
+Not manually exercised in this headless agent session:
 
-## Compat Mods
-
-Status: Not verified in this environment.
-
-| Mod | 1.21.3 Status |
-|-----|--------------|
-| Chat Heads | Not verified |
-| More Chat History | Not verified |
-| ChatAnimation | Not verified |
-| Smooth Scrolling | Not verified |
-
-## Final JAR
-
-| Property | Value |
-|----------|-------|
-| Filename | chat-canvas-1.2.0.jar |
-| SHA-256 | a2998cb087ddfdd6bce2545956d8929236b0e8b05851afb9baa99bce0698629c |
-| Contains fabric.mod.json | ✅ |
-| Contains chat_canvas.client.mixins.json | ✅ |
-| Contains vosk-0.3.45.jar (jar-in-jar) | ✅ |
-| Contains language files (en_us, zh_cn) | ✅ |
-| No test classes | ✅ |
-| No local config | ✅ |
-| No MC decompiled source | ✅ |
-
-## Known Limitations
-
-1. Runtime testing requires a graphical Minecraft client
-2. Compat mod testing requires compatible mod versions installed
-3. Voice testing requires Vosk model download
+- ClickEvent RUN_COMMAND / SUGGEST_COMMAND / OPEN_URL / COPY_TO_CLIPBOARD and
+  HoverEvent interaction in a live server message
+- Command suggestion dropdown and tab completion
+- Opening every Settings control, scroll/resize behavior, and GUI Scale 2/3/4/Auto
+- Live Emoji picker selection and tooltip interaction
+- Physical microphone capture, VAD endpoint, final ASR insertion, model download,
+  and native runtime loading
+- Android/FCL/Pojav or iOS hardware/runtime paths; code paths are present and
+  unit-tested where applicable but are not real-device tested here
