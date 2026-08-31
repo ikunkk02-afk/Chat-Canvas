@@ -413,7 +413,7 @@
   "chat_canvas.voice.add_punctuation": "自動加入句末標點符號",
   "chat_canvas.voice.current_model": "目前模型",
   "chat_canvas.voice.model.status": "語音模型狀態",
-  "chat_canvas.voice.open_model_directory": "開啟模型資料夾並重新偵測",
+  "chat_canvas.voice.open_model_directory": "開啟語音模型資料夾",
   "chat_canvas.voice.release_model": "釋放語音模型",
   "chat_canvas.voice.privacy": "語音辨識完全在本機執行。麥克風與持續推論只在語音工作階段啟用；音訊不會上傳或儲存。只有玩家主動下載模型時才會使用網路。",
   "chat_canvas.voice.model.title": "離線語音模型",

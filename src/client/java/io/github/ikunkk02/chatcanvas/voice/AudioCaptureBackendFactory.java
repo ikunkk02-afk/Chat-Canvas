@@ -39,10 +39,12 @@ public final class AudioCaptureBackendFactory {
 		if (!available.isEmpty()) return new FallbackAudioCaptureBackend(available,
 				mobileTerminalReason.isBlank() ? null : new VoiceCapabilityException(mobileTerminalReason));
 		ChatCanvas.LOGGER.warn("No voice capture backend available: {}", failures);
+		String reason = platform.os() == VoicePlatformSupport.OperatingSystem.IOS
+				? "chat_canvas.voice.error.ios_runtime_unavailable"
+				: platform.os() == VoicePlatformSupport.OperatingSystem.ANDROID && !mobileTerminalReason.isBlank()
+				? mobileTerminalReason : "chat_canvas.voice.error.microphone";
 		return new UnavailableAudioCaptureBackend(
-				platform.os() == VoicePlatformSupport.OperatingSystem.IOS
-						? "chat_canvas.voice.error.ios_runtime_unavailable"
-						: "chat_canvas.voice.error.microphone");
+				reason);
 	}
 
 	private static AudioCaptureBackend createJavaSoundLazily() {

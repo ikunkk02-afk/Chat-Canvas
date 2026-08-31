@@ -2,8 +2,8 @@ package io.github.ikunkk02.chatcanvas.voice;
 
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.Util;
 
-import java.awt.Desktop;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -194,7 +194,9 @@ final class VoiceInputController {
 	}
 
 	private void fail(long token, String key, Throwable throwable) {
-		ChatCanvas.LOGGER.error("Voice session {} failed", token, throwable);
+		String detail = throwable == null ? key
+				: throwable.getClass().getSimpleName() + ": " + String.valueOf(throwable.getMessage());
+		ChatCanvas.LOGGER.warn("Voice session {} failed: {}", token, detail);
 		onClient(() -> {
 			synchronized (this) {
 				if (token != tokens.get()) return;
@@ -276,7 +278,7 @@ final class VoiceInputController {
 				onClient(() -> {
 					if (tokens.get() != operationToken) return;
 					state = VoiceInputState.ERROR;
-					errors.report("chat_canvas.voice.error.download", throwable);
+					errors.report(installFailureKey(throwable), throwable);
 				});
 			}
 		});
@@ -392,9 +394,14 @@ final class VoiceInputController {
 
 	void openModelsDirectory() {
 		try {
-			Files.createDirectories(models.modelsDirectory());
-			if (Desktop.isDesktopSupported()) Desktop.getDesktop().open(models.modelsDirectory().toFile());
-		} catch (Exception exception) { errors.report("chat_canvas.voice.error.open_directory", exception); }
+			var directory = models.modelsDirectory().toAbsolutePath().normalize();
+			Files.createDirectories(directory);
+			Util.getOperatingSystem().open(directory);
+			ChatCanvas.LOGGER.info("Opened voice model directory: {}", directory);
+		} catch (Throwable throwable) {
+			ChatCanvas.LOGGER.warn("Unable to open the voice model directory", throwable);
+			errors.report("chat_canvas.voice.error.open_directory", throwable);
+		}
 	}
 
 	synchronized void refreshAvailability() {
@@ -445,7 +452,8 @@ final class VoiceInputController {
 	private static String modelFailureKey(Throwable throwable) {
 		Throwable current = throwable;
 		while (current != null) {
-			if (current instanceof LinkageError || current instanceof SecurityException) {
+			if (current instanceof VoiceNativeRuntimeException
+					|| current instanceof LinkageError || current instanceof SecurityException) {
 				return VoicePlatformSupport.current().os() == VoicePlatformSupport.OperatingSystem.IOS
 						? "chat_canvas.voice.error.ios_runtime_unavailable"
 						: "chat_canvas.voice.error.native_runtime";
@@ -453,6 +461,18 @@ final class VoiceInputController {
 			current = current.getCause();
 		}
 		return "chat_canvas.voice.error.model_corrupt";
+	}
+
+	private static String installFailureKey(Throwable throwable) {
+		Throwable current = throwable;
+		while (current != null) {
+			if (current instanceof VoiceNativeRuntimeException
+					|| current instanceof LinkageError || current instanceof SecurityException) {
+				return modelFailureKey(throwable);
+			}
+			current = current.getCause();
+		}
+		return "chat_canvas.voice.error.download";
 	}
 
 	private static void awaitModelSafe(VoiceInputSession draining) {

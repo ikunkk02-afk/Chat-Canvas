@@ -77,10 +77,12 @@ final class VoiceArtifactInstaller {
 		}
 	}
 
-	private static void validateUri(URI uri) throws IOException {
+	static void validateUri(URI uri) throws IOException {
 		if (!"https".equalsIgnoreCase(uri.getScheme())) throw new IOException("Voice artifacts require HTTPS");
 		String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
 		boolean trusted = TRUSTED_HOSTS.contains(host) || host.endsWith(".xethub.hf.co")
+				|| host.equals("cdn.hf.co") || host.endsWith(".cdn.hf.co")
+				|| host.equals("cdn-lfs.hf.co") || host.endsWith(".cdn-lfs.hf.co")
 				|| host.endsWith(".huggingface.co") || host.endsWith(".githubusercontent.com");
 		if (!trusted) throw new IOException("Unexpected voice artifact host: " + host);
 	}

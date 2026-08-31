@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -30,5 +31,21 @@ class VoiceArtifactInstallerTest {
 		Files.writeString(model.resolve("file"), "data");
 		VoiceArtifactInstaller.deleteTree(allowed.resolve("model"), allowed);
 		assertThrows(IOException.class, () -> VoiceArtifactInstaller.deleteTree(allowed, allowed));
+	}
+
+	@Test
+	void acceptsCurrentHuggingFaceCdnRedirects() {
+		assertDoesNotThrow(() -> VoiceArtifactInstaller.validateUri(
+				URI.create("https://us.aws.cdn.hf.co/xet-bridge-us/model")));
+		assertDoesNotThrow(() -> VoiceArtifactInstaller.validateUri(
+				URI.create("https://cdn-lfs.hf.co/repository/model")));
+	}
+
+	@Test
+	void rejectsLookalikeHuggingFaceCdnHosts() {
+		assertThrows(IOException.class, () -> VoiceArtifactInstaller.validateUri(
+				URI.create("https://us.aws.cdn.hf.co.attacker.example/model")));
+		assertThrows(IOException.class, () -> VoiceArtifactInstaller.validateUri(
+				URI.create("http://us.aws.cdn.hf.co/model")));
 	}
 }

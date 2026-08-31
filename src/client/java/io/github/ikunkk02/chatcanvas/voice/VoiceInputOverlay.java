@@ -16,6 +16,10 @@ public final class VoiceInputOverlay {
 	public static final int BUTTON_SPACE = 20;
 	private static final int BUTTON_WIDTH = 18;
 	private static final int BUTTON_HEIGHT = 14;
+	private static final int STATUS_HEIGHT = 14;
+	private static final int STATUS_GAP = 4;
+	private static final int MIN_STATUS_WIDTH = 28;
+	private static final int SCREEN_MARGIN = 4;
 	private final VoiceInputManager manager = VoiceInputManager.instance();
 	private ChatScreen owner;
 	private TextFieldWidget field;
@@ -174,8 +178,6 @@ public final class VoiceInputOverlay {
 		String key = statusKey(state);
 		if (key == null) return;
 		Text label = Text.translatable(key);
-		if (manager.isListening() && manager.settings().showPartialResults()
-				&& !manager.partial().isBlank()) label = label.copy().append(Text.literal(": " + manager.partial()));
 		if (state == VoiceInputState.MODEL_DOWNLOADING && manager.progressTotal() > 0L) {
 			long doneMiB = manager.progress() / 1_048_576L;
 			long totalMiB = manager.progressTotal() / 1_048_576L;
@@ -183,19 +185,40 @@ public final class VoiceInputOverlay {
 			label = label.copy().append(Text.literal(String.format(Locale.ROOT,
 					"  %d / %d MiB (%d%%)", doneMiB, totalMiB, percent)));
 		}
-		int width = Math.min(Math.max(1, owner.width - 8), Math.min(280,
-				MinecraftClient.getInstance().textRenderer.getWidth(label) + 20));
-		int x = Math.max(4, Math.min(owner.width - width - 4, buttonX + BUTTON_WIDTH - width));
-		int y = Math.max(4, field.getY() - 34);
-		ModernUiTheme.drawFixedPanel(context, x, y, width, 20, false);
+		int width = Math.min(Math.max(1, owner.width - SCREEN_MARGIN * 2), Math.min(220,
+				MinecraftClient.getInstance().textRenderer.getWidth(label) + 12));
+		StatusLayout layout = calculateStatusLayout(owner.width, field.getX(), field.getY(),
+				buttonX, buttonY, width);
+		ModernUiTheme.drawFixedPanel(context, layout.x(), layout.y(), layout.width(), STATUS_HEIGHT, false);
 		String fitted = ModernUiTheme.fitText(MinecraftClient.getInstance().textRenderer,
-				label, Math.max(1, width - 10));
+				label, Math.max(1, layout.width() - 8));
 		context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer,
-				Text.literal(fitted), x + 5, y + 4, ModernUiTheme.TEXT_PRIMARY);
+				Text.literal(fitted), layout.x() + 4, layout.y() + 3, ModernUiTheme.TEXT_PRIMARY);
 		if (manager.isListening() && manager.settings().showInputLevel()) {
-			int meter = (int) Math.round((width - 10) * Math.min(1.0, manager.level() * 8.0));
-			context.fill(x + 5, y + 16, x + 5 + meter, y + 18, ModernUiTheme.SUCCESS);
+			int meter = (int) Math.round((layout.width() - 8) * Math.min(1.0, manager.level() * 8.0));
+			context.fill(layout.x() + 4, layout.y() + STATUS_HEIGHT - 2,
+					layout.x() + 4 + meter, layout.y() + STATUS_HEIGHT - 1, ModernUiTheme.SUCCESS);
 		}
+	}
+
+	static StatusLayout calculateStatusLayout(int screenWidth, int fieldX, int fieldY,
+										 int buttonX, int buttonY, int requestedWidth) {
+		int availableWidth = Math.max(1, screenWidth - SCREEN_MARGIN * 2);
+		int width = clamp(requestedWidth, 1, availableWidth);
+		int rightX = buttonX + BUTTON_WIDTH + STATUS_GAP;
+		int rightAvailable = screenWidth - SCREEN_MARGIN - rightX;
+		if (rightAvailable >= Math.min(MIN_STATUS_WIDTH, width)) {
+			return new StatusLayout(rightX, buttonY, Math.min(width, rightAvailable));
+		}
+		int leftAvailable = fieldX - STATUS_GAP - SCREEN_MARGIN;
+		if (leftAvailable >= Math.min(MIN_STATUS_WIDTH, width)) {
+			int fittedWidth = Math.min(width, leftAvailable);
+			return new StatusLayout(fieldX - STATUS_GAP - fittedWidth, buttonY, fittedWidth);
+		}
+		int fallbackX = clamp(buttonX + BUTTON_WIDTH - width,
+				SCREEN_MARGIN, Math.max(SCREEN_MARGIN, screenWidth - SCREEN_MARGIN - width));
+		int fallbackY = Math.max(SCREEN_MARGIN, fieldY - STATUS_HEIGHT - 3);
+		return new StatusLayout(fallbackX, fallbackY, width);
 	}
 
 	private static String statusKey(VoiceInputState state) {
@@ -231,6 +254,8 @@ public final class VoiceInputOverlay {
 					layout.width() - 26, 48);
 		}
 		context.disableScissor();
+		button(context, mouseX, mouseY, layout.x() + 8, layout.openFolderY(), layout.width() - 16,
+				18, "chat_canvas.voice.model.open");
 		button(context, mouseX, mouseY, layout.x() + 8, layout.cancelY(), layout.width() - 16,
 				18, "chat_canvas.voice.model.cancel");
 	}
@@ -298,6 +323,10 @@ public final class VoiceInputOverlay {
 			}
 			return true;
 		}
+		if (hit(mouseX, mouseY, layout.x() + 8, layout.openFolderY(), layout.width() - 16, 18)) {
+			manager.openModelsDirectory();
+			return true;
+		}
 		if (hit(mouseX, mouseY, layout.x() + 8, layout.cancelY(), layout.width() - 16, 18)
 				|| !hit(mouseX, mouseY, layout.x(), layout.y(), layout.width(), layout.height())) {
 			installPrompt = false;
@@ -307,16 +336,18 @@ public final class VoiceInputOverlay {
 
 	private PromptLayout promptLayout() {
 		int width = Math.max(1, Math.min(390, owner.width - 8));
-		int desired = 34 + manager.models().size() * 48 + 28;
+		int desired = 34 + manager.models().size() * 48 + 49;
 		int height = Math.max(1, Math.min(desired, owner.height - 8));
 		int x = Math.max(0, (owner.width - width) / 2);
 		int y = Math.max(0, (owner.height - height) / 2);
 		int cardsY = y + 24;
 		int cancelY = y + height - 21;
-		int cardsBottom = Math.max(cardsY, cancelY - 3);
+		int openFolderY = cancelY - 21;
+		int cardsBottom = Math.max(cardsY, openFolderY - 3);
 		int maxScroll = Math.max(0, manager.models().size() * 48 - (cardsBottom - cardsY));
 		modelScroll = clamp(modelScroll, 0, maxScroll);
-		return new PromptLayout(x, y, width, height, cardsY, cardsBottom, cancelY, maxScroll);
+		return new PromptLayout(x, y, width, height, cardsY, cardsBottom,
+				openFolderY, cancelY, maxScroll);
 	}
 
 	private static void button(DrawContext context, int mouseX, int mouseY, int x, int y,
@@ -345,9 +376,12 @@ public final class VoiceInputOverlay {
 	}
 
 	private record PromptLayout(int x, int y, int width, int height,
-							int cardsY, int cardsBottom, int cancelY, int maxScroll) {
+							int cardsY, int cardsBottom, int openFolderY,
+							int cancelY, int maxScroll) {
 		private int cardsHeight() { return Math.max(0, cardsBottom - cardsY); }
 	}
+
+	record StatusLayout(int x, int y, int width) { }
 
 	/** The existing emoji panel owns the first 20 pixel accessory slot. */
 	private static final class EmojiOffset { private static final int TOTAL_SPACE = 20; }

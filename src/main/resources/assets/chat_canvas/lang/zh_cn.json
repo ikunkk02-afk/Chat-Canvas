@@ -413,7 +413,7 @@
   "chat_canvas.voice.add_punctuation": "自动添加句末标点",
   "chat_canvas.voice.current_model": "当前模型",
   "chat_canvas.voice.model.status": "语音模型状态",
-  "chat_canvas.voice.open_model_directory": "打开模型目录并重新检测",
+  "chat_canvas.voice.open_model_directory": "打开语音模型文件夹",
   "chat_canvas.voice.release_model": "释放语音模型",
   "chat_canvas.voice.privacy": "语音识别完全在本地运行。麦克风和持续推理仅在语音会话期间启用；录音不会上传或保存。联网只用于玩家主动下载模型。",
   "chat_canvas.voice.model.title": "离线语音模型",

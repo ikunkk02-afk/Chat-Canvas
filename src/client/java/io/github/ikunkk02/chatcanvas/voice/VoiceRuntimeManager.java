@@ -28,6 +28,7 @@ public final class VoiceRuntimeManager {
 			.resolve(SHERPA_VERSION);
 	private volatile boolean loaded;
 	private volatile String lastFailure = "";
+	private volatile Throwable loadFailure;
 
 	VoiceRuntimeManager(VoiceArtifactInstaller installer) { this.installer = installer; }
 
@@ -76,11 +77,14 @@ public final class VoiceRuntimeManager {
 			completed += SILERO_VAD.size();
 			cumulativeProgress.accept(completed);
 		}
+		loadFailure = null;
+		lastFailure = "";
 		return completed;
 	}
 
 	public synchronized void load() {
 		if (loaded) return;
+		if (loadFailure != null) throw new VoiceNativeRuntimeException(lastFailure, loadFailure);
 		try {
 			Path nativeDirectory = nativeDirectory();
 			if (!Files.isDirectory(nativeDirectory)) throw new IOException("Sherpa native directory is missing");
@@ -88,14 +92,16 @@ public final class VoiceRuntimeManager {
 			System.setProperty("sherpa_onnx.native.path", nativeDirectory.toAbsolutePath().toString());
 			LibraryUtils.load();
 			loaded = true;
+			loadFailure = null;
 			lastFailure = "";
 			ChatCanvas.LOGGER.info("Loaded sherpa-onnx {} runtime for {}", SHERPA_VERSION,
 					VoicePlatformSupport.sherpaPlatformId(VoicePlatformSupport.current()));
 		} catch (Throwable throwable) {
 			loaded = false;
+			loadFailure = throwable;
 			lastFailure = throwable.getClass().getSimpleName() + ": " + String.valueOf(throwable.getMessage());
 			ChatCanvas.LOGGER.error("Unable to load sherpa-onnx runtime: {}", lastFailure, throwable);
-			throw new IllegalStateException(lastFailure, throwable);
+			throw new VoiceNativeRuntimeException(lastFailure, throwable);
 		}
 	}
 
@@ -106,7 +112,18 @@ public final class VoiceRuntimeManager {
 					.map(SherpaRuntimeBridge::nativeDirectory)
 					.orElseThrow(() -> new IOException("Current iOS launcher has no signed sherpa runtime bridge"));
 		}
-		return root.resolve("native").resolve(VoicePlatformSupport.sherpaPlatformId(platform));
+		String platformId = VoicePlatformSupport.sherpaPlatformId(platform);
+		Path installed = root.resolve("native").resolve(platformId);
+		if (platform.os() == VoicePlatformSupport.OperatingSystem.ANDROID) {
+			RuntimeArtifact artifact = artifactFor(platform);
+			if (artifact == null) throw new IOException("No Android sherpa runtime for " + platformId);
+			Path privateCache = AndroidNativeRuntimeStager.resolvePrivateCacheBase();
+			Path staged = AndroidNativeRuntimeStager.stage(installed, privateCache,
+					SHERPA_VERSION, platformId, artifact.file().sha256());
+			ChatCanvas.LOGGER.info("Prepared Android sherpa runtime in app-private cache: {}", staged);
+			return staged;
+		}
+		return installed;
 	}
 
 	private void extractRuntime(Path archive, RuntimeArtifact artifact) throws Exception {
@@ -145,13 +162,24 @@ public final class VoiceRuntimeManager {
 		try (var files = Files.list(directory)) {
 			libraries = files.filter(Files::isRegularFile).toList();
 		}
-		List<String> order = List.of("onnxruntime", "sherpa-onnx-c-api", "sherpa-onnx-cxx-api");
-		for (String token : order) {
+		for (Path library : dependencyLoadOrder(libraries)) {
+			System.load(library.toAbsolutePath().toString());
+		}
+	}
+
+	static List<Path> dependencyLoadOrder(List<Path> libraries) {
+		List<Path> result = new ArrayList<>();
+		// Android's C++ API has a DT_NEEDED entry for the C API. Load C before C++ explicitly
+		// because app-private cache directories are not part of the launcher's library search path.
+		for (String token : List.of("onnxruntime", "sherpa-onnx-c-api", "sherpa-onnx-cxx-api")) {
 			for (Path library : libraries) {
 				String name = library.getFileName().toString().toLowerCase();
-				if (name.contains(token) && !name.contains("jni")) System.load(library.toAbsolutePath().toString());
+				if (name.contains(token) && !name.contains("jni") && !result.contains(library)) {
+					result.add(library);
+				}
 			}
 		}
+		return List.copyOf(result);
 	}
 
 	private boolean installedVad() {

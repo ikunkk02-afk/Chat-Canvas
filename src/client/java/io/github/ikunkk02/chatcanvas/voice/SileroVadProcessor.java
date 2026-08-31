@@ -8,29 +8,34 @@ import java.nio.file.Path;
 
 public final class SileroVadProcessor implements VadProcessor {
 	private static final int WINDOW_SAMPLES = 512;
+	private static final float MIN_SILENCE_DURATION_SECONDS = 0.25f;
+	private static final float MIN_SPEECH_DURATION_SECONDS = 0.25f;
 	private final Vad vad;
 	private final EndpointTracker tracker;
 	private final float[] window = new float[WINDOW_SAMPLES];
 	private int windowLength;
 
 	public SileroVadProcessor(Path model, VoiceSettings settings, int threads) {
+		vad = new Vad(createModelConfig(model, settings.maximumSeconds(), threads));
+		tracker = new EndpointTracker(250L, settings.endpointSilenceMillis());
+	}
+
+	static VadModelConfig createModelConfig(Path model, int maximumSeconds, int threads) {
 		SileroVadModelConfig silero = SileroVadModelConfig.builder()
 				.setModel(model.toAbsolutePath().toString())
 				.setThreshold(0.5f)
-				.setMinSilenceDuration(0.0f)
-				.setMinSpeechDuration(0.0f)
+				.setMinSilenceDuration(MIN_SILENCE_DURATION_SECONDS)
+				.setMinSpeechDuration(MIN_SPEECH_DURATION_SECONDS)
 				.setWindowSize(WINDOW_SAMPLES)
-				.setMaxSpeechDuration(settings.maximumSeconds())
+				.setMaxSpeechDuration(maximumSeconds)
 				.build();
-		VadModelConfig config = VadModelConfig.builder()
+		return VadModelConfig.builder()
 				.setSileroVadModelConfig(silero)
 				.setSampleRate(16_000)
 				.setNumThreads(Math.max(1, threads))
 				.setProvider("cpu")
 				.setDebug(false)
 				.build();
-		vad = new Vad(config);
-		tracker = new EndpointTracker(250L, settings.endpointSilenceMillis());
 	}
 
 	@Override

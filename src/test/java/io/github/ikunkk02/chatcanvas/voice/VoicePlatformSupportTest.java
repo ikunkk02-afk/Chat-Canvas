@@ -8,11 +8,22 @@ class VoicePlatformSupportTest {
 	@Test
 	void detectsFclAsAndroidArm64InsteadOfLinux() {
 		var platform = VoicePlatformSupport.detect(
-				"Linux", "OpenJDK Runtime Environment Android", "aarch64", true, "com.tungsten.fcl");
+				"Linux", "Android-16", "OpenJDK Runtime Environment", "aarch64", false,
+				"mio.Wrapper com.tungsten.fcl");
 		assertEquals(VoicePlatformSupport.OperatingSystem.ANDROID, platform.os());
 		assertEquals(VoicePlatformSupport.CpuArchitecture.ARM64, platform.architecture());
 		assertEquals("FCL", platform.launcher());
 		assertEquals(1, VoicePlatformSupport.defaultInferenceThreads(platform));
+	}
+
+	@Test
+	void detectsAndroidPojavWithoutAndroidFrameworkOnBootClasspath() {
+		var platform = VoicePlatformSupport.detect(
+				"Linux", "6.1.0-android", "OpenJDK 64-Bit Server VM", "aarch64", false,
+				"net.kdt.pojavlaunch.PojavLauncher");
+		assertEquals(VoicePlatformSupport.OperatingSystem.ANDROID, platform.os());
+		assertEquals("PojavLauncher", platform.launcher());
+		assertEquals("arm64-v8a", VoicePlatformSupport.sherpaPlatformId(platform));
 	}
 
 	@Test

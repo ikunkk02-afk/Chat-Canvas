@@ -413,7 +413,7 @@
   "chat_canvas.voice.add_punctuation": "Add Final Punctuation",
   "chat_canvas.voice.current_model": "Current Model",
   "chat_canvas.voice.model.status": "Voice Model Status",
-  "chat_canvas.voice.open_model_directory": "Open Model Folder and Re-detect",
+  "chat_canvas.voice.open_model_directory": "Open Voice Model Folder",
   "chat_canvas.voice.release_model": "Release Voice Model",
   "chat_canvas.voice.privacy": "Recognition runs locally. The microphone and active decoding run only during a voice session; audio is never uploaded or saved. Networking is used only for a player-requested model download.",
   "chat_canvas.voice.model.title": "Offline Voice Models",

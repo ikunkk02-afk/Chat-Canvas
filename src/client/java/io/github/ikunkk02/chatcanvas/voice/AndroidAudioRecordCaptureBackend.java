@@ -18,7 +18,7 @@ public final class AndroidAudioRecordCaptureBackend implements AudioCaptureBacke
 					"chat_canvas.voice.error.android_runtime_unavailable");
 		}
 		try {
-			Class.forName("android.media.AudioRecord", false, getClass().getClassLoader());
+			androidClass("android.media.AudioRecord");
 			if (!permissionGranted()) {
 				return CaptureCapabilities.unavailable("android_audio_record", "Android AudioRecord",
 						"chat_canvas.voice.error.microphone_permission");
@@ -35,9 +35,9 @@ public final class AndroidAudioRecordCaptureBackend implements AudioCaptureBacke
 	@Override
 	public void start(String deviceId, AudioCallback callback) throws Exception {
 		if (!permissionGranted()) throw new SecurityException("RECORD_AUDIO permission denied");
-		Class<?> audioRecord = Class.forName("android.media.AudioRecord");
-		Class<?> audioFormat = Class.forName("android.media.AudioFormat");
-		Class<?> source = Class.forName("android.media.MediaRecorder$AudioSource");
+		Class<?> audioRecord = androidClass("android.media.AudioRecord");
+		Class<?> audioFormat = androidClass("android.media.AudioFormat");
+		Class<?> source = androidClass("android.media.MediaRecorder$AudioSource");
 		int mono = audioFormat.getField("CHANNEL_IN_MONO").getInt(null);
 		int pcm16 = audioFormat.getField("ENCODING_PCM_16BIT").getInt(null);
 		int voiceRecognition = source.getField("VOICE_RECOGNITION").getInt(null);
@@ -99,7 +99,7 @@ public final class AndroidAudioRecordCaptureBackend implements AudioCaptureBacke
 
 	private static boolean permissionGranted() {
 		try {
-			Class<?> activityThread = Class.forName("android.app.ActivityThread");
+			Class<?> activityThread = androidClass("android.app.ActivityThread");
 			Object application = activityThread.getMethod("currentApplication").invoke(null);
 			if (application == null) return true;
 			Method check = application.getClass().getMethod("checkSelfPermission", String.class);
@@ -111,6 +111,17 @@ public final class AndroidAudioRecordCaptureBackend implements AudioCaptureBacke
 		} catch (Throwable throwable) {
 			return false;
 		}
+	}
+
+	private static Class<?> androidClass(String name) throws ClassNotFoundException {
+		ClassLoader context = Thread.currentThread().getContextClassLoader();
+		ClassLoader own = AndroidAudioRecordCaptureBackend.class.getClassLoader();
+		ClassLoader system = ClassLoader.getSystemClassLoader();
+		for (ClassLoader loader : new ClassLoader[] {context, own, system, null}) {
+			try { return Class.forName(name, false, loader); }
+			catch (ClassNotFoundException ignored) { }
+		}
+		throw new ClassNotFoundException(name);
 	}
 
 	@Override public Throwable getLastError() { return lastError; }

@@ -15,21 +15,31 @@ public final class VoicePlatformSupport {
 		String osName = property("os.name");
 		String runtime = property("java.runtime.name") + " " + property("java.vm.name")
 				+ " " + property("java.vendor");
-		return detect(osName, runtime, property("os.arch"),
+		return detect(osName, property("os.version"), runtime, property("os.arch"),
 				classExists("android.os.Build"), property("sun.java.command"));
 	}
 
 	static VoicePlatform detect(String osName, String runtime, String architectureValue,
 								boolean androidClassPresent, String command) {
+		return detect(osName, "", runtime, architectureValue, androidClassPresent, command);
+	}
+
+	static VoicePlatform detect(String osName, String osVersion, String runtime, String architectureValue,
+								boolean androidClassPresent, String command) {
 		osName = safeLower(osName);
+		osVersion = safeLower(osVersion);
 		runtime = safeLower(runtime);
 		String value = safeLower(architectureValue);
 		String commandValue = safeLower(command);
-		boolean android = androidClassPresent || runtime.contains("android");
+		String launcher = detectLauncher(runtime + " " + commandValue);
 		boolean ios = osName.contains("ios") || runtime.contains("robovm")
 				|| runtime.contains("iphone") || runtime.contains("j2objc")
-				|| !android && commandValue.contains("pojav")
+				|| commandValue.contains("pojav")
 				&& (osName.contains("darwin") || osName.contains("mac"));
+		boolean android = !ios && (androidClassPresent || runtime.contains("android")
+				|| osName.contains("android") || osVersion.contains("android")
+				|| "FCL".equals(launcher)
+				|| "PojavLauncher".equals(launcher) && (osName.contains("linux") || osName.contains("nux")));
 		OperatingSystem os = android ? OperatingSystem.ANDROID
 				: ios ? OperatingSystem.IOS
 				: osName.contains("win") ? OperatingSystem.WINDOWS
@@ -40,7 +50,7 @@ public final class VoicePlatformSupport {
 				: ARM64.contains(value) ? CpuArchitecture.ARM64
 				: ARM32.contains(value) || value.startsWith("arm") ? CpuArchitecture.ARM32
 				: value.startsWith("x86") ? CpuArchitecture.X86_32 : CpuArchitecture.UNKNOWN;
-		return new VoicePlatform(os, architecture, detectLauncher(runtime + " " + commandValue));
+		return new VoicePlatform(os, architecture, launcher);
 	}
 
 	public static boolean isSupported(VoicePlatform platform) {
