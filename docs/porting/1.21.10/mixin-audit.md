@@ -1,101 +1,39 @@
 # Mixin Audit: 1.21.10
 
-All 15 mixins from mc/1.21.9 baseline. Verified against 1.21.10 MCP-decompiled sources.
+The target has 14 client mixins. They were compiled, remapped, and checked by
+starting the 1.21.10 development client.
 
-## Summary: ALL MIXINS PASS
+## Result
 
-The input refactoring (KeyInput/Click/CharInput) occurred in 1.21.9, so the mc/1.21.9 codebase was already compatible with 1.21.10. No mixin changes were needed.
+| Check | Result |
+|-------|--------|
+| Java/client compilation | PASS |
+| Mixin remap during `build` | PASS |
+| Client startup | PASS — reached a generated integrated world |
+| `InvalidInjectionException` / `MixinApplyError` | None after the final fix |
+| Unsupported `TextRendererAccessor` | Removed; target has no matching font-storage API |
 
-## Detailed Audit
+## Targeted Mixins
 
-### ChatScreenMixin
-| Item | Status |
-|------|--------|
-| Target class | `ChatScreen` ✓ |
-| `init` injection | `@At("RETURN")` ✓ |
-| `setInitialFocus` injection | `@At("RETURN")` ✓ |
-| `resize` injection | `@At("HEAD")` — `(MinecraftClient, int, int)` ✓ |
-| `render` injection (HEAD) | `@At("HEAD")` — `(DrawContext, int, int, float, CallbackInfo)` ✓ |
-| `render` injection (RETURN) | `@At("RETURN")` ✓ |
-| `mouseClicked` injection | `@At("HEAD")` — `(Click, boolean, CallbackInfoReturnable)` ✓ |
-| `mouseScrolled` injection | `@At("HEAD")` — `(double, double, double, double, CallbackInfoReturnable)` ✓ |
-| `removed` injection | `@At("HEAD")` ✓ |
-| `keyPressed` injection | `@At("HEAD")` — `(KeyInput, CallbackInfoReturnable)` ✓ |
-| `insertText` injection | `@At("HEAD")` — `(String, boolean, CallbackInfo)` ✓ |
-| `@WrapOperation fill` | `fill(IIIII)V` ordinal=0 in render — VERIFIED ✓ |
-| `ChatInputSuggestor` calls | Uses `new KeyInput(...)` wrapper ✓ |
-| `KeyBinding.matchesKey` | Takes `KeyInput` ✓ |
-| Matrix API | Uses `pushMatrix()`/`popMatrix()` ✓ |
+`AbstractParentElementMixin`, `ChatHudAccessor`, `ChatHudMixin`,
+`ChatInputSuggestorAccessor`, `ChatInputSuggestorMixin`, `ChatScreenAccessor`,
+`ChatScreenMixin`, `ClientPlayNetworkHandlerMixin`, `KeyboardMixin`,
+`ScreenAccessor`, `SuggestionWindowAccessor`, `TextFieldWidgetAccessor`,
+`TextFieldWidgetMixin`, and `TextRendererDrawerMixin` are listed in
+`chat_canvas.client.mixins.json`.
 
-### KeyboardMixin
-| Item | Status |
-|------|--------|
-| Target class | `Keyboard` ✓ |
-| Target method | `onKey(long window, int action, KeyInput input)` ✓ |
-| Injection point | `@At("TAIL")` ✓ |
-| GLFW_RELEASE check | `action != GLFW.GLFW_RELEASE` ✓ |
-| Voice shortcut release | `input.key()`, `input.scancode()` ✓ |
+The important 1.21.10 adaptations are:
 
-### ChatHudMixin
-| Item | Status |
-|------|--------|
-| Target class | `ChatHud` ✓ |
-| `render` HEAD injection | `(DrawContext, int, int, boolean, CallbackInfo)` — uses pushMatrix/popMatrix ✓ |
-| `render` RETURN injection | ✓ |
-| `@ModifyReturnValue getWidth/getHeight/getLineHeight` | ✓ |
-| `@WrapOperation fill` ordinal 0,1 | Verified targets exist ✓ |
-| `@ModifyArg addVisibleMessage` | `breakRenderedChatMessageLines` — VERIFIED ✓ |
-| `@WrapOperation drawTextWithShadow` | Return type: `int`→`void` — Uses `SpacedTextRenderer.draw()` wrapper ✓ |
-| `@Inject addMessage` | `(Text, MessageSignatureData, MessageIndicator)` ✓ |
-| `@ModifyVariable toChatLineX/Y, mouseClicked` | ✓ |
-| Matrix/Vector API | Uses `context.getMatrices()`, `matrix.transformPosition(new Vector2f(...))` ✓ |
+- `Keyboard.onKey(long, int, KeyInput)` and ChatScreen input callbacks use the
+  target records.
+- `ParentElement` callbacks use `Click`/`CharInput` descriptors.
+- Chat HUD and overlay borders use the existing target-compatible
+  `ChatBackgroundDraw` helper.
+- Text-field rendering uses target `RenderPipelines.GUI` and
+  `DrawContext.drawSelection`.
+- Emoji font probing no longer depends on the unavailable source
+  `TextRenderer.getFontStorage()` accessor.
 
-### ClientPlayNetworkHandlerMixin
-| Item | Status |
-|------|--------|
-| Target class | `ClientPlayNetworkHandler` ✓ |
-| `onPlayerList` injection | `@At("RETURN")` — `(PlayerListS2CPacket)` ✓ |
-| `onPlayerRemove` injection | `@At("RETURN")` — `(PlayerRemoveS2CPacket)` ✓ |
-
-### ChatInputSuggestorMixin
-| Item | Status |
-|------|--------|
-| Target class | `ChatInputSuggestor` ✓ |
-| `@ModifyExpressionValue show/renderMessages` | Field `Screen.height:I` — VERIFIED ✓ |
-| `showCommandSuggestions` | `@At("RETURN")` ✓ |
-| `provideRenderText` | `@ModifyReturnValue` ✓ |
-
-### TextFieldWidgetMixin
-| Item | Status |
-|------|--------|
-| Target class | `TextFieldWidget` ✓ |
-| `onClick` injection | `(Click, boolean)` ✓ |
-| `keyPressed` injection | `(KeyInput)` ✓ |
-| `write` injection | `(String)` ✓ |
-| `setText` @ModifyVariable | ✓ |
-| `updateFirstCharacterIndex` | ✓ |
-| `getCharacterX` | ✓ |
-| `renderWidget` | Uses `RenderPipelines.GUI` ✓, uses `context.drawSelection(...)` ✓ |
-
-### AbstractParentElementMixin
-| Item | Status |
-|------|--------|
-| Target class | `ParentElement` (interface) ✓ |
-| `mouseDragged` | `(Click, double deltaX, double deltaY)` ✓ |
-| `mouseReleased` | `(Click)` ✓ |
-| `charTyped` | `(CharInput)` ✓ |
-
-### TextRendererDrawerMixin
-| Item | Status |
-|------|--------|
-| Target class | `TextRenderer$Drawer` (inner class) ✓ |
-| Target method | `accept(int, Style, int)` — VERIFIED ✓ |
-
-### Accessors (ChatHudAccessor, ChatScreenAccessor, ChatInputSuggestorAccessor, ScreenAccessor, SuggestionWindowAccessor, TextFieldWidgetAccessor, TextRendererAccessor)
-| Item | Status |
-|------|--------|
-| All targets | VERIFIED in 1.21.10 source ✓ |
-
-## Verification Method
-
-All targets verified via `mcp__minecraft_dev__get_minecraft_source` against 1.21.10 with yarn mappings.
+The launch log also contains unrelated optional-class and Mojang service
+network warnings (`xyz.nucleoid...`, Quilt hooks, session/Realms); none are
+Chat Canvas Mixin failures.

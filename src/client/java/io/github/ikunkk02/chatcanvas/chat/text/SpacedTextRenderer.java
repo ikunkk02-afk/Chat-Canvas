@@ -10,7 +10,7 @@ public final class SpacedTextRenderer {
 	private SpacedTextRenderer() {
 	}
 
-	public static void draw(
+	public static int draw(
 			DrawContext context,
 			TextRenderer renderer,
 			OrderedText text,
@@ -21,12 +21,12 @@ public final class SpacedTextRenderer {
 			double spacing) {
 		if (Math.abs(spacing) < EPSILON) {
 			context.drawText(renderer, text, (int) Math.round(x), y, color, shadow);
-			return;
+			return renderer.getWidth(text);
 		}
 		GlyphAdvanceCache.GlyphRun run = GlyphAdvanceCache.layout(renderer, text, spacing);
 		try (SpacedDrawingContext.Scope ignored = SpacedDrawingContext.begin(run)) {
-			context.drawText(
-					renderer, text, (int) Math.round(x), y, color, shadow);
+			context.drawText(renderer, text, (int) Math.round(x), y, color, shadow);
 		}
+		return run.roundedWidth();
 	}
 }

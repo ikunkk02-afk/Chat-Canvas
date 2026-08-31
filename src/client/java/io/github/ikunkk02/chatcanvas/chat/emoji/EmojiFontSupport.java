@@ -21,11 +21,11 @@ public final class EmojiFontSupport {
 		if (renderer == null || entry == null) return false;
 		Boolean cached = CACHE.get(entry.unicode());
 		if (cached != null) return cached;
-		// In MC 1.21.9, TextRenderer.getFontStorage() was removed.
-		// Use getWidth() as a heuristic — if the emoji has measurable width,
-		// the font supports it.
 		boolean supported;
 		try {
+			// Minecraft 1.21.10 no longer exposes TextRenderer's FontStorage.
+			// A positive measured width is the supported-font signal available on
+			// this version and keeps the picker safe across font reloads.
 			supported = renderer.getWidth(entry.unicode()) > 0;
 		} catch (RuntimeException failure) {
 			supported = false;

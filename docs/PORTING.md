@@ -2,18 +2,19 @@
 
 How to port Chat Canvas to newer Minecraft versions.
 
-## Current Baseline (1.2.0)
+## Current Baseline (1.3.0)
 
 | Item | Value |
 |------|-------|
-| Minecraft | 1.21.1 |
+| Minecraft | 1.21.10 |
 | Fabric Loader | 0.19.3 |
-| Fabric API | 0.116.14+1.21.1 |
-| Yarn mappings | 1.21.1+build.3 |
-| Fabric Loom | 1.17 |
-| owo-lib | 0.12.15.4+1.21 |
+| Fabric API | 0.138.4+1.21.10 |
+| Yarn mappings | 1.21.10+build.3 |
+| Fabric Loom | 1.17.17 |
+| owo-lib | 0.12.24+1.21.9 |
 | Java | 21 |
 | Vosk Java | 0.3.45 (bundled, JNA excluded) |
+| Sherpa-onnx JVM | 1.13.4 (bundled) |
 
 ## Supported Versions
 
@@ -39,7 +40,7 @@ carefully reviewed for each target version:
 - **ChatHudMixin** — Chat HUD rendering pipeline. Depends on `ChatHud` internal
   message storage and render method signatures.
 - **KeyboardMixin** — GLFW keyboard event listener. Targets
-  `Keyboard.onKey(long window, int key, int scancode, int action, int modifiers)`.
+  `Keyboard.onKey(long window, int action, KeyInput input)`.
 - **Message ingress** — `ClientPlayNetworkHandlerMixin` or equivalent. Handles
   chat message classification on the client side.
 - **CommandSuggestor** — Vanilla command suggestion UI. Method signatures and
@@ -66,7 +67,7 @@ carefully reviewed for each target version:
 | TextRendererDrawerMixin | `TextRenderer$Drawer` | Various | Font rendering hooks |
 | AbstractParentElementMixin | `AbstractParentElement` | Focus management | Focus routing |
 
-### Lessons from 1.21.1
+### Lessons from the 1.21.1 → 1.21.10 port
 
 - **Do not inject `keyReleased` into `ChatScreen`**. In Minecraft 1.21.1,
   `ChatScreen` inherits `keyReleased` from `Screen` but does not declare it.
@@ -78,6 +79,13 @@ carefully reviewed for each target version:
 - **Lease/closing patterns must be thread-safe**. The voice pipeline involves
   render thread, capture thread, and recognition thread all potentially
   closing the same microphone resource.
+- **ParentElement callbacks use input records in 1.21.10**. The target
+  signatures are `mouseDragged(Click, double, double)`, `mouseReleased(Click)`,
+  and `charTyped(CharInput)`; stale numeric descriptors fail at launch even
+  when Java compilation succeeds.
+- **TextRenderer internals are not stable across minor versions**. The target
+  does not expose the source accessor used for font-storage glyph probing, so
+  Emoji font support uses the target-safe width evaluation path.
 
 ## Version-Independent Modules
 
@@ -128,9 +136,14 @@ These require the most attention during porting:
 
 ## mc/1.21.10 Port Notes
 
-- Source baseline: `mc/1.21.9` (closest stable port, same Fabric API generation)
-- Key changes:
-  - No code changes needed — 1.21.9→1.21.10 is a minimal minor bump
-  - Input API refactoring (KeyInput/Click/CharInput records) already adopted in 1.21.9 baseline
-  - All 15 Mixin targets identical to 1.21.9
-  - Dependencies: Fabric API 0.138.4+1.21.10, owo-lib 0.12.24+1.21.9 (cross-version compatible), ModMenu 16.0.1
+- Functionality baseline: Minecraft 1.21.1 / Chat Canvas 1.3.0.
+- The target Minecraft/Fabric coordinates remain those from the 1.21.10
+  template; only the Chat Canvas version and 1.3.0 implementation were
+  migrated.
+- Target-specific adaptations include `GameProfile.name()/id()`, input-record
+  callbacks, `KeyBinding.Category.MISC`, target `DrawContext` border helpers,
+  and the target-safe Emoji font capability check.
+- The target contains 14 client mixins after removing the unsupported
+  `TextRendererAccessor` hook; the corresponding Emoji behavior is retained.
+- Dependencies: Fabric API 0.138.4+1.21.10, owo-lib 0.12.24+1.21.9,
+  ModMenu 16.0.1, Sherpa-onnx JVM 1.13.4, and Vosk 0.3.45.

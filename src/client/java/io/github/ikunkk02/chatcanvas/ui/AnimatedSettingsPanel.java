@@ -20,6 +20,8 @@ import io.github.ikunkk02.chatcanvas.config.PlayerChatLayoutMode;
 import io.github.ikunkk02.chatcanvas.voice.VoiceInputManager;
 import io.github.ikunkk02.chatcanvas.voice.VoiceInputState;
 import io.github.ikunkk02.chatcanvas.voice.VoiceSettings;
+import io.github.ikunkk02.chatcanvas.voice.VoiceModelDescriptor;
+import io.github.ikunkk02.chatcanvas.voice.VoicePlatformSupport;
 import io.github.ikunkk02.chatcanvas.chat.history.ChatLogConfigStorage;
 import io.github.ikunkk02.chatcanvas.chat.history.LocalChatLogService;
 import io.github.ikunkk02.chatcanvas.config.ChatLogConfig;
@@ -29,12 +31,14 @@ import io.github.ikunkk02.chatcanvas.chat.identity.PlayerRosterTracker;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.Components;
+import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.component.TextBoxComponent;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.container.StackLayout;
 import io.wispforest.owo.ui.core.HorizontalAlignment;
+import io.wispforest.owo.ui.core.Color;
 import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.Positioning;
 import io.wispforest.owo.ui.core.Sizing;
@@ -60,12 +64,12 @@ public final class AnimatedSettingsPanel {
 	private static final boolean DEBUG_CLIP = false;
 
 	private static final int PANEL_MARGIN = 16;
-	private static final int PANEL_TOP = 48;
-	private static final int PANEL_PADDING = 12;
-	private static final int PANEL_GAP = 8;
 	private static final int LABEL_HEIGHT = 9;
-	private static final int CATEGORY_HEIGHT = 24;
-	private static final int FOOTER_HEIGHT = 30;
+	private static final int CATEGORY_COLUMNS = 4;
+	private static final int CATEGORY_ROW_HEIGHT = 22;
+	private static final int CATEGORY_GAP = 3;
+	private static final int CATEGORY_ROWS = 2;
+	private static final int CATEGORY_HEIGHT = CATEGORY_ROW_HEIGHT * CATEGORY_ROWS + CATEGORY_GAP;
 
 	private final EditorSession session;
 	private final Runnable geometryChanged;
@@ -77,6 +81,7 @@ public final class AnimatedSettingsPanel {
 	private final ColorPickerLauncher colorPickerLauncher;
 	private final FlowLayout component;
 	private final List<NumericScrubber> scrubbers = new ArrayList<>();
+	private final List<LabelComponent> descriptionLabels = new ArrayList<>();
 	private final Map<Category, List<ButtonComponent>> pageButtons = new EnumMap<>(Category.class);
 	private final Map<Category, List<NumericScrubber>> pageScrubbers = new EnumMap<>(Category.class);
 	private final Map<Category, CategoryPage> pages = new EnumMap<>(Category.class);
@@ -126,6 +131,11 @@ public final class AnimatedSettingsPanel {
 	private ButtonComponent voicePartialButton;
 	private ButtonComponent voicePunctuationButton;
 	private ButtonComponent voiceModelButton;
+	private ButtonComponent voiceModelSelectButton;
+	private ButtonComponent voiceNoSpeechButton;
+	private ButtonComponent voiceEndpointButton;
+	private ButtonComponent voiceTailButton;
+	private ButtonComponent voiceThreadsButton;
 	private ButtonComponent chatLogEnabledButton;
 	private ButtonComponent chatLogSelfButton;
 	private ButtonComponent chatLogOthersButton;
@@ -147,6 +157,7 @@ public final class AnimatedSettingsPanel {
 	private int screenHeight;
 	private int panelWidth;
 	private int panelHeight;
+	private UiLayoutMetrics.EditorPanel editorMetrics;
 
 	public AnimatedSettingsPanel(EditorSession session, int screenWidth, int screenHeight,
 								 Runnable geometryChanged, Runnable committed,
@@ -164,8 +175,9 @@ public final class AnimatedSettingsPanel {
 		this.colorPickerLauncher = colorPickerLauncher;
 		this.screenWidth = screenWidth;
 		this.screenHeight = screenHeight;
-		this.panelWidth = panelWidth(screenWidth);
-		this.panelHeight = panelHeight(screenHeight);
+		this.editorMetrics = UiLayoutMetrics.editorPanel(screenWidth, screenHeight);
+		this.panelWidth = editorMetrics.width();
+		this.panelHeight = editorMetrics.height();
 		this.side = session.layout().centerX() > screenWidth * 0.5 ? Side.LEFT : Side.RIGHT;
 		for (Category category : Category.values()) {
 			pageButtons.put(category, new ArrayList<>());
@@ -175,7 +187,7 @@ public final class AnimatedSettingsPanel {
 		this.spring = new SpringValue(initialX, MotionPreset.PANEL_SLIDE);
 		this.categorySpring = new SpringValue(0.0, MotionPreset.CATEGORY_SLIDE);
 		this.component = buildComponent();
-		this.component.positioning(Positioning.absolute((int) Math.round(initialX), PANEL_TOP));
+		this.component.positioning(Positioning.absolute((int) Math.round(initialX), editorMetrics.top()));
 		setPageButtonsActive(true);
 		syncFromSession();
 
@@ -187,26 +199,28 @@ public final class AnimatedSettingsPanel {
 			ChatCanvas.LOGGER.info(
 				"[ChatCanvas DEBUG] panel={}x{} atX={} viewport={}x{} guiScale={} framebuffer={}x{} activePage=LAYOUT",
 				panelWidth, panelHeight, (int) Math.round(targetX()),
-				pageWidth(), contentHeight(panelHeight),
+				pageWidth(), contentHeight(),
 				scale, fbWidth, fbHeight);
 		}
 	}
 
 	private FlowLayout buildComponent() {
 		FlowLayout panel = Containers.verticalFlow(Sizing.fixed(panelWidth), Sizing.fixed(panelHeight));
-		panel.padding(Insets.of(PANEL_PADDING));
-		panel.gap(PANEL_GAP);
+		panel.padding(Insets.of(editorMetrics.padding()));
+		panel.gap(editorMetrics.gap());
 		panel.surface(ModernUiTheme.PANEL_SURFACE);
 
 		panel.child(Components.label(Text.translatable("chat_canvas.settings.title")
 				.formatted(Formatting.WHITE, Formatting.BOLD)));
-		panel.child(Components.label(Text.translatable("chat_canvas.settings.subtitle")
-				.formatted(Formatting.GRAY)));
+		if (editorMetrics.showSubtitle()) {
+			panel.child(Components.label(Text.translatable("chat_canvas.settings.subtitle")
+					.formatted(Formatting.GRAY)));
+		}
 		panel.child(categoryTabs());
 
 		pageHost = new ClippedPageViewport(
 				Sizing.fill(100),
-				Sizing.fixed(contentHeight(panelHeight))
+				Sizing.fixed(contentHeight())
 		);
 		CategoryPage layoutPage = buildPage(buildLayoutBody());
 		CategoryPage textPage = buildPage(buildTextBody());
@@ -243,7 +257,8 @@ public final class AnimatedSettingsPanel {
 		panel.child(pageHost);
 		pageHost.setActivePage(Category.LAYOUT.ordinal());
 
-		FlowLayout actions = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(FOOTER_HEIGHT));
+		FlowLayout actions = Containers.horizontalFlow(
+				Sizing.fill(100), Sizing.fixed(editorMetrics.footerHeight()));
 		actions.padding(Insets.top(4));
 		actions.gap(6);
 		actions.horizontalAlignment(HorizontalAlignment.RIGHT);
@@ -254,14 +269,14 @@ public final class AnimatedSettingsPanel {
 					footer.y(),
 					footer.x() + footer.width(),
 					footer.y() + 1,
-					0x554F6079
+					ModernUiTheme.DIVIDER
 			);
 			context.fill(
 					footer.x(),
 					footer.y() + 1,
 					footer.x() + footer.width(),
 					footer.y() + footer.height(),
-					0x33191C26
+					ModernUiTheme.CONTROL_BACKGROUND
 			);
 		});
 		ButtonComponent cancel = ModernUiTheme.button(Text.translatable("chat_canvas.action.cancel"),
@@ -276,22 +291,45 @@ public final class AnimatedSettingsPanel {
 		return panel;
 	}
 
-	private StackLayout categoryTabs() {
-		StackLayout stack = Containers.stack(Sizing.fill(100), Sizing.fixed(24));
-		stack.child(SelectionIndicatorComponent.following(
-				this::categoryPageProgress, Category.values().length));
-		FlowLayout buttons = Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(100));
-		for (Category category : Category.values()) {
-			ButtonComponent button = transparentButton(
-					Text.translatable(category.translationKey),
-					clicked -> switchCategory(category));
-			// FIXME: owo-lib 0.12.24 mouseDown API changed
-			// button.mouseDown().subscribe(...) — needs Click-compatible event type
-			button.sizing(Sizing.fill(100 / Category.values().length), Sizing.fill(100));
-			buttons.child(button);
+	private FlowLayout categoryTabs() {
+		FlowLayout grid = Containers.verticalFlow(
+				Sizing.fill(100), Sizing.fixed(CATEGORY_HEIGHT));
+		grid.gap(CATEGORY_GAP);
+		grid.allowOverflow(false);
+
+		int availableWidth = pageWidth();
+		int tabWidth = Math.max(1,
+				(availableWidth - CATEGORY_GAP * (CATEGORY_COLUMNS - 1)) / CATEGORY_COLUMNS);
+		Category[] categories = Category.values();
+		for (int rowIndex = 0; rowIndex < CATEGORY_ROWS; rowIndex++) {
+			FlowLayout row = Containers.horizontalFlow(
+					Sizing.fill(100), Sizing.fixed(CATEGORY_ROW_HEIGHT));
+			row.gap(CATEGORY_GAP);
+			for (int column = 0; column < CATEGORY_COLUMNS; column++) {
+				int categoryIndex = rowIndex * CATEGORY_COLUMNS + column;
+				if (categoryIndex >= categories.length) break;
+				Category category = categories[categoryIndex];
+				Text fullText = Text.translatable(category.translationKey);
+				Text tabText = Text.translatable(category.tabTranslationKey);
+				String fitted = ModernUiTheme.fitText(
+						MinecraftClient.getInstance().textRenderer,
+						tabText, Math.max(1, tabWidth - 6));
+				ButtonComponent button = ModernUiTheme.transparentButton(
+						Text.literal(fitted), clicked -> switchCategory(category));
+				button.renderer((context, component, delta) ->
+						ModernUiTheme.drawFixedTab(
+								context,
+								component.getX(), component.getY(),
+								component.getWidth(), component.getHeight(),
+								component.isHovered(), activeCategory == category,
+								component.active()));
+				button.sizing(Sizing.fixed(tabWidth), Sizing.fixed(CATEGORY_ROW_HEIGHT));
+				button.tooltip(fullText);
+				row.child(button);
+			}
+			grid.child(row);
 		}
-		stack.child(buttons);
-		return stack;
+		return grid;
 	}
 
 	private FlowLayout buildLayoutBody() {
@@ -308,8 +346,7 @@ public final class AnimatedSettingsPanel {
 		SplitMessageRatioScrubberComponent splitRatio =
 				new SplitMessageRatioScrubberComponent(
 						session,
-						Text.translatable("chat_canvas.player_layout.max_width")
-								.formatted(Formatting.LIGHT_PURPLE),
+						settingLabel("chat_canvas.player_layout.max_width"),
 						geometryChanged,
 						committed);
 		registerScrubber(Category.LAYOUT, splitRatio);
@@ -372,8 +409,7 @@ public final class AnimatedSettingsPanel {
 		body.padding(Insets.bottom(8));
 		body.gap(7);
 		body.child(sectionLabel("chat_canvas.category.mention"));
-		body.child(Components.label(
-				Text.translatable("chat_canvas.mention.hint").formatted(Formatting.GRAY)));
+		body.child(descriptionLabel("chat_canvas.mention.hint"));
 
 		mentionDoubleClickButton = mentionToggleButton(
 				"chat_canvas.mention.double_click",
@@ -383,8 +419,7 @@ public final class AnimatedSettingsPanel {
 		MentionNumericScrubberComponent interval = new MentionNumericScrubberComponent(
 				session,
 				MentionNumericScrubberComponent.Property.DOUBLE_CLICK,
-				Text.translatable("chat_canvas.mention.double_click_interval")
-						.formatted(Formatting.LIGHT_PURPLE),
+				settingLabel("chat_canvas.mention.double_click_interval"),
 				geometryChanged,
 				committed);
 		registerScrubber(Category.MENTION, interval);
@@ -422,17 +457,17 @@ public final class AnimatedSettingsPanel {
 		mentionColorButton.sizing(Sizing.fill(100), Sizing.fixed(22));
 		mentionColorButton.renderer((context, component, delta) -> {
 			int background = component.active()
-					? component.isHovered() ? 0xE04B5970 : 0xC8374256
-					: 0x55343A48;
+					? component.isHovered() ? ModernUiTheme.CONTROL_HOVER : ModernUiTheme.CONTROL_BACKGROUND
+					: ModernUiTheme.CONTROL_DISABLED;
 			ModernUiTheme.roundedRect(context, component.getX(), component.getY(),
-					component.getWidth(), component.getHeight(), 5, background);
+					component.getWidth(), component.getHeight(), 2, background);
 			ModernUiTheme.border(context, component.getX(), component.getY(),
-					component.getWidth(), component.getHeight(), 0x554F6079);
+					component.getWidth(), component.getHeight(), ModernUiTheme.PANEL_BORDER);
 			ModernUiTheme.roundedRect(context, component.getX() + 5, component.getY() + 4,
-					14, component.getHeight() - 8, 3,
+					14, component.getHeight() - 8, 1,
 					0xFF000000 | session.mention().highlightColor());
 			context.drawRectOutline(component.getX() + 5, component.getY() + 4,
-					14, component.getHeight() - 8, 0x997B899D);
+					14, component.getHeight() - 8, ModernUiTheme.PANEL_BORDER);
 		});
 		registerPageButton(Category.MENTION, mentionColorButton);
 		body.child(mentionColorButton);
@@ -533,8 +568,7 @@ public final class AnimatedSettingsPanel {
 				"chat_canvas.mention.quick_actions",
 				config -> config.withPlayerQuickActionsEnabled(!config.playerQuickActionsEnabled()));
 		body.child(mentionQuickActionsButton);
-		body.child(Components.label(Text.translatable(
-				"chat_canvas.mention.private_template").formatted(Formatting.LIGHT_PURPLE)));
+		body.child(Components.label(settingLabel("chat_canvas.mention.private_template")));
 		mentionPrivateTemplateBox = Components.textBox(Sizing.fill(100));
 		mentionPrivateTemplateBox.text(session.mention().privateMessageTemplate());
 		mentionPrivateTemplateBox.onChanged().subscribe(value -> {
@@ -568,8 +602,7 @@ public final class AnimatedSettingsPanel {
 		body.padding(Insets.bottom(8));
 		body.gap(7);
 		body.child(sectionLabel("chat_canvas.category.command"));
-		body.child(Components.label(Text.translatable("chat_canvas.command.settings_hint")
-				.formatted(Formatting.GRAY)));
+		body.child(descriptionLabel("chat_canvas.command.settings_hint"));
 		commandEnabledButton = commandToggle("chat_canvas.command.enabled",
 				config -> config.withEnabled(!config.enabled()));
 		commandPanelButton = commandToggle("chat_canvas.command.show_button",
@@ -661,13 +694,9 @@ public final class AnimatedSettingsPanel {
 		body.padding(Insets.bottom(8));
 		body.gap(7);
 		body.child(sectionLabel("chat_canvas.category.voice"));
-		body.child(Components.label(Text.translatable("chat_canvas.voice.settings_hint")
-				.formatted(Formatting.GRAY)));
+		body.child(descriptionLabel("chat_canvas.voice.settings_hint"));
 		voiceEnabledButton = voiceButton(clicked -> updateVoice(settings ->
-				new VoiceSettings(!settings.enabled(), settings.microphoneId(),
-						settings.maximumSeconds(), settings.showInputLevel(),
-						settings.noiseThreshold(), settings.showPartialResults(),
-						settings.addFinalPunctuation())));
+				settings.withEnabled(!settings.enabled())));
 		voiceDeviceButton = voiceButton(clicked -> {
 			var manager = VoiceInputManager.instance();
 			var devices = manager.devices();
@@ -678,56 +707,76 @@ public final class AnimatedSettingsPanel {
 				if (devices.get(i).id().equals(settings.microphoneId())) current = i;
 			}
 			String next = devices.get((current + 1) % devices.size()).id();
-			updateVoice(value -> new VoiceSettings(
-					value.enabled(), next, value.maximumSeconds(), value.showInputLevel(),
-					value.noiseThreshold(), value.showPartialResults(),
-					value.addFinalPunctuation()));
+			updateVoice(value -> value.withMicrophoneId(next));
 		});
 		voiceTestButton = voiceButton(clicked ->
 				VoiceInputManager.instance().toggleMicrophoneTest());
 		voiceDurationButton = voiceButton(clicked -> updateVoice(settings -> {
 			int next = settings.maximumSeconds() >= 60 ? 5 : settings.maximumSeconds() + 5;
-			return new VoiceSettings(settings.enabled(), settings.microphoneId(),
-					next, settings.showInputLevel(), settings.noiseThreshold(),
-					settings.showPartialResults(), settings.addFinalPunctuation());
+			return settings.withMaximumSeconds(next);
 		}));
 		voiceLevelButton = voiceButton(clicked -> updateVoice(settings ->
-				new VoiceSettings(settings.enabled(), settings.microphoneId(),
-						settings.maximumSeconds(), !settings.showInputLevel(),
-						settings.noiseThreshold(), settings.showPartialResults(),
-						settings.addFinalPunctuation())));
+				settings.withShowInputLevel(!settings.showInputLevel())));
 		voiceThresholdButton = voiceButton(clicked -> updateVoice(settings -> {
 			double next = settings.noiseThreshold() >= 0.05
 					? 0.005 : settings.noiseThreshold() + 0.005;
-			return new VoiceSettings(settings.enabled(), settings.microphoneId(),
-					settings.maximumSeconds(), settings.showInputLevel(), next,
-					settings.showPartialResults(), settings.addFinalPunctuation());
+			return settings.withNoiseThreshold(next);
 		}));
 		voicePartialButton = voiceButton(clicked -> updateVoice(settings ->
-				new VoiceSettings(settings.enabled(), settings.microphoneId(),
-						settings.maximumSeconds(), settings.showInputLevel(),
-						settings.noiseThreshold(), !settings.showPartialResults(),
-						settings.addFinalPunctuation())));
+				settings.withShowPartialResults(!settings.showPartialResults())));
 		voicePunctuationButton = voiceButton(clicked -> updateVoice(settings ->
-				new VoiceSettings(settings.enabled(), settings.microphoneId(),
-						settings.maximumSeconds(), settings.showInputLevel(),
-						settings.noiseThreshold(), settings.showPartialResults(),
-						!settings.addFinalPunctuation())));
+				settings.withFinalPunctuation(!settings.addFinalPunctuation())));
+		voiceNoSpeechButton = voiceButton(clicked -> updateVoice(settings -> {
+			int next = settings.noSpeechTimeoutMillis() >= 10_000
+					? 3_000 : settings.noSpeechTimeoutMillis() + 1_000;
+			return settings.withEndpointTiming(next, settings.endpointSilenceMillis(),
+					settings.tailPaddingMillis());
+		}));
+		voiceEndpointButton = voiceButton(clicked -> updateVoice(settings -> {
+			int next = settings.endpointSilenceMillis() >= 1_200
+					? 600 : settings.endpointSilenceMillis() + 100;
+			return settings.withEndpointTiming(settings.noSpeechTimeoutMillis(), next,
+					settings.tailPaddingMillis());
+		}));
+		voiceTailButton = voiceButton(clicked -> updateVoice(settings -> {
+			int next = settings.tailPaddingMillis() >= 400 ? 100 : settings.tailPaddingMillis() + 50;
+			return settings.withEndpointTiming(settings.noSpeechTimeoutMillis(),
+					settings.endpointSilenceMillis(), next);
+		}));
+		voiceThreadsButton = voiceButton(clicked -> updateVoice(settings ->
+				settings.withInferenceThreads(settings.inferenceThreads() >= 4
+						? 0 : settings.inferenceThreads() + 1)));
 		ButtonComponent binding = voiceButton(clicked -> {});
 		binding.active(false);
 		binding.setMessage(Text.translatable("chat_canvas.voice.keybinding"));
 		ButtonComponent insertMode = voiceButton(clicked -> {});
 		insertMode.active(false);
 		insertMode.setMessage(Text.translatable("chat_canvas.voice.insert_mode"));
+		voiceModelSelectButton = voiceButton(clicked -> {
+			VoiceInputManager manager = VoiceInputManager.instance();
+			var available = manager.models();
+			if (available.isEmpty()) return;
+			int current = -1;
+			for (int index = 0; index < available.size(); index++) {
+				if (available.get(index).id().equals(manager.settings().selectedModelId())) current = index;
+			}
+			for (int offset = 1; offset <= available.size(); offset++) {
+				VoiceModelDescriptor candidate = available.get((current + offset) % available.size());
+				if (VoicePlatformSupport.supportsModel(VoicePlatformSupport.current(), candidate)) {
+					manager.selectModel(candidate.id());
+					break;
+				}
+			}
+		});
 		voiceModelButton = voiceButton(clicked -> {
 			VoiceInputManager manager = VoiceInputManager.instance();
-			if (manager.state() == VoiceInputState.MODEL_MISSING
-					|| manager.state() == VoiceInputState.ERROR) manager.installModel();
-			else if (manager.state() == VoiceInputState.MODEL_DOWNLOADING
+			VoiceModelDescriptor selected = manager.selectedModel();
+			if (manager.state() == VoiceInputState.MODEL_DOWNLOADING
 					|| manager.state() == VoiceInputState.MODEL_VERIFYING
-					|| manager.state() == VoiceInputState.MODEL_EXTRACTING) {
+					|| manager.state() == VoiceInputState.MODEL_EXTRACTING
+					|| manager.state() == VoiceInputState.MODEL_INSTALLING) {
 				manager.cancelModelInstall();
-			}
+			} else if (selected == null || !manager.isModelInstalled(selected.id())) manager.installModel();
 		});
 		ButtonComponent openModel = voiceButton(clicked ->
 				VoiceInputManager.instance().openModelsDirectory());
@@ -740,16 +789,20 @@ public final class AnimatedSettingsPanel {
 		body.child(voiceTestButton);
 		body.child(binding);
 		body.child(voiceDurationButton);
+		body.child(voiceNoSpeechButton);
+		body.child(voiceEndpointButton);
+		body.child(voiceTailButton);
+		body.child(voiceThreadsButton);
 		body.child(voiceLevelButton);
 		body.child(voiceThresholdButton);
 		body.child(voicePartialButton);
 		body.child(insertMode);
 		body.child(voicePunctuationButton);
+		body.child(voiceModelSelectButton);
 		body.child(voiceModelButton);
 		body.child(openModel);
 		body.child(releaseModel);
-		body.child(Components.label(Text.translatable("chat_canvas.voice.privacy")
-				.formatted(Formatting.GRAY)));
+		body.child(descriptionLabel("chat_canvas.voice.privacy"));
 		return body;
 	}
 
@@ -758,8 +811,7 @@ public final class AnimatedSettingsPanel {
 		body.padding(Insets.bottom(8));
 		body.gap(7);
 		body.child(sectionLabel("chat_canvas.category.chat_log"));
-		body.child(Components.label(Text.translatable("chat_canvas.chat_log.settings_hint")
-				.formatted(Formatting.GRAY)));
+		body.child(descriptionLabel("chat_canvas.chat_log.settings_hint"));
 		chatLogEnabledButton = chatLogToggle("chat_canvas.chat_log.enabled",
 				config -> config.withEnabled(!config.enabled()));
 		chatLogSelfButton = chatLogToggle("chat_canvas.chat_log.save_self",
@@ -812,8 +864,7 @@ public final class AnimatedSettingsPanel {
 		body.child(chatLogMaxSizeButton);
 		body.child(chatLogOpenDirButton);
 		body.child(chatLogFlushButton);
-		body.child(Components.label(Text.translatable("chat_canvas.chat_log.privacy")
-				.formatted(Formatting.GRAY)));
+		body.child(descriptionLabel("chat_canvas.chat_log.privacy"));
 		return body;
 	}
 
@@ -869,7 +920,7 @@ public final class AnimatedSettingsPanel {
 	private MentionNumericScrubberComponent mentionScrubber(
 			MentionNumericScrubberComponent.Property property, String key) {
 		MentionNumericScrubberComponent component = new MentionNumericScrubberComponent(
-				session, property, Text.translatable(key).formatted(Formatting.LIGHT_PURPLE),
+				session, property, settingLabel(key),
 				geometryChanged, committed);
 		registerScrubber(Category.MENTION, component);
 		return component;
@@ -912,8 +963,7 @@ public final class AnimatedSettingsPanel {
 		registerPageButton(Category.PLAYER_COLORS, playerColorsEnabledButton);
 		body.child(playerColorsEnabledButton);
 
-		body.child(Components.label(Text.translatable("chat_canvas.player_colors.mode")
-				.formatted(Formatting.LIGHT_PURPLE)));
+		body.child(Components.label(settingLabel("chat_canvas.player_colors.mode")));
 		FlowLayout modes = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
 		modes.gap(6);
 		playerAutomaticButton = ModernUiTheme.button(Text.empty(), button ->
@@ -946,9 +996,9 @@ public final class AnimatedSettingsPanel {
 				int color = session.playerColors().palette().get(
 						Math.min(paletteIndex, session.playerColors().palette().size() - 1));
 				ModernUiTheme.roundedRect(context, component.getX(), component.getY(),
-						component.getWidth(), component.getHeight(), 4, 0xFF000000 | color);
+						component.getWidth(), component.getHeight(), 1, 0xFF000000 | color);
 				ModernUiTheme.border(context, component.getX(), component.getY(),
-						component.getWidth(), component.getHeight(), 0xAAFFFFFF);
+						component.getWidth(), component.getHeight(), ModernUiTheme.PANEL_BORDER);
 			});
 			registerPageButton(Category.PLAYER_COLORS, swatch);
 			paletteRow.child(swatch);
@@ -1016,8 +1066,7 @@ public final class AnimatedSettingsPanel {
 		body.gap(7);
 
 		body.child(sectionLabel("chat_canvas.background.message"));
-		body.child(Components.label(Text.translatable("chat_canvas.background.mode")
-				.formatted(Formatting.LIGHT_PURPLE)));
+		body.child(Components.label(settingLabel("chat_canvas.background.mode")));
 		body.child(messageModeSelector());
 
 		messageColorButton = colorButton(
@@ -1096,8 +1145,7 @@ public final class AnimatedSettingsPanel {
 				"chat_canvas.option.text_opacity"));
 		body.child(textScrubber(TextNumericScrubberComponent.Property.CHARACTER_SPACING,
 				"chat_canvas.option.character_spacing"));
-		body.child(Components.label(Text.translatable("chat_canvas.option.text_alignment")
-				.formatted(Formatting.LIGHT_PURPLE)));
+		body.child(Components.label(settingLabel("chat_canvas.option.text_alignment")));
 		body.child(alignmentSelector());
 
 		shadowButton = ModernUiTheme.button(Text.empty(), button -> {
@@ -1135,6 +1183,7 @@ public final class AnimatedSettingsPanel {
 		ScrollContainer<FlowLayout> scroll = Containers.verticalScroll(
 				Sizing.fill(100), Sizing.fill(100), body);
 		scroll.scrollbarThiccness(2);
+		scroll.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(ModernUiTheme.SCROLLBAR)));
 		StackLayout stack = Containers.stack(Sizing.fill(100), Sizing.fill(100));
 		stack.allowOverflow(false);
 		stack.child(scroll);
@@ -1230,7 +1279,7 @@ public final class AnimatedSettingsPanel {
 		NumericScrubberComponent scrubber = new NumericScrubberComponent(
 				session,
 				property,
-				Text.translatable(translationKey).formatted(Formatting.LIGHT_PURPLE),
+				settingLabel(translationKey),
 				screenWidth,
 				screenHeight,
 				geometryChanged,
@@ -1245,7 +1294,7 @@ public final class AnimatedSettingsPanel {
 		TextNumericScrubberComponent scrubber = new TextNumericScrubberComponent(
 				session,
 				property,
-				Text.translatable(translationKey).formatted(Formatting.LIGHT_PURPLE),
+				settingLabel(translationKey),
 				geometryChanged,
 				committed
 		);
@@ -1259,7 +1308,7 @@ public final class AnimatedSettingsPanel {
 		BackgroundNumericScrubberComponent scrubber = new BackgroundNumericScrubberComponent(
 				session,
 				property,
-				Text.translatable(translationKey).formatted(Formatting.LIGHT_PURPLE),
+				settingLabel(translationKey),
 				geometryChanged,
 				committed
 		);
@@ -1291,17 +1340,17 @@ public final class AnimatedSettingsPanel {
 		button.sizing(Sizing.fill(100), Sizing.fixed(22));
 		button.renderer((context, component, delta) -> {
 			int background = component.active()
-					? component.isHovered() ? 0xE04B5970 : 0xC8374256
-					: 0x55343A48;
+					? component.isHovered() ? ModernUiTheme.CONTROL_HOVER : ModernUiTheme.CONTROL_BACKGROUND
+					: ModernUiTheme.CONTROL_DISABLED;
 			ModernUiTheme.roundedRect(context, component.getX(), component.getY(),
-					component.getWidth(), component.getHeight(), 5, background);
+					component.getWidth(), component.getHeight(), 2, background);
 			ModernUiTheme.border(context, component.getX(), component.getY(),
-					component.getWidth(), component.getHeight(), 0x554F6079);
+					component.getWidth(), component.getHeight(), ModernUiTheme.PANEL_BORDER);
 			int color = target.read(session.background());
 			ModernUiTheme.roundedRect(context, component.getX() + 5, component.getY() + 4,
-					14, component.getHeight() - 8, 3, 0xFF000000 | color);
+					14, component.getHeight() - 8, 1, 0xFF000000 | color);
 			context.drawRectOutline(component.getX() + 5, component.getY() + 4,
-					14, component.getHeight() - 8, 0x997B899D);
+					14, component.getHeight() - 8, ModernUiTheme.PANEL_BORDER);
 		});
 		button.id(translationKey);
 		registerPageButton(Category.BACKGROUND, button);
@@ -1379,12 +1428,15 @@ public final class AnimatedSettingsPanel {
 			playerColorProvider.updateConfig(session.playerColors());
 			int rgb = playerColorProvider.colorFor(player).orElse(0xFFFFFF);
 			ModernUiTheme.roundedRect(context, component.getX(), component.getY(),
-					component.getWidth(), component.getHeight(), 4, 0xFF000000 | rgb);
+					component.getWidth(), component.getHeight(), 1, 0xFF000000 | rgb);
 			ModernUiTheme.border(context, component.getX(), component.getY(),
-					component.getWidth(), component.getHeight(), 0xAAFFFFFF);
+					component.getWidth(), component.getHeight(), ModernUiTheme.PANEL_BORDER);
 		});
-		// FIXME: owo-lib 0.12.24 mouseDown API changed
-		// color.mouseDown().subscribe(...) — needs Click-compatible event type
+		color.mouseDown().subscribe((click, doubled) -> {
+			if (click.button() != 1) return false;
+			restorePlayerAutomatic(player);
+			return true;
+		});
 		row.child(color);
 
 		var name = Components.label(Text.literal(player.playerName()).formatted(Formatting.WHITE));
@@ -1458,7 +1510,8 @@ public final class AnimatedSettingsPanel {
 		if (ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA) {
 			return Text.translatable(key);
 		}
-		return Text.translatable(key).formatted(Formatting.LIGHT_PURPLE);
+		return Text.translatable(key).styled(style -> style.withColor(
+				ModernUiTheme.TEXT_SECONDARY & 0xFFFFFF));
 	}
 
 	private void switchCategory(Category category) {
@@ -1565,6 +1618,22 @@ public final class AnimatedSettingsPanel {
 				Text.translatable("chat_canvas.voice.noise_threshold")
 						.append(Text.literal(String.format(Locale.ROOT, "  %.3f",
 								settings.noiseThreshold()))));
+		if (voiceNoSpeechButton != null) voiceNoSpeechButton.setMessage(
+				Text.translatable("chat_canvas.voice.no_speech_timeout")
+						.append(Text.literal("  " + settings.noSpeechTimeoutMillis() + " ms")));
+		if (voiceEndpointButton != null) voiceEndpointButton.setMessage(
+				Text.translatable("chat_canvas.voice.endpoint_silence")
+						.append(Text.literal("  " + settings.endpointSilenceMillis() + " ms")));
+		if (voiceTailButton != null) voiceTailButton.setMessage(
+				Text.translatable("chat_canvas.voice.tail_padding")
+						.append(Text.literal("  " + settings.tailPaddingMillis() + " ms")));
+		if (voiceThreadsButton != null) {
+			String configured = settings.inferenceThreads() == 0
+					? Text.translatable("chat_canvas.voice.threads.auto").getString()
+					: Integer.toString(settings.inferenceThreads());
+			voiceThreadsButton.setMessage(Text.translatable("chat_canvas.voice.inference_threads")
+					.append(Text.literal("  " + configured + " (" + manager.effectiveInferenceThreads() + ")")));
+		}
 		if (voiceDeviceButton != null) {
 			String name = manager.devices().stream()
 					.filter(device -> device.id().equals(settings.microphoneId()))
@@ -1583,8 +1652,21 @@ public final class AnimatedSettingsPanel {
 							? "chat_canvas.voice.test.stop"
 							: "chat_canvas.voice.test.start").append(Text.literal(suffix)));
 		}
+		VoiceModelDescriptor selectedModel = manager.selectedModel();
+		if (voiceModelSelectButton != null) {
+			Text modelName = selectedModel == null ? Text.translatable("chat_canvas.voice.model.none")
+					: Text.translatable(selectedModel.displayNameKey());
+			voiceModelSelectButton.setMessage(Text.translatable("chat_canvas.voice.current_model")
+					.append(Text.literal("  ")).append(modelName));
+		}
 		if (voiceModelButton != null) {
-			voiceModelButton.setMessage(Text.translatable("chat_canvas.voice.model.status")
+			boolean installed = selectedModel != null && manager.isModelInstalled(selectedModel.id());
+			String key = manager.state() == VoiceInputState.MODEL_DOWNLOADING
+					|| manager.state() == VoiceInputState.MODEL_VERIFYING
+					|| manager.state() == VoiceInputState.MODEL_INSTALLING
+					? "chat_canvas.voice.model.cancel_download"
+					: installed ? "chat_canvas.voice.model.installed" : "chat_canvas.voice.model.download";
+			voiceModelButton.setMessage(Text.translatable(key)
 					.append(Text.literal("  " + manager.state().name())));
 		}
 	}
@@ -1723,7 +1805,8 @@ public final class AnimatedSettingsPanel {
 		}
 		int maxX = Math.max(4, screenWidth - panelWidth - 4);
 		int x = clamp((int) Math.round(spring.update(deltaSeconds)), 4, maxX);
-		component.moveTo(x, Math.min(PANEL_TOP, Math.max(4, screenHeight - panelHeight - 4)));
+		component.moveTo(x, Math.min(editorMetrics.top(),
+				Math.max(4, screenHeight - panelHeight - 4)));
 	}
 
 	private void updateCategoryTransition(double deltaSeconds) {
@@ -1763,6 +1846,17 @@ public final class AnimatedSettingsPanel {
 		pageScrubbers.get(category).add(scrubber);
 	}
 
+	/** Descriptions may wrap; setting names, section titles and tabs never do. */
+	private LabelComponent descriptionLabel(String key) {
+		LabelComponent label = Components.label(
+				Text.translatable(key).formatted(Formatting.GRAY));
+		label.horizontalSizing(Sizing.fill(100));
+		label.verticalSizing(Sizing.content());
+		label.maxWidth(pageWidth());
+		descriptionLabels.add(label);
+		return label;
+	}
+
 	public void resizeViewport(int width, int height) {
 		double previousPageWidth = pageWidth();
 		double pageProgress = previousPageWidth <= 0.0
@@ -1770,11 +1864,14 @@ public final class AnimatedSettingsPanel {
 				: categorySpring.value() / previousPageWidth;
 		this.screenWidth = width;
 		this.screenHeight = height;
-		this.panelWidth = panelWidth(width);
-		this.panelHeight = panelHeight(height);
+		this.editorMetrics = UiLayoutMetrics.editorPanel(width, height);
+		this.panelWidth = editorMetrics.width();
+		this.panelHeight = editorMetrics.height();
 		component.sizing(Sizing.fixed(panelWidth), Sizing.fixed(panelHeight));
+		component.padding(Insets.of(editorMetrics.padding()));
+		component.gap(editorMetrics.gap());
 		if (pageHost != null) {
-			pageHost.sizing(Sizing.fill(100), Sizing.fixed(contentHeight(panelHeight)));
+			pageHost.sizing(Sizing.fill(100), Sizing.fixed(contentHeight()));
 			pageHost.setActivePage(activeCategory.ordinal());
 			pageHost.setTransitionPage(-1);
 		}
@@ -1790,6 +1887,9 @@ public final class AnimatedSettingsPanel {
 		}
 		for (NumericScrubber scrubber : scrubbers) {
 			scrubber.resizeViewport(width, height);
+		}
+		for (LabelComponent description : descriptionLabels) {
+			description.maxWidth(pageWidth());
 		}
 		updateCategoryTransition(0.0);
 	}
@@ -1811,27 +1911,12 @@ public final class AnimatedSettingsPanel {
 		return Math.max(4, screenWidth - panelWidth - PANEL_MARGIN);
 	}
 
-	private static int panelWidth(int screenWidth) {
-		return Math.min(300, Math.max(180, (int) Math.round(screenWidth * 0.42)));
-	}
-
-	private static int panelHeight(int screenHeight) {
-		return Math.max(1, screenHeight - PANEL_TOP - 16);
-	}
-
-	private static int contentHeight(int panelHeight) {
-		int fixedChildrenHeight = LABEL_HEIGHT * 2 + CATEGORY_HEIGHT + FOOTER_HEIGHT;
-		int fixedGaps = PANEL_GAP * 4;
-		int verticalPadding = PANEL_PADDING * 2;
-		return Math.max(1, panelHeight - fixedChildrenHeight - fixedGaps - verticalPadding);
+	private int contentHeight() {
+		return editorMetrics.contentHeight(LABEL_HEIGHT, CATEGORY_HEIGHT);
 	}
 
 	private int pageWidth() {
-		return Math.max(1, panelWidth - PANEL_PADDING * 2);
-	}
-
-	private double categoryPageProgress() {
-		return categorySpring.value() / pageWidth();
+		return Math.max(1, panelWidth - editorMetrics.padding() * 2);
 	}
 
 	private static int clamp(int value, int min, int max) {
@@ -1844,7 +1929,8 @@ public final class AnimatedSettingsPanel {
 
 	private static ButtonComponent transparentButton(Text text, Consumer<ButtonComponent> action) {
 		ButtonComponent button = ModernUiTheme.button(text, action);
-		button.renderer(ButtonComponent.Renderer.flat(0x00000000, 0x332F435A, 0x00000000));
+		button.renderer(ButtonComponent.Renderer.flat(
+				0x00000000, 0x333A3A3A, 0x00000000));
 		return button;
 	}
 
@@ -1857,19 +1943,21 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private enum Category {
-		LAYOUT("chat_canvas.category.layout"),
-		TEXT("chat_canvas.category.text"),
-		BACKGROUND("chat_canvas.category.background"),
-		PLAYER_COLORS("chat_canvas.category.player_colors"),
-		MENTION("chat_canvas.category.mention"),
-		COMMAND("chat_canvas.category.command"),
-		VOICE("chat_canvas.category.voice"),
-		CHAT_LOG("chat_canvas.category.chat_log");
+		LAYOUT("chat_canvas.category.layout", "chat_canvas.tab.layout"),
+		TEXT("chat_canvas.category.text", "chat_canvas.tab.text"),
+		BACKGROUND("chat_canvas.category.background", "chat_canvas.tab.background"),
+		PLAYER_COLORS("chat_canvas.category.player_colors", "chat_canvas.tab.player_colors"),
+		MENTION("chat_canvas.category.mention", "chat_canvas.tab.mention"),
+		COMMAND("chat_canvas.category.command", "chat_canvas.tab.command"),
+		VOICE("chat_canvas.category.voice", "chat_canvas.tab.voice"),
+		CHAT_LOG("chat_canvas.category.chat_log", "chat_canvas.tab.chat_log");
 
 		private final String translationKey;
+		private final String tabTranslationKey;
 
-		Category(String translationKey) {
+		Category(String translationKey, String tabTranslationKey) {
 			this.translationKey = translationKey;
+			this.tabTranslationKey = tabTranslationKey;
 		}
 	}
 

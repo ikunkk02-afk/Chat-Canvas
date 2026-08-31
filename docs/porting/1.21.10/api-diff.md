@@ -1,14 +1,17 @@
-# API Diff: 1.21.9 → 1.21.10
+# API Diff: 1.21.1 / 1.3.0 → 1.21.10 / 1.3.0
 
 ## Summary
 
-The 1.21.9 → 1.21.10 port is a **minimal port**. Both versions share the same Fabric API generation and the input refactoring (KeyInput/Click/CharInput records) occurred in 1.21.9 or earlier. No classes were added or removed between these versions.
+The target keeps the 1.21.10 template's Minecraft/Fabric coordinates while
+bringing the 1.21.1 / Chat Canvas 1.3.0 functionality across. The target
+already uses the newer input records, but several callback descriptors and
+rendering internals still required direct verification and adaptation.
 
-## Verified: No Breaking Changes
+## Verified Target API
 
 | Check | Result |
 |-------|--------|
-| Classes added/removed | 0 / 0 |
+| Chat Canvas version | 1.3.0 |
 | `ChatScreen.keyPressed` | Same signature: `boolean keyPressed(KeyInput input)` |
 | `ChatScreen.mouseClicked` | Same signature: `boolean mouseClicked(Click click, boolean doubled)` |
 | `ChatScreen.mouseScrolled` | Same signature: `boolean mouseScrolled(double, double, double, double)` |
@@ -29,12 +32,28 @@ The 1.21.9 → 1.21.10 port is a **minimal port**. Both versions share the same 
 | `drawText*` return `void` | Same as 1.21.9 (from 1.21.6+) |
 | `drawWrappedTextWithShadow` | Same as 1.21.9 (from 1.21.6+) |
 
-## Input Records (Introduced in 1.21.9)
+## Input Records Used by the Target
 
 - `KeyInput(int key, int scancode, int modifiers)` - replaces bare `(keyCode, scanCode, modifiers)`
 - `CharInput(int codepoint, int modifiers)` - replaces bare `(codePoint, modifiers)`  
 - `Click(double x, double y, MouseInput buttonInfo)` - replaces bare `(mouseX, mouseY, button)`
 - `MouseInput(int button, int modifiers)`
+
+## Adaptations Required in the Target
+
+- `ParentElement.mouseDragged`, `mouseReleased`, and `charTyped` use
+  `Click`/`CharInput` records; the `AbstractParentElementMixin` descriptors and
+  dispatch calls were updated accordingly.
+- `GameProfile` exposes `name()` and `id()` in the target mappings.
+- `KeyBinding.Category.MISC` is required by the target constructor.
+- Owo callbacks use the target `Click`, `KeyInput`, and `CharInput` types; the
+  editor, command tools, Emoji picker, and color picker were adapted without
+  changing their behavior.
+- `DrawContext`/owo do not expose the old `drawBorder` helper; the existing
+  Chat Canvas border renderer is used instead.
+- The target `TextRenderer` does not expose the source font-storage accessor or
+  glyph method. Emoji font support therefore uses the target-safe text-width
+  capability evaluation path.
 
 ## Dependency Changes
 

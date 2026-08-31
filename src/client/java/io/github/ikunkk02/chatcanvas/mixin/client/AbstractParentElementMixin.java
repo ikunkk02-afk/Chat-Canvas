@@ -3,7 +3,9 @@ package io.github.ikunkk02.chatcanvas.mixin.client;
 import io.github.ikunkk02.chatcanvas.chat.interaction.PlayerNameDoubleClickHandler;
 import io.github.ikunkk02.chatcanvas.chat.command.ui.CommandToolPanel;
 import io.github.ikunkk02.chatcanvas.chat.input.ChatCanvasInputScreenBridge;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.ParentElement;
+import net.minecraft.client.input.CharInput;
 import net.minecraft.client.gui.screen.ChatScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -14,14 +16,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public interface AbstractParentElementMixin {
 	@Inject(method = "mouseDragged", at = @At("HEAD"))
 	private void chat_canvas$resetDoubleClickOnDrag(
-			net.minecraft.client.gui.Click click, double deltaX, double deltaY,
+			Click click, double deltaX, double deltaY,
 			CallbackInfoReturnable<Boolean> cir) {
-		double mouseX = click.x();
-		double mouseY = click.y();
-		int button = click.button();
 		if ((Object) this instanceof ChatScreen screen) {
 			PlayerNameDoubleClickHandler.instance().reset();
-			if (CommandToolPanel.dispatchMouseDragged(screen, mouseX, mouseY, button)) {
+			if (CommandToolPanel.dispatchMouseDragged(
+					screen, click.x(), click.y(), click.button())) {
 				cir.setReturnValue(true);
 			}
 		}
@@ -29,7 +29,7 @@ public interface AbstractParentElementMixin {
 
 	@Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$commandClipboardMouseReleased(
-			net.minecraft.client.gui.Click click,
+			Click click,
 			CallbackInfoReturnable<Boolean> cir) {
 		if ((Object) this instanceof ChatScreen screen
 				&& CommandToolPanel.dispatchMouseReleased(screen, click.button())) {
@@ -39,14 +39,16 @@ public interface AbstractParentElementMixin {
 
 	@Inject(method = "charTyped", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$commandClipboardCharTyped(
-			net.minecraft.client.input.CharInput chr, CallbackInfoReturnable<Boolean> cir) {
+			CharInput input, CallbackInfoReturnable<Boolean> cir) {
 		if (!((Object) this instanceof ChatScreen screen)) return;
-		if (CommandToolPanel.dispatchCharTyped(screen, (char) chr.codepoint(), chr.modifiers())) {
+		char chr = (char) input.codepoint();
+		int modifiers = input.modifiers();
+		if (CommandToolPanel.dispatchCharTyped(screen, chr, modifiers)) {
 			cir.setReturnValue(true);
 			return;
 		}
 		if (screen instanceof ChatCanvasInputScreenBridge bridge
-				&& bridge.chat_canvas$dispatchUnicodeChar((char) chr.codepoint(), chr.modifiers())) {
+				&& bridge.chat_canvas$dispatchUnicodeChar(chr, modifiers)) {
 			cir.setReturnValue(true);
 		}
 	}

@@ -8,12 +8,13 @@ import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextRenderer;
 import io.github.ikunkk02.chatcanvas.chat.text.UnicodeTextNavigator;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.Click;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.text.OrderedText;
 import net.minecraft.util.Colors;
 import net.minecraft.util.StringHelper;
@@ -30,8 +31,6 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-
-import java.util.List;
 @Mixin(TextFieldWidget.class)
 public abstract class TextFieldWidgetMixin {
 	@Shadow @Final
@@ -65,11 +64,9 @@ public abstract class TextFieldWidgetMixin {
 	public abstract void setCursor(int cursor, boolean shiftKeyPressed);
 	@Shadow
 	public abstract int getWordSkipPosition(int wordOffset);
-
-
 	@Inject(method = "onClick", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$locateSpacedClick(
-			net.minecraft.client.gui.Click click, boolean doubled, CallbackInfo ci) {
+			Click click, boolean doubled, CallbackInfo ci) {
 		double mouseX = click.x();
 		double mouseY = click.y();
 		TextFieldWidget self = (TextFieldWidget) (Object) this;
@@ -89,8 +86,7 @@ public abstract class TextFieldWidgetMixin {
 
 	@Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$navigateUnicodeClusters(
-			net.minecraft.client.input.KeyInput input,
-			CallbackInfoReturnable<Boolean> cir) {
+			KeyInput input, CallbackInfoReturnable<Boolean> cir) {
 		int keyCode = input.key();
 		TextFieldWidget self = (TextFieldWidget) (Object) this;
 		if (!ChatCanvasTextFieldRegistry.isChatField(self)
@@ -211,7 +207,8 @@ public abstract class TextFieldWidgetMixin {
 		int selectionOffset = MathHelper.clamp(selectionEnd - first, 0, visible.length());
 		int textX = self.getX();
 		int textY = self.getY();
-		OrderedText rendered = OrderedText.styledForwardsVisitedString(visible, net.minecraft.text.Style.EMPTY);
+		OrderedText rendered = OrderedText.styledForwardsVisitedString(
+				visible, net.minecraft.text.Style.EMPTY);
 		SpacedTextRenderer.draw(
 				context, textRenderer, rendered, textX, textY, color, true, spacing);
 
@@ -234,10 +231,8 @@ public abstract class TextFieldWidgetMixin {
 				&& cursorVisible;
 		if (blink) {
 			if (hasFollowing) {
-				context.fill(
-						RenderPipelines.GUI,
-						cursorX, textY - 1, cursorX + 1, textY + 10,
-						-3092272);
+				context.fill(RenderPipelines.GUI,
+						cursorX, textY - 1, cursorX + 1, textY + 10, -3092272);
 			} else {
 				context.drawTextWithShadow(textRenderer, "_", cursorX, textY, color);
 			}
