@@ -49,27 +49,29 @@ public final class SplitMessageRatioScrubberComponent
 	@Override
 	public void draw(OwoUIDrawContext context, int mouseX, int mouseY,
 					 float partialTicks, float delta) {
-		TextRenderer renderer = MinecraftClient.getInstance().advanceValidatingTextRenderer;
+		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
 		boolean enabled = enabled();
 		boolean vanilla = ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA;
 		int valueLeft = valueLeft();
 		context.fill(valueLeft, y() + 2, x() + width(), y() + height() - 2,
 				enabled
-						? vanilla ? 0xFF555555 : 0xA824303D
-						: vanilla ? 0xFF333333 : 0x66202731);
+						? vanilla ? 0xFF555555 : ModernUiTheme.CONTROL_BACKGROUND
+						: vanilla ? 0xFF333333 : ModernUiTheme.CONTROL_DISABLED);
 		if (enabled) {
 			int progressRight = valueLeft + (int) Math.round(
 					(width() - (valueLeft - x())) * progress());
 			context.fill(valueLeft, y() + height() - 3, progressRight,
-					y() + height() - 2, 0xCC6E9ED8);
+					y() + height() - 2, ModernUiTheme.ACCENT_MUTED);
 		}
 		int textY = y() + (height() - renderer.fontHeight) / 2;
-		context.drawText(renderer, label, x() + 2, textY,
-				enabled ? 0xFFC7CEDA : 0xFF777777, false);
+		context.drawText(renderer,
+				ModernUiTheme.fitText(renderer, label, Math.max(1, valueLeft - x() - 8)),
+				x() + 2, textY,
+				enabled ? ModernUiTheme.TEXT_SECONDARY : ModernUiTheme.TEXT_DISABLED, false);
 		String value = Math.round(session.splitMessageMaxWidthRatio() * 100.0) + "%";
 		context.drawText(renderer, value,
 				x() + width() - 8 - renderer.getWidth(value), textY,
-				enabled ? 0xFFE9EDF4 : 0xFF777777, false);
+				enabled ? ModernUiTheme.TEXT_PRIMARY : ModernUiTheme.TEXT_DISABLED, false);
 	}
 
 	@Override

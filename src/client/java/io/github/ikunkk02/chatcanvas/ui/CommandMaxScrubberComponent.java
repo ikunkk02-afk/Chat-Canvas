@@ -36,21 +36,25 @@ public final class CommandMaxScrubberComponent extends BaseComponent implements 
 
 	@Override
 	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
-		var renderer = MinecraftClient.getInstance().advanceValidatingTextRenderer;
+		var renderer = MinecraftClient.getInstance().textRenderer;
 		int valueLeft = x() + width() - 92;
-		context.fill(valueLeft, y() + 2, x() + width(), y() + height() - 2, 0xB02A3543);
+		context.fill(valueLeft, y() + 2, x() + width(), y() + height() - 2,
+				ModernUiTheme.CONTROL_BACKGROUND);
 		double progress = (session.commandClipboard().maxCommands()
 				- CommandClipboardConfig.MIN_COMMANDS)
 				/ (double) (CommandClipboardConfig.MAX_COMMANDS
 				- CommandClipboardConfig.MIN_COMMANDS);
 		context.fill(valueLeft, y() + height() - 3,
-				valueLeft + (int) Math.round(92 * progress), y() + height() - 2, 0xCC6E9ED8);
+				valueLeft + (int) Math.round(92 * progress), y() + height() - 2,
+				ModernUiTheme.ACCENT_MUTED);
 		int ty = y() + (height() - renderer.fontHeight) / 2;
-		context.drawText(renderer, Text.translatable("chat_canvas.command.max_commands"),
-				x() + 2, ty, 0xFFC7CEDA, false);
+		Text label = Text.translatable("chat_canvas.command.max_commands");
+		context.drawText(renderer,
+				ModernUiTheme.fitText(renderer, label, Math.max(1, valueLeft - x() - 8)),
+				x() + 2, ty, ModernUiTheme.TEXT_SECONDARY, false);
 		String value = Integer.toString(session.commandClipboard().maxCommands());
 		context.drawText(renderer, value, x() + width() - 8 - renderer.getWidth(value),
-				ty, 0xFFE9EDF4, false);
+				ty, ModernUiTheme.TEXT_PRIMARY, false);
 	}
 
 	@Override

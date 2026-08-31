@@ -3,8 +3,10 @@
 	"id": "chat_canvas",
 	"version": "${version}",
 	"name": "Chat Canvas",
-	"description": "A visual and highly customizable client-side chat HUD editor for Minecraft.",
-	"authors": ["寿云"],
+	"description": "A visual, highly customizable client-side chat mod for Minecraft: WYSIWYG chat editing, dual chat channels, emoji, offline voice input, command tools and local chat history.",
+	"authors": [
+		"寿云"
+	],
 	"contact": {
 		"homepage": "https://space.bilibili.com/1832031043",
 		"sources": "https://github.com/ikunkk02-afk/Chat-Canvas",
@@ -14,12 +16,22 @@
 	"icon": "assets/chat_canvas/icon.png",
 	"environment": "client",
 	"entrypoints": {
-		"preLaunch": ["io.github.ikunkk02.chatcanvas.ChatCanvasPreLaunch"],
-		"main": ["io.github.ikunkk02.chatcanvas.ChatCanvas"],
-		"client": ["io.github.ikunkk02.chatcanvas.ChatCanvasClient"],
-		"modmenu": ["io.github.ikunkk02.chatcanvas.integration.ModMenuIntegration"]
+		"preLaunch": [
+			"io.github.ikunkk02.chatcanvas.ChatCanvasPreLaunch"
+		],
+		"main": [
+			"io.github.ikunkk02.chatcanvas.ChatCanvas"
+		],
+		"client": [
+			"io.github.ikunkk02.chatcanvas.ChatCanvasClient"
+		],
+		"modmenu": [
+			"io.github.ikunkk02.chatcanvas.integration.ModMenuIntegration"
+		]
 	},
-	"mixins": ["chat_canvas.client.mixins.json"],
+	"mixins": [
+		"chat_canvas.client.mixins.json"
+	],
 	"depends": {
 		"fabricloader": ">=0.19.3",
 		"minecraft": "~1.21.6",
@@ -27,5 +39,7 @@
 		"fabric-api": ">=0.128.2",
 		"owo": ">=0.12.21"
 	},
-	"suggests": { "modmenu": ">=13.0.2" }
+	"suggests": {
+		"modmenu": ">=13.0.2"
+	}
 }

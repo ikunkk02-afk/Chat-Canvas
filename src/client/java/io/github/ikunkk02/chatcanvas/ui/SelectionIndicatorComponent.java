@@ -61,9 +61,14 @@ public final class SelectionIndicatorComponent extends BaseComponent {
 				context.fill(selLeft, selTop, selRight, selBottom, 0xFF666666);
 			}
 		} else {
-			ModernUiTheme.roundedRect(context, x(), y(), width(), height(), 5, 0x7A202731);
+			ModernUiTheme.roundedRect(context, x(), y(), width(), height(), 2,
+					ModernUiTheme.CONTROL_BACKGROUND);
 			ModernUiTheme.roundedRect(context, indicatorX + 1, y() + 1,
-					Math.max(1, segmentWidth - 2), Math.max(1, height() - 2), 4, 0xC53A536F);
+					Math.max(1, segmentWidth - 2), Math.max(1, height() - 2), 1,
+					ModernUiTheme.CONTROL_ACTIVE);
+			context.fill(indicatorX + 2, y() + height() - 2,
+					Math.min(x() + width() - 2, indicatorX + segmentWidth - 2),
+					y() + height() - 1, ModernUiTheme.ACCENT);
 		}
 	}
 

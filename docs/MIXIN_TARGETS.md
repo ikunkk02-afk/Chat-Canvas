@@ -1,7 +1,7 @@
 # Mixin Targets
 
 Complete list of all Chat Canvas Mixin classes, their target Minecraft classes,
-and injected methods. Generated for Minecraft 1.21.1 (Yarn mappings).
+and injected methods. Generated for Minecraft 1.21.6 (Yarn mappings).
 
 ## Client Mixins
 
@@ -26,7 +26,7 @@ All client mixins are registered in `src/client/resources/chat_canvas.client.mix
 - **Wrap operations**:
   - `render` → `DrawContext.fill` — Custom chat field background
 - **Version sensitivity**: HIGH — depends on ChatScreen field layout, method signatures
-- **Notes**: Does NOT inject `keyReleased` (ChatScreen does not declare it in 1.21.1)
+- **Notes**: Does NOT inject `keyReleased` (ChatScreen does not declare it in the target version)
 
 ### KeyboardMixin
 
