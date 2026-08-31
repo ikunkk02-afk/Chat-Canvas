@@ -20,12 +20,13 @@ public final class SpacedTextRenderer {
 			boolean shadow,
 			double spacing) {
 		if (Math.abs(spacing) < EPSILON) {
-			return context.drawText(renderer, text, (int) Math.round(x), y, color, shadow);
+			context.drawText(renderer, text, (int) Math.round(x), y, color, shadow);
+			return renderer.getWidth(text);
 		}
 		GlyphAdvanceCache.GlyphRun run = GlyphAdvanceCache.layout(renderer, text, spacing);
 		try (SpacedDrawingContext.Scope ignored = SpacedDrawingContext.begin(run)) {
-			return context.drawText(
-					renderer, text, (int) Math.round(x), y, color, shadow);
+			context.drawText(renderer, text, (int) Math.round(x), y, color, shadow);
 		}
+		return run.roundedWidth();
 	}
 }

@@ -2,7 +2,7 @@
 
 How to port Chat Canvas to newer Minecraft versions.
 
-## Current Baseline (1.2.0)
+## Current Baseline (1.3.0)
 
 | Item | Value |
 |------|-------|

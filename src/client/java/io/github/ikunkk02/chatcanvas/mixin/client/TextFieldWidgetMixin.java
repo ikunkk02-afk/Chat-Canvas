@@ -11,7 +11,6 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.render.RenderLayer;
 import net.minecraft.text.OrderedText;
 import net.minecraft.util.Colors;
 import net.minecraft.util.StringHelper;
@@ -65,12 +64,6 @@ public abstract class TextFieldWidgetMixin {
 	public abstract void setCursor(int cursor, boolean shiftKeyPressed);
 	@Shadow
 	public abstract int getWordSkipPosition(int wordOffset);
-	@Shadow
-	private void drawSelectionHighlight(
-			DrawContext context, int x1, int y1, int x2, int y2) {
-		throw new AssertionError();
-	}
-
 	@Inject(method = "onClick", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$locateSpacedClick(
 			double mouseX, double mouseY, CallbackInfo ci) {
@@ -235,18 +228,21 @@ public abstract class TextFieldWidgetMixin {
 				&& cursorVisible;
 		if (blink) {
 			if (hasFollowing) {
-				context.fill(
-						RenderLayer.getGuiOverlay(),
-						cursorX, textY - 1, cursorX + 1, textY + 10,
-						-3092272);
+				context.fill(cursorX, textY - 1, cursorX + 1, textY + 10, -3092272);
 			} else {
 				context.drawTextWithShadow(textRenderer, "_", cursorX, textY, color);
 			}
 		}
 		if (selectionOffset != cursorOffset) {
-			drawSelectionHighlight(
+			chat_canvas$drawSelectionHighlight(
 					context, cursorX, textY - 1, selectionX - 1, textY + 10);
 		}
+	}
+
+	@Unique
+	private static void chat_canvas$drawSelectionHighlight(
+			DrawContext context, int x1, int y1, int x2, int y2) {
+		context.drawSelection(x1, y1, x2, y2);
 	}
 
 	@Unique
