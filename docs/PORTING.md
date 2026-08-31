@@ -2,31 +2,18 @@
 
 How to port Chat Canvas to newer Minecraft versions.
 
-## Current Baseline (1.2.0)
+## Current Baseline (1.3.0)
 
 | Item | Value |
 |------|-------|
-| Minecraft | 1.21.1 |
+| Minecraft | 1.21.9 |
 | Fabric Loader | 0.19.3 |
-| Fabric API | 0.116.14+1.21.1 |
-| Yarn mappings | 1.21.1+build.3 |
-| Fabric Loom | 1.17 |
-| owo-lib | 0.12.15.4+1.21 |
+| Fabric API | 0.134.1+1.21.9 |
+| Yarn mappings | 1.21.9+build.1 |
+| Fabric Loom | 1.17.17 |
+| owo-lib | 0.12.24+1.21.9 |
 | Java | 21 |
 | Vosk Java | 0.3.45 (bundled, JNA excluded) |
-
-## Supported Versions
-
-| Branch | MC Version | Status |
-|--------|-----------|--------|
-| `main` | 1.21.1 | ✅ Stable |
-| `mc/1.21.2` | 1.21.2 | ✅ Stable |
-| `mc/1.21.3` | 1.21.3 | ✅ Stable |
-| `mc/1.21.4` | 1.21.4 | ✅ Stable |
-| `mc/1.21.5` | 1.21.5 | ✅ Stable |
-| `mc/1.21.6` | 1.21.6 | ✅ Stable |
-| `mc/1.21.8` | 1.21.8 | ✅ Stable |
-| `mc/1.21.9` | 1.21.9 | ✅ Stable |
 
 ## High-Risk Porting Areas
 
@@ -65,9 +52,9 @@ carefully reviewed for each target version:
 | TextRendererDrawerMixin | `TextRenderer$Drawer` | Various | Font rendering hooks |
 | AbstractParentElementMixin | `AbstractParentElement` | Focus management | Focus routing |
 
-### Lessons from 1.21.1
+### Lessons from 1.21.9
 
-- **Do not inject `keyReleased` into `ChatScreen`**. In Minecraft 1.21.1,
+- **Do not inject `keyReleased` into `ChatScreen`**. In Minecraft 1.21.9,
   `ChatScreen` inherits `keyReleased` from `Screen` but does not declare it.
   Mixin `@Inject` requires the target class to *declare* the method. Use
   `Keyboard.onKey` instead.
@@ -106,7 +93,7 @@ These require the most attention during porting:
 
 ## Recommended Porting Workflow
 
-1. Create a target version branch: `git switch -c mc/1.21.x` from `mc/1.21.1`
+1. Create a target version branch: `git switch -c mc/1.21.x` from `mc/1.21.9`
 2. Update `gradle.properties`: `minecraft_version`, `yarn_mappings`,
    `loader_version`, `fabric_api_version`, `owo_version`, `loom_version`
 3. Run `./gradlew compileJava compileClientJava` and fix compilation errors
@@ -118,17 +105,9 @@ These require the most attention during porting:
 
 ## Branch Strategy
 
-- `main` — Current development (currently 1.21.1)
-- `mc/1.21.1` — Maintenance branch for 1.21.1 fixes only
+- `main` — Current development (currently 1.21.9)
+- `mc/1.21.9` — Maintenance branch for 1.21.9 fixes only
 - Future: `mc/1.21.4`, `mc/1.21.5`, etc.
 
 > Each maintenance branch is created from its release tag and receives only
 > targeted fixes for that Minecraft version.
-
-## mc/1.21.8 Port Notes
-
-- Source baseline: `mc/1.21.6` (closest stable port with 1.21.6+ adaptations)
-- Key changes:
-  - `TextFieldWidget.drawSelectionHighlight` removed in 1.21.7 → replaced with `DrawContext.drawSelection()`
-  - All other Mixin targets identical to 1.21.6
-  - Dependencies: Fabric API 0.136.1+1.21.8, owo-lib 0.12.23+1.21.8, ModMenu 15.0.2

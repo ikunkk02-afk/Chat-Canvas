@@ -52,21 +52,23 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 		int valueLeft = valueLeft();
 		boolean vanilla = ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA;
 		context.fill(valueLeft, y() + 2, x() + width(), y() + height() - 2,
-				dragging ? (vanilla ? 0xFF777777 : 0xCC29384D)
-						: (vanilla ? 0xFF555555 : 0xB02A3543));
+				dragging ? (vanilla ? 0xFF777777 : ModernUiTheme.CONTROL_ACTIVE)
+						: (vanilla ? 0xFF555555 : ModernUiTheme.CONTROL_BACKGROUND));
 		double progress = (property.read(session.mention()) - property.min)
 				/ Math.max(0.0001, property.max - property.min);
 		int progressRight = valueLeft
 				+ (int) Math.round((width() - (valueLeft - x())) * progress);
 		context.fill(valueLeft, y() + height() - 3, progressRight, y() + height() - 2,
-				dragging ? (vanilla ? 0xFFAAAAAA : 0xFF8EB8FF)
-						: (vanilla ? 0xFF999999 : 0xCC6E9ED8));
+				dragging ? (vanilla ? 0xFFAAAAAA : ModernUiTheme.ACCENT)
+						: (vanilla ? 0xFF999999 : ModernUiTheme.ACCENT_MUTED));
 		int textY = y() + (height() - renderer.fontHeight) / 2;
-		int labelColor = vanilla ? 0xFFFFFFFF : 0xFFC7CEDA;
-		context.drawText(renderer, label, x() + 2, textY, labelColor, false);
+		int labelColor = vanilla ? 0xFFFFFFFF : ModernUiTheme.TEXT_SECONDARY;
+		context.drawText(renderer,
+				ModernUiTheme.fitText(renderer, label, Math.max(1, valueLeft - x() - 8)),
+				x() + 2, textY, labelColor, false);
 		String value = property.format(property.read(session.mention()));
 		context.drawText(renderer, value, x() + width() - 8 - renderer.getWidth(value),
-				textY, vanilla ? 0xFFFFFFFF : 0xFFE9EDF4, false);
+				textY, vanilla ? 0xFFFFFFFF : ModernUiTheme.TEXT_PRIMARY, false);
 	}
 
 	@Override
@@ -90,7 +92,7 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 	@Override
 	public boolean dragPointer(double mouseX, double mouseY, int button) {
 		if (!dragging || button != 0 || dragStart == null) return false;
-		double modifier = MinecraftClient.getInstance().isShiftPressed() ? 0.2 : MinecraftClient.getInstance().isCtrlPressed() ? 5.0 : 1.0;
+		double modifier = net.minecraft.client.MinecraftClient.getInstance().isShiftPressed() ? 0.2 : net.minecraft.client.MinecraftClient.getInstance().isCtrlPressed() ? 5.0 : 1.0;
 		applyValue(dragStartValue + (mouseX - dragStartMouseX) * property.dragStep * modifier);
 		return true;
 	}
@@ -123,7 +125,7 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 	@Override
 	public boolean scroll(double amount) {
 		if (!valueHovered || amount == 0.0) return false;
-		double modifier = MinecraftClient.getInstance().isShiftPressed() ? 0.2 : MinecraftClient.getInstance().isCtrlPressed() ? 5.0 : 1.0;
+		double modifier = net.minecraft.client.MinecraftClient.getInstance().isShiftPressed() ? 0.2 : net.minecraft.client.MinecraftClient.getInstance().isCtrlPressed() ? 5.0 : 1.0;
 		MentionConfig before = session.mention();
 		applyValue(property.read(before) + Math.signum(amount) * property.scrollStep * modifier);
 		if (!before.equals(session.mention())) {

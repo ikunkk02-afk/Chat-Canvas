@@ -12,7 +12,7 @@ public interface ChatCanvasInputScreenBridge {
 
 	void chat_canvas$openPlayerInput();
 
-	boolean chat_canvas$dispatchUnicodeChar(char character, int modifiers);
+	boolean chat_canvas$dispatchUnicodeChar(int codepoint, int modifiers);
 
 	void chat_canvas$voiceTick();
 }

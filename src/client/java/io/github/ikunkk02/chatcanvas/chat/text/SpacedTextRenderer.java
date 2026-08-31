@@ -17,8 +17,8 @@ public final class SpacedTextRenderer {
 			double x,
 			int y,
 			int color,
-			boolean shadow,
-			double spacing) {
+		boolean shadow,
+		double spacing) {
 		if (Math.abs(spacing) < EPSILON) {
 			context.drawText(renderer, text, (int) Math.round(x), y, color, shadow);
 			return;

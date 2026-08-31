@@ -41,7 +41,6 @@ import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix3x2f;
 import org.joml.Vector2f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -153,11 +152,8 @@ public abstract class ChatHudMixin {
 				vanillaLineHeight, config.fontScale(), config.lineSpacing());
 	}
 
-	// 1.21.6 DISABLED: render() uses lambdas, @WrapOperation cannot target calls inside lambdas.
-	// See docs/porting/1.21.6/api-diff.md
-	/*
 	@WrapOperation(
-			method = "render",
+			method = "method_71992",
 			at = @At(
 					value = "INVOKE",
 					target = "Lnet/minecraft/client/gui/DrawContext;fill(IIIII)V",
@@ -166,21 +162,41 @@ public abstract class ChatHudMixin {
 	)
 	private void chat_canvas$drawCompactMessageBackground(DrawContext context,
 														 int x1, int y1, int x2, int y2, int color,
-														 Operation<Void> original) {
+														 Operation<Void> original,
+														 @Local ChatHudLine.Visible visible) {
 		ChatBackgroundConfig background = chat_canvas$background();
 		if (background.messageMode() == io.github.ikunkk02.chatcanvas.config.MessageBackgroundMode.HIDDEN) {
 			return;
 		}
+		ChatVerticalMetrics verticalMetrics = chat_canvas$verticalMetrics();
+		int textY = y2 + chat_canvas$vanillaTextOffset();
+		ChatLineMetrics lineMetrics = chat_canvas$metrics(visible);
+		double scale = Math.max(0.0001, getChatScale());
+		double messageLeft = -chat_canvas$VANILLA_TEXT_ORIGIN_X;
+		double messageRight = getWidth() / scale - chat_canvas$VANILLA_TEXT_ORIGIN_X;
+		ChatBackgroundBounds bounds = ChatBackgroundMetrics.messageBounds(
+				background.messageMode(),
+				messageLeft,
+				messageRight,
+				lineMetrics.drawX(),
+				lineMetrics.renderedWidth(),
+				textY,
+				textY + client.textRenderer.fontHeight,
+				verticalMetrics.lineAdvance(),
+				background.horizontalPadding(),
+				background.verticalPadding(),
+				scale
+		);
 		int configuredColor = ChatBackgroundMetrics.composeBackgroundColor(
 				background.messageColor(),
 				background.messageOpacity(),
 				(color >>> 24) / 255.0
 		);
-		original.call(context, x1, y1 - 1, x2, y2 + 1, configuredColor);
+		ChatBackgroundDraw.fill(context, bounds, configuredColor);
 	}
 
 	@WrapOperation(
-			method = "render",
+			method = "method_71992",
 			at = @At(
 					value = "INVOKE",
 					target = "Lnet/minecraft/client/gui/DrawContext;fill(IIIII)V",
@@ -201,7 +217,6 @@ public abstract class ChatHudMixin {
 				color
 		);
 	}
-	*/
 
 	@ModifyArg(
 			method = "addVisibleMessage",
@@ -240,18 +255,16 @@ public abstract class ChatHudMixin {
 		return lines;
 	}
 
-	// 1.21.6 DISABLED: render() uses lambdas — @WrapOperation can't target lambda-internal calls.
-	/*
 	@WrapOperation(
-			method = "render",
+			method = "method_71991",
 			at = @At(
 					value = "INVOKE",
 					target = "Lnet/minecraft/client/gui/DrawContext;drawTextWithShadow(Lnet/minecraft/client/font/TextRenderer;Lnet/minecraft/text/OrderedText;III)V"
 			)
 	)
 	private void chat_canvas$drawConfiguredChatLine(DrawContext context, TextRenderer renderer,
-												  OrderedText text, int x, int y, int color,
-												  Operation<Void> original) {
+															  OrderedText text, int x, int y, int color,
+															  Operation<Void> original) {
 		ChatTextConfig config = ChatCanvasConfig.instance().text();
 		ChatLineMetrics metrics = chat_canvas$metrics(text);
 		double drawX = metrics.drawX();
@@ -291,8 +304,8 @@ public abstract class ChatHudMixin {
 			)
 	)
 	private void chat_canvas$drawConfiguredQueueText(DrawContext context, TextRenderer renderer,
-													Text text, int x, int y, int color,
-													Operation<Void> original) {
+															 Text text, int x, int y, int color,
+															 Operation<Void> original) {
 		ChatTextConfig config = ChatCanvasConfig.instance().text();
 		int configuredColor = ChatTextLayout.multiplyAlpha(color, config.textOpacity());
 		context.getMatrices().pushMatrix();
@@ -304,7 +317,6 @@ public abstract class ChatHudMixin {
 				config.shadow(), config.characterSpacing());
 		context.getMatrices().popMatrix();
 	}
-	*/
 
 	@Inject(method = "getTextStyleAt", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$getAlignedTextStyle(double x, double y,
@@ -525,13 +537,12 @@ public abstract class ChatHudMixin {
 					line, nameRange.startCodePoint());
 		}
 
-		Matrix3x2f matrix = context.getMatrices();
 		double fontScale = ChatCanvasConfig.instance().text().fontScale();
-		Vector2f topLeft = matrix.transformPosition(
-				new Vector2f((float) (drawX + prefixWidth * fontScale), y));
-		Vector2f bottomRight = matrix.transformPosition(
-				new Vector2f((float) (drawX + (prefixWidth + nameWidth) * fontScale),
-				(float) (y + renderer.fontHeight * fontScale)));
+		Vector2f topLeft = context.getMatrices().transformPosition(
+				(float) (drawX + prefixWidth * fontScale), y, new Vector2f());
+		Vector2f bottomRight = context.getMatrices().transformPosition(
+				(float) (drawX + (prefixWidth + nameWidth) * fontScale),
+				(float) (y + renderer.fontHeight * fontScale), new Vector2f());
 		int messageIndex = line == null ? -1 : visibleMessages.indexOf(line);
 		PlayerNameHitboxRegistry.add(new PlayerNameHitbox(
 				player.sender().uuid(),
@@ -543,10 +554,11 @@ public abstract class ChatHudMixin {
 				Math.max(topLeft.y, bottomRight.y)
 		));
 		if (ChatCanvasConfig.instance().playerColors().showNameHitboxes()) {
-			ChatBackgroundDraw.drawBorder(context, 
+			ChatBackgroundDraw.drawRectBorder(
+					context,
 					(int) Math.floor(drawX + prefixWidth * fontScale), y,
-					(int) Math.ceil(nameWidth * fontScale),
-					(int) Math.ceil(renderer.fontHeight * fontScale), 0xFFE66B6B);
+					(int) Math.ceil(drawX + (prefixWidth + nameWidth) * fontScale),
+					(int) Math.ceil(y + renderer.fontHeight * fontScale), 0xFFE66B6B);
 		}
 	}
 

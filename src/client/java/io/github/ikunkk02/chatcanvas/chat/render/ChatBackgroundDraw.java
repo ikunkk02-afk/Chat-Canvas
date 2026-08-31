@@ -26,9 +26,4 @@ public final class ChatBackgroundDraw {
 			context.fill(right - 1, top + 1, right, bottom - 1, color);
 		}
 	}
-
-	public static void drawBorder(DrawContext context, int x, int y,
-								  int width, int height, int color) {
-		drawRectBorder(context, x, y, x + width, y + height, color);
-	}
 }

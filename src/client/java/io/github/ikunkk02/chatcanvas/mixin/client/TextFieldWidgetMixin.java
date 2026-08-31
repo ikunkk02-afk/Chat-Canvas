@@ -8,12 +8,11 @@ import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextRenderer;
 import io.github.ikunkk02.chatcanvas.chat.text.UnicodeTextNavigator;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import net.minecraft.client.gl.RenderPipelines;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.text.OrderedText;
 import net.minecraft.util.Colors;
 import net.minecraft.util.StringHelper;
@@ -30,8 +29,6 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-
-import java.util.List;
 @Mixin(TextFieldWidget.class)
 public abstract class TextFieldWidgetMixin {
 	@Shadow @Final
@@ -65,14 +62,11 @@ public abstract class TextFieldWidgetMixin {
 	public abstract void setCursor(int cursor, boolean shiftKeyPressed);
 	@Shadow
 	public abstract int getWordSkipPosition(int wordOffset);
-
-
 	@Inject(method = "onClick", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$locateSpacedClick(
-			net.minecraft.client.gui.Click click, boolean doubled, CallbackInfo ci) {
-		double mouseX = click.x();
-		double mouseY = click.y();
+			Click click, boolean doubled, CallbackInfo ci) {
 		TextFieldWidget self = (TextFieldWidget) (Object) this;
+		double mouseX = click.x();
 		double spacing = chat_canvas$spacing(self);
 		if (Double.isNaN(spacing)) return;
 		int localX = MathHelper.floor(mouseX) - self.getX();
@@ -83,20 +77,20 @@ public abstract class TextFieldWidgetMixin {
 		int localIndex = SpacedTextHitTester.utf16IndexAt(
 				textRenderer, visible, spacing, localX);
 		setCursor(UnicodeTextNavigator.nearestGraphemeBoundary(
-				text, firstCharacterIndex + localIndex), MinecraftClient.getInstance().isShiftPressed());
+				text, firstCharacterIndex + localIndex), net.minecraft.client.MinecraftClient.getInstance().isShiftPressed());
 		ci.cancel();
 	}
 
 	@Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
 	private void chat_canvas$navigateUnicodeClusters(
-			net.minecraft.client.input.KeyInput input,
+			KeyInput input,
 			CallbackInfoReturnable<Boolean> cir) {
-		int keyCode = input.key();
+		int keyCode = input.getKeycode();
 		TextFieldWidget self = (TextFieldWidget) (Object) this;
 		if (!ChatCanvasTextFieldRegistry.isChatField(self)
 				|| !self.isFocused()) return;
-		boolean shift = MinecraftClient.getInstance().isShiftPressed();
-		boolean control = MinecraftClient.getInstance().isCtrlPressed();
+		boolean shift = net.minecraft.client.MinecraftClient.getInstance().isShiftPressed();
+		boolean control = net.minecraft.client.MinecraftClient.getInstance().isCtrlPressed();
 		if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT
 				|| keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT) {
 			boolean right = keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT;
@@ -211,7 +205,8 @@ public abstract class TextFieldWidgetMixin {
 		int selectionOffset = MathHelper.clamp(selectionEnd - first, 0, visible.length());
 		int textX = self.getX();
 		int textY = self.getY();
-		OrderedText rendered = OrderedText.styledForwardsVisitedString(visible, net.minecraft.text.Style.EMPTY);
+		OrderedText rendered = OrderedText.styledForwardsVisitedString(
+				visible, net.minecraft.text.Style.EMPTY);
 		SpacedTextRenderer.draw(
 				context, textRenderer, rendered, textX, textY, color, true, spacing);
 
@@ -235,7 +230,6 @@ public abstract class TextFieldWidgetMixin {
 		if (blink) {
 			if (hasFollowing) {
 				context.fill(
-						RenderPipelines.GUI,
 						cursorX, textY - 1, cursorX + 1, textY + 10,
 						-3092272);
 			} else {
