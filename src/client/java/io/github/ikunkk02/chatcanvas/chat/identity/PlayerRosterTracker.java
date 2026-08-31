@@ -4,6 +4,7 @@ import com.mojang.authlib.GameProfile;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.PlayerListEntry;
+import net.minecraft.text.Text;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
@@ -12,8 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 public final class PlayerRosterTracker {
-	private static final List<PlayerChatIdentity> OFFLINE_PREVIEW = List.of(
-			preview("Steve"), preview("Alex"), preview("寿云"));
+	private static final UUID SHOUYUN_PREVIEW_UUID = previewUuid("Shouyun");
 	private static volatile List<PlayerChatIdentity> online = List.of();
 	private static volatile long revision;
 
@@ -53,7 +53,12 @@ public final class PlayerRosterTracker {
 	}
 
 	public static List<PlayerChatIdentity> editorPlayers() {
-		return online.isEmpty() ? OFFLINE_PREVIEW : online;
+		return online.isEmpty() ? List.of(
+				preview("Steve"),
+				preview("Alex"),
+				new PlayerChatIdentity(SHOUYUN_PREVIEW_UUID,
+						Text.translatable("chat_canvas.preview.shouyun_name").getString(), true))
+				: online;
 	}
 
 	public static boolean usingPreviewPlayers() {
@@ -69,8 +74,11 @@ public final class PlayerRosterTracker {
 	}
 
 	private static PlayerChatIdentity preview(String name) {
-		UUID uuid = UUID.nameUUIDFromBytes(
+		return new PlayerChatIdentity(previewUuid(name), name, true);
+	}
+
+	private static UUID previewUuid(String name) {
+		return UUID.nameUUIDFromBytes(
 				("OfflinePlayer:" + name).getBytes(StandardCharsets.UTF_8));
-		return new PlayerChatIdentity(uuid, name, true);
 	}
 }

@@ -1,6 +1,6 @@
 # API Diff: Minecraft 1.21.1 → 1.21.4
 
-Generated for Chat Canvas porting.
+Generated for the Chat Canvas 1.3.0 port.
 
 ## Source and Target
 
@@ -91,3 +91,9 @@ Fabric API 0.119.4+1.21.4 is backward compatible with 0.116.14+1.21.1 for all AP
 ## owo-lib Changes
 
 owo-lib 0.12.20+1.21.4 is compatible with 0.12.15.4 API. No breaking changes affecting Chat Canvas config UI.
+
+## Chat Canvas 1.3.0 Dependency Additions
+
+- Added `com.k2fsa.sherpa.onnx:sherpa-onnx-jvm:1.13.4` as a nested runtime JAR.
+- Kept Vosk 0.3.45 as the legacy provider and nested runtime JAR.
+- Native sherpa-onnx runtime libraries, Silero VAD model, and ASR models remain runtime downloads; they are not bundled in the mod JAR.

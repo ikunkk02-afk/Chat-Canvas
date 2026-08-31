@@ -2,23 +2,36 @@
 
 All notable changes to Chat Canvas will be documented in this file.
 
-## [1.2.0] - 2026-07-29
+## [1.3.0] - 2026-08-31
 
 ### Added
 
-- **Minecraft 1.21.4 support**: Ported all features to Minecraft 1.21.4 (Fabric).
-- Updated Fabric Loader to 0.19.3, Fabric API to 0.119.4+1.21.4.
-- Updated owo-lib to 0.12.20+1.21.4, ModMenu to 13.0.2.
+- **Reworked offline voice input**: multiple ASR backends powered by sherpa-onnx 1.13.4 — streaming Zipformer Chinese, SenseVoice INT8 multilingual (Mandarin, Cantonese, English, Japanese, Korean) and Whisper Tiny INT8 multilingual — alongside the existing Vosk small Chinese model.
+- **Silero VAD endpoint detection**: automatic speech/silence endpoints with configurable listen timeout, endpoint silence and tail padding.
+- **Model manager**: model selection, download progress, SHA-256 verification, cancel, release, hot-swap switching between installed models, and one-click access to the model folder.
+- **Android / iOS compatibility layer**: platform detection (FCL / Pojav-class launchers), ARM64/ARM32 native runtimes, staged loading into app-private cache, and capability checks that safely disable voice input when a launcher cannot provide a microphone or native runtime.
+- **Expanded emoji picker**: 130+ emoji in 10 categories with a virtualized grid, tooltips, keyboard navigation, multi-language names, and font-based filtering of unsupported glyphs.
+- **Traditional Chinese (zh_tw)** localization.
+- **Improved localization**: refreshed English and Simplified Chinese strings across the editor, voice, emoji and chat log pages.
 
 ### Changed
 
-- Adapted `DrawContext.drawTextWrapped` → `drawWrappedTextWithShadow` for 1.21.4 API.
-- Updated `ChatHud.getMessageLineIndex` → `getMessageIndex` for 1.21.4 Yarn mappings.
+- **Responsive settings UI**: editor panels, tabs and chat overlays were restyled and stabilized across GUI scales and aspect ratios.
+- **Server interactive-message support**: vanilla `ClickEvent` / `HoverEvent` interactions are preserved through Chat Canvas text wrapping (run/suggest command, open URL, copy to clipboard, hover tooltips).
+- Removed input mode labels and unified player/command chat input handling.
 
 ### Fixed
 
-- All 15 Mixins verified compatible with Minecraft 1.21.4 after API audit.
-- All existing features preserved: dual chat channels, emoji, voice input, command tools, chat log, split layout, settings editor.
+- Voice model runtime and control stability (load failures, model switching, keyboard shortcut edge cases).
+
+### Compatibility
+
+- Chat Heads, More Chat History, ChatAnimation, Smooth Scrolling.
+
+### Privacy
+
+- Speech recognition runs entirely locally with an installed offline model.
+- Audio is never uploaded or persisted; networking is used only for player-requested downloads of models and the sherpa-onnx native runtime.
 
 ## [1.2.0] - 2026-07-27
 

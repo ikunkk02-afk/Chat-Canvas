@@ -1,4 +1,4 @@
-# Test Report: Chat Canvas 1.2.0 for Minecraft 1.21.4
+# Test Report: Chat Canvas 1.3.0 for Minecraft 1.21.4
 
 ## Environment
 
@@ -9,124 +9,77 @@
 | Fabric API | 0.119.4+1.21.4 |
 | Yarn mappings | 1.21.4+build.8 |
 | owo-lib | 0.12.20+1.21.4 |
-| Java | JDK 21 (Microsoft build 21.0.8.9-hotspot) |
-| OS | Windows 10 |
+| Java compile target | 21 |
+| Java runtime reported by Fabric | 22 |
 | Gradle | 9.5.1 |
-| Loom | 1.17.17 |
+| Loom | 1.17.20 |
+| OS | Windows |
 
-## Test Results
+## Automated Tests
 
-### Unit Tests
+Command: `gradlew.bat clean build --no-daemon`
 
-```
-./gradlew test
-BUILD SUCCESSFUL
-```
+- `BUILD SUCCESSFUL`
+- 73 test suites, 263 tests
+- 0 failures, 0 errors
+- 1 skipped: `VoskAsrProviderIntegrationTest` requires a locally installed Vosk model
 
-All 50+ unit tests passed:
-- Config reading/writing ✅
-- Damaged config fallback ✅
-- Sensitive command detection/masking ✅
-- Emoji Unicode handling ✅
-- Emoji recent storage ✅
-- Vosk JSON Chinese parsing ✅
-- Microphone lease close (concurrent + duplicate) ✅
-- Local chat log JSONL format ✅
-- UTF-8 handling ✅
-- Message deduplication ✅
-- Command tool storage ✅
-- Clipboard command parsing ✅
-- Player identity resolution ✅
-- Mention insertion/matching ✅
-- Chat layout metrics ✅
-- Editor math ✅
-- Spaced text advance math ✅
-- Unicode text navigation ✅
+## Build
 
-### Build
+Command: `gradlew.bat clean build --no-daemon`
 
-```
-./gradlew build
-BUILD SUCCESSFUL
-```
+- `BUILD SUCCESSFUL`
+- Output: `build/libs/chat-canvas-1.3.0.jar`
+- SHA-256: `EEACEB7CD20FCA565DB27FE1FE22B08F57A2CF77D79BDDCA38A89A18F7F9DE0E`
+- Includes nested `vosk-0.3.45.jar` and `sherpa-onnx-jvm-1.13.4.jar`
+- Does not include ASR models, Silero VAD model, or platform native libraries
 
-Output: `chat-canvas-1.2.0.jar` (28MB, includes bundled vosk-0.3.45)
+## Runtime
 
-### runClient
+Command: `gradlew.bat runClient --no-daemon`
 
-```
-./gradlew runClient
-```
+- `BUILD SUCCESSFUL`
+- Minecraft 1.21.4 reached the main menu and entered an integrated singleplayer world
+- Chat Canvas initialized successfully
+- Resource reload completed
+- OpenAL initialized
+- Emoji font evaluation completed (`136/136` whitelist entries supported)
+- World saved and client stopped normally
+- No `MixinApplyError`, `InvalidInjectionException`, `NoSuchMethodError`, `NoSuchFieldError`, `AbstractMethodError`, or Chat Canvas resource error was logged
 
-- [x] Game reaches main menu
-- [x] All 56 mods load successfully
-- [x] Chat Canvas initializes: `[chat_canvas] Initializing Chat Canvas`
-- [x] All 15 Mixins inject without errors
-- [x] No InvalidInjectionException
-- [x] No MixinApplyError
-- [x] No NoSuchMethodError
-- [x] No NoSuchFieldError
-- [x] No AbstractMethodError
-- [x] No ClassCastException
-- [x] Singleplayer world created successfully
-- [x] Player joined world
-- [x] World saved
+Known environment warnings:
 
-### Singleplayer Test
+- Mojang session profile lookup failed because the remote TLS handshake was terminated; this did not prevent local play
+- Fabric logged optional class lookup warnings for unrelated absent classes; no Mixin application failure followed
 
-- [x] Enter main menu
-- [x] Enter singleplayer world
-- [x] Press T opens chat
+## Jar Verification
 
-### JAR Verification
-
-- [x] `fabric.mod.json` present
+- [x] `fabric.mod.json` present and expanded to Chat Canvas `1.3.0`
+- [x] Minecraft dependency is `~1.21.4`
 - [x] `chat_canvas.client.mixins.json` present
-- [x] Bundled vosk-0.3.45.jar present
-- [x] No test classes in JAR
-- [x] No decompiled Minecraft source
-- [x] No Vosk model data
-- [x] No local config/log files
+- [x] `en_us.json`, `zh_cn.json`, and `zh_tw.json` present
+- [x] Emoji icon present
+- [x] Vosk and sherpa-onnx nested JARs present
+- [x] Third-party license file present
+- [x] No model or native binary payload bundled
+- [x] No test classes or local config/log files bundled
 
-## Pending Verification
+## Manual Verification Status
 
-The following require manual interactive testing:
+Runtime smoke evidence covers Chat Canvas initialization, resource loading, OpenAL initialization, Emoji font capability detection, world entry, a rendered local chat line, save, and clean shutdown.
 
-- [ ] Chat screen opens with independent player/command fields
-- [ ] `/` prefix auto-switches to command mode
-- [ ] Player chat channel works
-- [ ] Command system channel works
-- [ ] Classic layout works
-- [ ] Split alignment layout works
-- [ ] Right-aligned own messages, left-aligned others
-- [ ] Auto word wrap
-- [ ] Double-click name @mention
-- [ ] @mention notification (once only)
-- [ ] Emoji panel, search, categories, recent
-- [ ] Unicode grapheme cluster cursor/delete
-- [ ] Mouse hold-to-talk voice input
-- [ ] Keyboard shortcut voice input
-- [ ] Chinese voice recognition (Vosk)
-- [ ] Chinese encoding correctly handled
-- [ ] Microphone concurrent release no errors
-- [ ] Voice result not auto-sent
-- [ ] Local chat log JSONL writing
-- [ ] Resource cleanup on world exit
-- [ ] Re-enter world, all features still work
+The following were not manually clicked through in this automation run and remain pending interactive verification:
 
-## Compatibility Mods
+- ChatScreen editor interactions and command suggestions
+- Server `ClickEvent` / `HoverEvent` actions, including `/tpa` accept/deny buttons
+- Emoji picker grid, search, scroll, tooltip, and insertion
+- Chat history scroll and persistence through re-entry
+- Settings sidebar/header/footer, sliders, toggles, dropdowns, resize and scissor behavior
+- Live language switching across English, Simplified Chinese, and Traditional Chinese
+- GUI Scale 2, 3, 4, and Auto visual checks
+- V-key voice start/stop, microphone capture, VAD endpoint, partial/final result insertion
+- Actual ASR model downloads and model hot-reload UI
 
-| Mod | 1.21.4 Version | Status |
-|-----|---------------|--------|
-| Chat Heads | Unknown | Not verified |
-| More Chat History | Unknown | Not verified |
-| ChatAnimation | Unknown | Not verified |
-| Smooth Scrolling | Unknown | Not verified |
+Voice initialization, model registry, VAD/state-machine, platform capability, Android/FCL fallback, iOS bridge fallback, and native runtime paths were covered by compilation/unit tests and the Windows capability log. No physical microphone, Android/FCL, or iOS device test was performed.
 
-Note: Compatibility mods were not tested as their 1.21.4 versions were not available in the development environment.
-
-## Known Limitations
-
-- Mojang session server TLS handshake fails in this network environment (infrastructure issue, not mod-related)
-- Voice input requires Vosk model download on first use
-- Compatibility mods listed above require separate verification with actual mod JARs
+Compatibility mods and a real multiplayer server were not tested in this run.
