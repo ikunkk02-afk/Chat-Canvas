@@ -1,0 +1,17 @@
+package io.github.ikunkk02.chatcanvas.chat.message;
+
+public enum ChatCanvasMessageSource {
+	PLAYER,
+	SELF_PLAYER,
+	COMMAND_INPUT,
+	COMMAND_RESULT,
+	COMMAND_ERROR,
+	SYSTEM,
+	SERVER_NOTICE,
+	PLAYER_JOIN,
+	PLAYER_LEAVE,
+	DEATH_MESSAGE,
+	MOD_ERROR,
+	CHAT_CANVAS_ERROR,
+	UNKNOWN
+}

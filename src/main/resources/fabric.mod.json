@@ -1,0 +1,45 @@
+{
+	"schemaVersion": 1,
+	"id": "chat_canvas",
+	"version": "${version}",
+	"name": "Chat Canvas",
+	"description": "A visual, highly customizable client-side chat mod for Minecraft: WYSIWYG chat editing, dual chat channels, emoji, offline voice input, command tools and local chat history.",
+	"authors": [
+		"寿云"
+	],
+	"contact": {
+		"homepage": "https://space.bilibili.com/1832031043",
+		"sources": "https://github.com/ikunkk02-afk/Chat-Canvas",
+		"issues": "https://github.com/ikunkk02-afk/Chat-Canvas/issues"
+	},
+	"license": "MIT",
+	"icon": "assets/chat_canvas/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"preLaunch": [
+			"io.github.ikunkk02.chatcanvas.ChatCanvasPreLaunch"
+		],
+		"main": [
+			"io.github.ikunkk02.chatcanvas.ChatCanvas"
+		],
+		"client": [
+			"io.github.ikunkk02.chatcanvas.ChatCanvasClient"
+		],
+		"modmenu": [
+			"io.github.ikunkk02.chatcanvas.integration.ModMenuIntegration"
+		]
+	},
+	"mixins": [
+		"chat_canvas.client.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.1.1",
+		"java": ">=25",
+		"fabric-api": ">=0.145.4",
+		"owo": ">=0.13.0"
+	},
+	"suggests": {
+		"modmenu": ">=18.0.0"
+	}
+}
