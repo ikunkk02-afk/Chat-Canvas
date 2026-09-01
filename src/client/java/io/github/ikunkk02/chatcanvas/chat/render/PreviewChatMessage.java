@@ -1,19 +1,19 @@
 package io.github.ikunkk02.chatcanvas.chat.render;
 
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatIdentity;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 public record PreviewChatMessage(
-		Text text,
+		Component text,
 		@Nullable PlayerChatIdentity sender,
 		boolean selfMessage
 ) {
-	public PreviewChatMessage(Text text) {
+	public PreviewChatMessage(Component text) {
 		this(text, null, false);
 	}
 
-	public PreviewChatMessage(Text text, @Nullable PlayerChatIdentity sender) {
+	public PreviewChatMessage(Component text, @Nullable PlayerChatIdentity sender) {
 		this(text, sender, false);
 	}
 }

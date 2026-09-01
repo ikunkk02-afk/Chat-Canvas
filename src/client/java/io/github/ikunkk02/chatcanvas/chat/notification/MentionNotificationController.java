@@ -8,8 +8,8 @@ import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import io.github.ikunkk02.chatcanvas.config.PlayerColorConfig;
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
 import java.util.UUID;
 
@@ -37,7 +37,7 @@ public final class MentionNotificationController {
 	}
 
 	public void receive(ChatCanvasMessage message) {
-		MinecraftClient client = MinecraftClient.getInstance();
+		Minecraft client = Minecraft.getInstance();
 		boolean debugSelfMention = MentionDebugPolicy.allowsSelfMention(client);
 		if (client.player == null || message == null
 				|| message.channel() != ChatCanvasChannel.PLAYER_CHAT
@@ -48,7 +48,7 @@ public final class MentionNotificationController {
 				: new PlayerChatIdentity(
 						message.senderUuid(), message.senderName().getString(), true);
 		if (!debugSelfMention && config.ignoreOwnMessages() && isOwn(
-				identity, client.player.getGameProfile().getName(), client.player.getUuid())) return;
+				identity, client.player.getGameProfile().name(), client.player.getUUID())) return;
 		if (!deduplicator.accept(message.messageId(), message.receivedAt())) {
 			ChatCanvas.LOGGER.debug("Mention notification suppressed as duplicate: id={}",
 					message.messageId());

@@ -1,6 +1,6 @@
 package io.github.ikunkk02.chatcanvas.chat.message;
 
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -40,7 +40,7 @@ class ChatCanvasMessageManagerTest {
 		return new ChatCanvasMessage(UUID.randomUUID(), channel,
 				channel == ChatCanvasChannel.PLAYER_CHAT
 						? ChatCanvasMessageSource.PLAYER : ChatCanvasMessageSource.SYSTEM,
-				null, null, Text.literal(channel.name()), System.currentTimeMillis(),
+				null, null, Component.literal(channel.name()), System.currentTimeMillis(),
 				false, false);
 	}
 }

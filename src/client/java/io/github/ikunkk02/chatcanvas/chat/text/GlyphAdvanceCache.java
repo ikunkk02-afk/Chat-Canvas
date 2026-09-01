@@ -1,9 +1,9 @@
 package io.github.ikunkk02.chatcanvas.chat.text;
 
 import com.ibm.icu.text.BreakIterator;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Style;
+import net.minecraft.client.gui.Font;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.network.chat.Style;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -13,20 +13,20 @@ import java.util.Locale;
 
 /**
  * Bounded identity cache for the glyph runs used by every spaced text operation.
- * OrderedText is intentionally keyed by identity because many implementations are
+ * FormattedCharSequence is intentionally keyed by identity because many implementations are
  * visitor lambdas without structural equality.
  */
 public final class GlyphAdvanceCache {
 	private static final int MAX_TEXTS = 512;
 	private static final int MAX_SPACING_VARIANTS = 8;
-	private static final Map<OrderedText, Map<Long, GlyphRun>> RUNS = new IdentityHashMap<>();
+	private static final Map<FormattedCharSequence, Map<Long, GlyphRun>> RUNS = new IdentityHashMap<>();
 	private static long fontEpoch;
 
 	private GlyphAdvanceCache() {
 	}
 
 	public static synchronized GlyphRun layout(
-			TextRenderer renderer, OrderedText text, double spacing) {
+			Font renderer, FormattedCharSequence text, double spacing) {
 		long key = spacingKey(spacing);
 		Map<Long, GlyphRun> variants = RUNS.get(text);
 		if (variants != null) {
@@ -55,13 +55,12 @@ public final class GlyphAdvanceCache {
 		RUNS.clear();
 	}
 
-	private static GlyphRun build(TextRenderer renderer, OrderedText text, double spacing) {
+	private static GlyphRun build(Font renderer, FormattedCharSequence text, double spacing) {
 		List<MutableGlyph> captured = new ArrayList<>();
 		int[] utf16 = {0};
 		text.accept((sourceIndex, style, codePoint) -> {
 			Style safeStyle = style == null ? Style.EMPTY : style;
-			float vanilla = renderer.getTextHandler().getWidth(
-					OrderedText.styled(codePoint, safeStyle));
+			float vanilla = renderer.width(FormattedCharSequence.codepoint(codePoint, safeStyle));
 			captured.add(new MutableGlyph(
 					sourceIndex, utf16[0], codePoint, safeStyle,
 					Math.max(0.0f, vanilla)));

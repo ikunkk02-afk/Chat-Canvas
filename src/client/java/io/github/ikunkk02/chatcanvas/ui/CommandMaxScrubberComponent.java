@@ -2,15 +2,15 @@ package io.github.ikunkk02.chatcanvas.ui;
 
 import io.github.ikunkk02.chatcanvas.config.CommandClipboardConfig;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
-import io.wispforest.owo.ui.base.BaseComponent;
+import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
-import io.wispforest.owo.ui.core.OwoUIDrawContext;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
-public final class CommandMaxScrubberComponent extends BaseComponent implements NumericScrubber {
+public final class CommandMaxScrubberComponent extends BaseUIComponent implements NumericScrubber {
 	private final EditorSession session;
 	private final Runnable changed;
 	private final Runnable committed;
@@ -35,8 +35,8 @@ public final class CommandMaxScrubberComponent extends BaseComponent implements 
 	}
 
 	@Override
-	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
-		var renderer = MinecraftClient.getInstance().textRenderer;
+	public void draw(OwoUIGraphics context, int mouseX, int mouseY, float partialTicks, float delta) {
+		var renderer = Minecraft.getInstance().font;
 		int valueLeft = x() + width() - 92;
 		context.fill(valueLeft, y() + 2, x() + width(), y() + height() - 2,
 				ModernUiTheme.CONTROL_BACKGROUND);
@@ -47,13 +47,13 @@ public final class CommandMaxScrubberComponent extends BaseComponent implements 
 		context.fill(valueLeft, y() + height() - 3,
 				valueLeft + (int) Math.round(92 * progress), y() + height() - 2,
 				ModernUiTheme.ACCENT_MUTED);
-		int ty = y() + (height() - renderer.fontHeight) / 2;
-		Text label = Text.translatable("chat_canvas.command.max_commands");
-		context.drawText(renderer,
+		int ty = y() + (height() - renderer.lineHeight) / 2;
+		Component label = Component.translatable("chat_canvas.command.max_commands");
+		context.text(renderer,
 				ModernUiTheme.fitText(renderer, label, Math.max(1, valueLeft - x() - 8)),
 				x() + 2, ty, ModernUiTheme.TEXT_SECONDARY, false);
 		String value = Integer.toString(session.commandClipboard().maxCommands());
-		context.drawText(renderer, value, x() + width() - 8 - renderer.getWidth(value),
+		context.text(renderer, value, x() + width() - 8 - renderer.width(value),
 				ty, ModernUiTheme.TEXT_PRIMARY, false);
 	}
 
@@ -77,7 +77,7 @@ public final class CommandMaxScrubberComponent extends BaseComponent implements 
 	@Override
 	public boolean dragPointer(double mouseX, double mouseY, int button) {
 		if (!dragging || button != 0) return false;
-		double step = Screen.hasShiftDown() ? 1.0 : Screen.hasControlDown() ? 20.0 : 5.0;
+		double step = Minecraft.getInstance().hasShiftDown() ? 1.0 : Minecraft.getInstance().hasControlDown() ? 20.0 : 5.0;
 		apply((int) Math.round(startValue + (mouseX - startX) * step));
 		return true;
 	}
@@ -105,7 +105,7 @@ public final class CommandMaxScrubberComponent extends BaseComponent implements 
 	@Override
 	public boolean scroll(double amount) {
 		if (!hovered || amount == 0) return false;
-		int step = Screen.hasShiftDown() ? 1 : Screen.hasControlDown() ? 100 : 20;
+		int step = Minecraft.getInstance().hasShiftDown() ? 1 : Minecraft.getInstance().hasControlDown() ? 100 : 20;
 		apply(session.commandClipboard().maxCommands() + (amount > 0 ? step : -step));
 		session.commit();
 		committed.run();

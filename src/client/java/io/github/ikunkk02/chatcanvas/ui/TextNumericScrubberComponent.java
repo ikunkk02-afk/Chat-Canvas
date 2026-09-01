@@ -4,22 +4,22 @@ import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.github.ikunkk02.chatcanvas.editor.EditorUiStyle;
 import io.github.ikunkk02.chatcanvas.editor.NumericScrubberMath;
-import io.wispforest.owo.ui.base.BaseComponent;
+import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
-import io.wispforest.owo.ui.core.OwoUIDrawContext;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.network.chat.Component;
 
 import java.util.Locale;
 
-public final class TextNumericScrubberComponent extends BaseComponent implements NumericScrubber {
+public final class TextNumericScrubberComponent extends BaseUIComponent implements NumericScrubber {
 	private static final int VALUE_WIDTH = 78;
 
 	private final EditorSession session;
 	private final Property property;
-	private final Text label;
+	private final Component label;
 	private final Runnable previewChanged;
 	private final Runnable historyChanged;
 
@@ -32,7 +32,7 @@ public final class TextNumericScrubberComponent extends BaseComponent implements
 	private boolean valueHovered;
 	private float hoverProgress;
 
-	public TextNumericScrubberComponent(EditorSession session, Property property, Text label,
+	public TextNumericScrubberComponent(EditorSession session, Property property, Component label,
 										Runnable previewChanged, Runnable historyChanged) {
 		this.session = session;
 		this.property = property;
@@ -52,8 +52,8 @@ public final class TextNumericScrubberComponent extends BaseComponent implements
 	}
 
 	@Override
-	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
-		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+	public void draw(OwoUIGraphics context, int mouseX, int mouseY, float partialTicks, float delta) {
+		Font renderer = Minecraft.getInstance().font;
 		int valueLeft = valueLeft();
 		boolean vanilla = ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA;
 		int background = dragging
@@ -73,17 +73,17 @@ public final class TextNumericScrubberComponent extends BaseComponent implements
 							: (vanilla ? 0xFF999999 : ModernUiTheme.ACCENT_MUTED));
 		}
 
-		int textY = y() + (height() - renderer.fontHeight) / 2;
+		int textY = y() + (height() - renderer.lineHeight) / 2;
 		int labelColor = vanilla ? 0xFFFFFFFF : ModernUiTheme.TEXT_SECONDARY;
-		context.drawText(renderer,
+		context.text(renderer,
 				ModernUiTheme.fitText(renderer, label, Math.max(1, valueLeft - x() - 8)),
 				x() + 2, textY, labelColor, false);
 		String value = displayValue();
-		int valueX = x() + width() - 8 - renderer.getWidth(value);
-		context.drawText(renderer, value, valueX, textY,
+		int valueX = x() + width() - 8 - renderer.width(value);
+		context.text(renderer, value, valueX, textY,
 				dragging ? 0xFFFFFFFF : (vanilla ? 0xFFFFFFFF : ModernUiTheme.TEXT_PRIMARY), false);
 		if (valueHovered || dragging) {
-			context.drawText(renderer, "\u2194", valueLeft + 6, textY,
+			context.text(renderer, "\u2194", valueLeft + 6, textY,
 					vanilla ? 0xFFFFFFFF : ModernUiTheme.TEXT_SECONDARY, false);
 		}
 	}

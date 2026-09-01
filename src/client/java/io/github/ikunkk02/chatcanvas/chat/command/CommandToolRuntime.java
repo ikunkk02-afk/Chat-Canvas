@@ -4,8 +4,8 @@ import io.github.ikunkk02.chatcanvas.ChatCanvas;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessageIngress;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -32,14 +32,14 @@ public final class CommandToolRuntime {
 		return MANAGER;
 	}
 
-	public static void beginSession(MinecraftClient client) {
+	public static void beginSession(Minecraft client) {
 		if (client == null) {
 			serverIdentifier = "unknown";
-		} else if (client.isInSingleplayer()) {
+		} else if (client.isSingleplayer()) {
 			serverIdentifier = "singleplayer";
 		} else {
-			String address = client.getCurrentServerEntry() == null
-					? "unknown" : client.getCurrentServerEntry().address;
+			String address = client.getCurrentServer() == null
+					? "unknown" : client.getCurrentServer().ip;
 			serverIdentifier = "server-"
 					+ UUID.nameUUIDFromBytes(address.getBytes(StandardCharsets.UTF_8));
 		}
@@ -64,11 +64,11 @@ public final class CommandToolRuntime {
 	}
 
 	private static void reportError(String translationKey, Throwable throwable) {
-		Text summary = Text.translatable(translationKey);
+		Component summary = Component.translatable(translationKey);
 		if (throwable == null) ChatCanvas.LOGGER.warn(summary.getString());
 		try {
 			ChatCanvasMessageIngress.instance().reportError(
-					Text.literal("[Chat Canvas] ").append(summary), throwable);
+					Component.literal("[Chat Canvas] ").append(summary), throwable);
 		} catch (RuntimeException nested) {
 			ChatCanvas.LOGGER.error("Failed to report command tool error", nested);
 		}

@@ -1,11 +1,11 @@
 package io.github.ikunkk02.chatcanvas.voice;
 
 import io.github.ikunkk02.chatcanvas.ui.ModernUiTheme;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
@@ -22,7 +22,7 @@ public final class VoiceInputOverlay {
 	private static final int SCREEN_MARGIN = 4;
 	private final VoiceInputManager manager = VoiceInputManager.instance();
 	private ChatScreen owner;
-	private TextFieldWidget field;
+	private EditBox field;
 	private Consumer<VoiceRecognitionResult> resultConsumer;
 	private Runnable sessionStarted;
 	private Consumer<String> partialConsumer;
@@ -34,7 +34,7 @@ public final class VoiceInputOverlay {
 	private String deliveredPartial = "";
 	private int modelScroll;
 
-	public void init(ChatScreen screen, TextFieldWidget playerField,
+	public void init(ChatScreen screen, EditBox playerField,
 					 Consumer<VoiceRecognitionResult> consumer,
 					 Runnable started, Consumer<String> partial, Runnable cancelled) {
 		owner = screen;
@@ -146,7 +146,7 @@ public final class VoiceInputOverlay {
 				|| state == VoiceInputState.MODEL_LOADING;
 	}
 
-	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+	public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
 		if (owner == null || field == null) return;
 		buttonX = field.getX() + field.getWidth() + EmojiOffset.TOTAL_SPACE + 1;
 		buttonY = field.getY() - 1;
@@ -155,15 +155,15 @@ public final class VoiceInputOverlay {
 		if (installPrompt) renderPrompt(context, mouseX, mouseY);
 	}
 
-	private void renderButton(DrawContext context, int mouseX, int mouseY) {
+	private void renderButton(GuiGraphicsExtractor context, int mouseX, int mouseY) {
 		VoiceInputState state = manager.state();
 		boolean hovered = hit(mouseX, mouseY, buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT);
 		ModernUiTheme.drawFixedControl(context, buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT,
 				hovered, state == VoiceInputState.FINALIZING, true);
 		if (manager.isListening()) {
-			context.drawBorder(buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT, ModernUiTheme.DANGER);
+			context.outline(buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT, ModernUiTheme.DANGER);
 		} else if (state == VoiceInputState.MODEL_MISSING || state == VoiceInputState.ERROR) {
-			context.drawBorder(buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT, ModernUiTheme.WARNING);
+			context.outline(buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT, ModernUiTheme.WARNING);
 		}
 		int cx = buttonX + 9;
 		context.fill(cx - 2, buttonY + 3, cx + 3, buttonY + 9, ModernUiTheme.TEXT_PRIMARY);
@@ -173,27 +173,27 @@ public final class VoiceInputOverlay {
 		context.fill(cx, buttonY + 11, cx + 1, buttonY + 13, ModernUiTheme.TEXT_PRIMARY);
 	}
 
-	private void renderStatus(DrawContext context) {
+	private void renderStatus(GuiGraphicsExtractor context) {
 		VoiceInputState state = manager.state();
 		String key = statusKey(state);
 		if (key == null) return;
-		Text label = Text.translatable(key);
+		Component label = Component.translatable(key);
 		if (state == VoiceInputState.MODEL_DOWNLOADING && manager.progressTotal() > 0L) {
 			long doneMiB = manager.progress() / 1_048_576L;
 			long totalMiB = manager.progressTotal() / 1_048_576L;
 			int percent = (int) Math.min(100L, manager.progress() * 100L / manager.progressTotal());
-			label = label.copy().append(Text.literal(String.format(Locale.ROOT,
+			label = label.copy().append(Component.literal(String.format(Locale.ROOT,
 					"  %d / %d MiB (%d%%)", doneMiB, totalMiB, percent)));
 		}
 		int width = Math.min(Math.max(1, owner.width - SCREEN_MARGIN * 2), Math.min(220,
-				MinecraftClient.getInstance().textRenderer.getWidth(label) + 12));
+				Minecraft.getInstance().font.width(label) + 12));
 		StatusLayout layout = calculateStatusLayout(owner.width, field.getX(), field.getY(),
 				buttonX, buttonY, width);
 		ModernUiTheme.drawFixedPanel(context, layout.x(), layout.y(), layout.width(), STATUS_HEIGHT, false);
-		String fitted = ModernUiTheme.fitText(MinecraftClient.getInstance().textRenderer,
+		String fitted = ModernUiTheme.fitText(Minecraft.getInstance().font,
 				label, Math.max(1, layout.width() - 8));
-		context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer,
-				Text.literal(fitted), layout.x() + 4, layout.y() + 3, ModernUiTheme.TEXT_PRIMARY);
+		context.text(Minecraft.getInstance().font,
+				Component.literal(fitted), layout.x() + 4, layout.y() + 3, ModernUiTheme.TEXT_PRIMARY);
 		if (manager.isListening() && manager.settings().showInputLevel()) {
 			int meter = (int) Math.round((layout.width() - 8) * Math.min(1.0, manager.level() * 8.0));
 			context.fill(layout.x() + 4, layout.y() + STATUS_HEIGHT - 2,
@@ -235,7 +235,7 @@ public final class VoiceInputOverlay {
 		};
 	}
 
-	private void renderPrompt(DrawContext context, int mouseX, int mouseY) {
+	private void renderPrompt(GuiGraphicsExtractor context, int mouseX, int mouseY) {
 		PromptLayout layout = promptLayout();
 		ModernUiTheme.drawFixedPanel(context, layout.x(), layout.y(), layout.width(), layout.height(), true);
 		draw(context, "chat_canvas.voice.model.choose", layout.x() + 10, layout.y() + 8, ModernUiTheme.TEXT_PRIMARY);
@@ -260,25 +260,25 @@ public final class VoiceInputOverlay {
 				18, "chat_canvas.voice.model.cancel");
 	}
 
-	private void drawModelCard(DrawContext context, VoiceModelDescriptor model,
+	private void drawModelCard(GuiGraphicsExtractor context, VoiceModelDescriptor model,
 						   int x, int y, int width, int cardHeight) {
 		boolean installed = manager.isModelInstalled(model.id());
-		String name = Text.translatable(model.displayNameKey()).getString();
-		String action = Text.translatable(installed
+		String name = Component.translatable(model.displayNameKey()).getString();
+		String action = Component.translatable(installed
 				? "chat_canvas.voice.model.installed" : "chat_canvas.voice.model.download").getString();
 		drawFitted(context, name + "  [" + action + "]", x, y, width, ModernUiTheme.TEXT_PRIMARY);
 		if (cardHeight < 26) return;
-		String languages = model.languageKeys().stream().map(key -> Text.translatable(key).getString())
+		String languages = model.languageKeys().stream().map(key -> Component.translatable(key).getString())
 				.reduce((a, b) -> a + "/" + b).orElse("");
 		drawFitted(context, languages + "  " + formatMiB(model.downloadSize()), x, y + 12,
 				width, ModernUiTheme.TEXT_SECONDARY);
 		if (cardHeight < 38) return;
-		String profiles = Text.translatable(model.performanceKey()).getString() + " · "
-				+ Text.translatable(model.responseKey()).getString() + " · "
-				+ Text.translatable(model.accuracyKey()).getString();
+		String profiles = Component.translatable(model.performanceKey()).getString() + " · "
+				+ Component.translatable(model.responseKey()).getString() + " · "
+				+ Component.translatable(model.accuracyKey()).getString();
 		drawFitted(context, profiles, x, y + 23, width, ModernUiTheme.TEXT_SECONDARY);
 		if (cardHeight < 46) return;
-		String reload = Text.translatable(model.reloadPolicy() == ReloadPolicy.HOT_SWAP
+		String reload = Component.translatable(model.reloadPolicy() == ReloadPolicy.HOT_SWAP
 				? "chat_canvas.voice.reload.hot_swap" : "chat_canvas.voice.reload.restart").getString();
 		VoiceModelCapability capability = manager.modelCapability(model);
 		VoicePlatformSupport.OperatingSystem currentOs = VoicePlatformSupport.current().os();
@@ -287,14 +287,14 @@ public final class VoiceInputOverlay {
 		boolean ios = model.supportsIos() && (currentOs != VoicePlatformSupport.OperatingSystem.IOS || capability.available());
 		boolean linux = model.supportsLinux() && (currentOs != VoicePlatformSupport.OperatingSystem.LINUX || capability.available());
 		boolean macos = model.supportsMacOs() && (currentOs != VoicePlatformSupport.OperatingSystem.MACOS || capability.available());
-		String platforms = Text.translatable("chat_canvas.voice.platform.windows").getString() + " " + mark(windows)
-				+ "  " + Text.translatable("chat_canvas.voice.platform.android").getString() + " " + mark(android)
-				+ "  " + Text.translatable("chat_canvas.voice.platform.ios").getString() + " " + mark(ios)
-				+ "  " + Text.translatable("chat_canvas.voice.platform.linux").getString() + " " + mark(linux)
-				+ "  " + Text.translatable("chat_canvas.voice.platform.macos").getString() + " " + mark(macos)
+		String platforms = Component.translatable("chat_canvas.voice.platform.windows").getString() + " " + mark(windows)
+				+ "  " + Component.translatable("chat_canvas.voice.platform.android").getString() + " " + mark(android)
+				+ "  " + Component.translatable("chat_canvas.voice.platform.ios").getString() + " " + mark(ios)
+				+ "  " + Component.translatable("chat_canvas.voice.platform.linux").getString() + " " + mark(linux)
+				+ "  " + Component.translatable("chat_canvas.voice.platform.macos").getString() + " " + mark(macos)
 				+ "  " + reload;
 		if (!capability.available() && !capability.reasonKey().isBlank()) {
-			platforms += " · " + Text.translatable(capability.reasonKey()).getString();
+			platforms += " · " + Component.translatable(capability.reasonKey()).getString();
 			if (!capability.detail().isBlank()) platforms += " (" + capability.detail() + ")";
 		}
 		drawFitted(context, platforms, x, y + 33, width, ModernUiTheme.TEXT_SECONDARY);
@@ -350,22 +350,22 @@ public final class VoiceInputOverlay {
 				openFolderY, cancelY, maxScroll);
 	}
 
-	private static void button(DrawContext context, int mouseX, int mouseY, int x, int y,
+	private static void button(GuiGraphicsExtractor context, int mouseX, int mouseY, int x, int y,
 						   int width, int height, String key) {
 		ModernUiTheme.drawFixedControl(context, x, y, width, height,
 				hit(mouseX, mouseY, x, y, width, height), false, true);
-		context.drawCenteredTextWithShadow(MinecraftClient.getInstance().textRenderer,
-				Text.translatable(key), x + width / 2, y + 5, ModernUiTheme.TEXT_PRIMARY);
+		context.centeredText(Minecraft.getInstance().font,
+				Component.translatable(key), x + width / 2, y + 5, ModernUiTheme.TEXT_PRIMARY);
 	}
 
-	private static void draw(DrawContext context, String key, int x, int y, int color) {
-		context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.translatable(key), x, y, color);
+	private static void draw(GuiGraphicsExtractor context, String key, int x, int y, int color) {
+		context.text(Minecraft.getInstance().font, Component.translatable(key), x, y, color);
 	}
 
-	private static void drawFitted(DrawContext context, String value, int x, int y, int width, int color) {
-		String fitted = ModernUiTheme.fitText(MinecraftClient.getInstance().textRenderer,
-				Text.literal(value), Math.max(1, width));
-		context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.literal(fitted), x, y, color);
+	private static void drawFitted(GuiGraphicsExtractor context, String value, int x, int y, int width, int color) {
+		String fitted = ModernUiTheme.fitText(Minecraft.getInstance().font,
+				Component.literal(value), Math.max(1, width));
+		context.text(Minecraft.getInstance().font, Component.literal(fitted), x, y, color);
 	}
 
 	private static String mark(boolean supported) { return supported ? "✓" : "—"; }

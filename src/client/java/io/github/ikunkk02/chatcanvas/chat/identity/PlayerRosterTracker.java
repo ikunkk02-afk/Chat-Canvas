@@ -1,10 +1,10 @@
 package io.github.ikunkk02.chatcanvas.chat.identity;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.network.chat.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
@@ -20,13 +20,13 @@ public final class PlayerRosterTracker {
 	private PlayerRosterTracker() {
 	}
 
-	public static void refresh(ClientPlayNetworkHandler handler) {
+	public static void refresh(ClientPacketListener handler) {
 		if (handler == null) {
 			clear();
 			return;
 		}
-		List<PlayerChatIdentity> updated = handler.getListedPlayerListEntries().stream()
-				.map(PlayerListEntry::getProfile)
+		List<PlayerChatIdentity> updated = handler.getListedOnlinePlayers().stream()
+				.map(PlayerInfo::getProfile)
 				.map(PlayerRosterTracker::fromProfile)
 				.sorted(Comparator.comparing(PlayerChatIdentity::playerName,
 						String.CASE_INSENSITIVE_ORDER))
@@ -38,7 +38,7 @@ public final class PlayerRosterTracker {
 	}
 
 	public static void refreshFromClient() {
-		refresh(MinecraftClient.getInstance().getNetworkHandler());
+		refresh(Minecraft.getInstance().getConnection());
 	}
 
 	public static void clear() {
@@ -57,7 +57,7 @@ public final class PlayerRosterTracker {
 				preview("Steve"),
 				preview("Alex"),
 				new PlayerChatIdentity(SHOUYUN_PREVIEW_UUID,
-						Text.translatable("chat_canvas.preview.shouyun_name").getString(), true))
+						Component.translatable("chat_canvas.preview.shouyun_name").getString(), true))
 				: online;
 	}
 
@@ -70,7 +70,7 @@ public final class PlayerRosterTracker {
 	}
 
 	private static PlayerChatIdentity fromProfile(GameProfile profile) {
-		return new PlayerChatIdentity(profile.getId(), profile.getName(), true);
+		return new PlayerChatIdentity(profile.id(), profile.name(), true);
 	}
 
 	private static PlayerChatIdentity preview(String name) {

@@ -3,22 +3,22 @@ package io.github.ikunkk02.chatcanvas.ui;
 import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.github.ikunkk02.chatcanvas.editor.EditorUiStyle;
-import io.wispforest.owo.ui.base.BaseComponent;
+import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
-import io.wispforest.owo.ui.core.OwoUIDrawContext;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 import java.util.Locale;
 
-public final class MentionNumericScrubberComponent extends BaseComponent implements NumericScrubber {
+public final class MentionNumericScrubberComponent extends BaseUIComponent implements NumericScrubber {
 	private static final int VALUE_WIDTH = 92;
 	private final EditorSession session;
 	private final Property property;
-	private final Text label;
+	private final Component label;
 	private final Runnable previewChanged;
 	private final Runnable historyChanged;
 	private MentionConfig dragStart;
@@ -29,7 +29,7 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 	private boolean valueHovered;
 
 	public MentionNumericScrubberComponent(
-			EditorSession session, Property property, Text label,
+			EditorSession session, Property property, Component label,
 			Runnable previewChanged, Runnable historyChanged) {
 		this.session = session;
 		this.property = property;
@@ -47,8 +47,8 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 	}
 
 	@Override
-	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
-		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+	public void draw(OwoUIGraphics context, int mouseX, int mouseY, float partialTicks, float delta) {
+		Font renderer = Minecraft.getInstance().font;
 		int valueLeft = valueLeft();
 		boolean vanilla = ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA;
 		context.fill(valueLeft, y() + 2, x() + width(), y() + height() - 2,
@@ -61,13 +61,13 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 		context.fill(valueLeft, y() + height() - 3, progressRight, y() + height() - 2,
 				dragging ? (vanilla ? 0xFFAAAAAA : ModernUiTheme.ACCENT)
 						: (vanilla ? 0xFF999999 : ModernUiTheme.ACCENT_MUTED));
-		int textY = y() + (height() - renderer.fontHeight) / 2;
+		int textY = y() + (height() - renderer.lineHeight) / 2;
 		int labelColor = vanilla ? 0xFFFFFFFF : ModernUiTheme.TEXT_SECONDARY;
-		context.drawText(renderer,
+		context.text(renderer,
 				ModernUiTheme.fitText(renderer, label, Math.max(1, valueLeft - x() - 8)),
 				x() + 2, textY, labelColor, false);
 		String value = property.format(property.read(session.mention()));
-		context.drawText(renderer, value, x() + width() - 8 - renderer.getWidth(value),
+		context.text(renderer, value, x() + width() - 8 - renderer.width(value),
 				textY, vanilla ? 0xFFFFFFFF : ModernUiTheme.TEXT_PRIMARY, false);
 	}
 
@@ -92,7 +92,7 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 	@Override
 	public boolean dragPointer(double mouseX, double mouseY, int button) {
 		if (!dragging || button != 0 || dragStart == null) return false;
-		double modifier = Screen.hasShiftDown() ? 0.2 : Screen.hasControlDown() ? 5.0 : 1.0;
+		double modifier = Minecraft.getInstance().hasShiftDown() ? 0.2 : Minecraft.getInstance().hasControlDown() ? 5.0 : 1.0;
 		applyValue(dragStartValue + (mouseX - dragStartMouseX) * property.dragStep * modifier);
 		return true;
 	}
@@ -125,7 +125,7 @@ public final class MentionNumericScrubberComponent extends BaseComponent impleme
 	@Override
 	public boolean scroll(double amount) {
 		if (!valueHovered || amount == 0.0) return false;
-		double modifier = Screen.hasShiftDown() ? 0.2 : Screen.hasControlDown() ? 5.0 : 1.0;
+		double modifier = Minecraft.getInstance().hasShiftDown() ? 0.2 : Minecraft.getInstance().hasControlDown() ? 5.0 : 1.0;
 		MentionConfig before = session.mention();
 		applyValue(property.read(before) + Math.signum(amount) * property.scrollStep * modifier);
 		if (!before.equals(session.mention())) {

@@ -9,23 +9,23 @@ import io.github.ikunkk02.chatcanvas.editor.EditorPointerTarget;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
 import io.github.ikunkk02.chatcanvas.editor.EditorChannel;
 import io.github.ikunkk02.chatcanvas.editor.LayoutEditorMath;
-import io.wispforest.owo.ui.base.BaseComponent;
+import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
-import io.wispforest.owo.ui.core.OwoUIDrawContext;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Positioning;
 import io.wispforest.owo.ui.core.Sizing;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatIdentity;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import java.util.List;
 
-public final class PreviewChatWidget extends BaseComponent implements EditorPointerTarget {
+public final class PreviewChatWidget extends BaseUIComponent implements EditorPointerTarget {
 	private static final int HANDLE_THICKNESS = 7;
 	private static final int SNAP_DISTANCE = 7;
 	private static final int HANDLE_SIZE = 4;
@@ -170,9 +170,9 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 	}
 
 	@Override
-	public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
+	public void draw(OwoUIGraphics context, int mouseX, int mouseY, float partialTicks, float delta) {
 		PixelLayout layout = session.layout(channel);
-		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+		Font renderer = Minecraft.getInstance().font;
 		renderEngine.render(new ChatRenderContext(
 				context,
 				renderer,
@@ -182,32 +182,32 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 				layout.height(),
 				1.0f,
 				renderEngine.state() == PreviewChatState.OPEN ? 1.0f : 0.0f,
-				Text.translatable("chat_canvas.preview.input_placeholder"),
+				Component.translatable("chat_canvas.preview.input_placeholder"),
 				session.text(channel),
 				session.background(channel),
 				session.playerColors(),
 				session.mention(),
-				Text.translatable("chat_canvas.preview.shouyun_name").getString(),
+				Component.translatable("chat_canvas.preview.shouyun_name").getString(),
 				channel == EditorChannel.PLAYER_CHAT
 						? session.playerChatLayoutMode()
 						: io.github.ikunkk02.chatcanvas.config.PlayerChatLayoutMode.CLASSIC,
 				session.splitMessageMaxWidthRatio(),
-				MinecraftClient.getInstance().options.getTextBackgroundOpacity().getValue()
+				Minecraft.getInstance().options.textBackgroundOpacity().get()
 		));
 		drawEditorAssist(context, layout);
 	}
 
 	private List<PreviewChatMessage> previewMessages() {
-		String shouyunName = Text.translatable("chat_canvas.preview.shouyun_name").getString();
-		MutableText steve = Text.literal("Steve: ").formatted(Formatting.WHITE)
-				.append(Text.literal("@" + shouyunName + " ").formatted(Formatting.WHITE))
-				.append(Text.translatable("chat_canvas.preview.steve").formatted(Formatting.WHITE));
-		MutableText alex = Text.literal("Alex: ").formatted(Formatting.WHITE)
-				.append(Text.translatable("chat_canvas.preview.alex").formatted(Formatting.WHITE));
-		MutableText shouyun = Text.literal(shouyunName).formatted(Formatting.WHITE)
-				.append(Text.literal(": ").formatted(Formatting.WHITE))
-				.append(Text.translatable("chat_canvas.preview.shouyun_body").formatted(Formatting.WHITE));
-		MutableText system = Text.translatable("chat_canvas.preview.system").formatted(Formatting.GREEN, Formatting.ITALIC);
+		String shouyunName = Component.translatable("chat_canvas.preview.shouyun_name").getString();
+		MutableComponent steve = Component.literal("Steve: ").withStyle(ChatFormatting.WHITE)
+				.append(Component.literal("@" + shouyunName + " ").withStyle(ChatFormatting.WHITE))
+				.append(Component.translatable("chat_canvas.preview.steve").withStyle(ChatFormatting.WHITE));
+		MutableComponent alex = Component.literal("Alex: ").withStyle(ChatFormatting.WHITE)
+				.append(Component.translatable("chat_canvas.preview.alex").withStyle(ChatFormatting.WHITE));
+		MutableComponent shouyun = Component.literal(shouyunName).withStyle(ChatFormatting.WHITE)
+				.append(Component.literal(": ").withStyle(ChatFormatting.WHITE))
+				.append(Component.translatable("chat_canvas.preview.shouyun_body").withStyle(ChatFormatting.WHITE));
+		MutableComponent system = Component.translatable("chat_canvas.preview.system").withStyle(ChatFormatting.GREEN, ChatFormatting.ITALIC);
 		return List.of(
 				new PreviewChatMessage(steve, previewIdentity("Steve")),
 				new PreviewChatMessage(alex, previewIdentity("Alex")),
@@ -224,7 +224,7 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 		);
 	}
 
-	private void drawEditorAssist(OwoUIDrawContext context, PixelLayout layout) {
+	private void drawEditorAssist(OwoUIGraphics context, PixelLayout layout) {
 		if (hoveredHandle == ResizeHandle.NONE && activeHandle == ResizeHandle.NONE) return;
 		boolean vanilla = ModernUiTheme.currentStyle()
 				== io.github.ikunkk02.chatcanvas.editor.EditorUiStyle.VANILLA;
@@ -248,7 +248,7 @@ public final class PreviewChatWidget extends BaseComponent implements EditorPoin
 		drawHandle(context, layout.right(), layout.bottom(), color);
 	}
 
-	private void drawHandle(OwoUIDrawContext context, int centerX, int centerY, int color) {
+	private void drawHandle(OwoUIGraphics context, int centerX, int centerY, int color) {
 		int half = HANDLE_SIZE / 2;
 		int background = ModernUiTheme.currentStyle()
 				== io.github.ikunkk02.chatcanvas.editor.EditorUiStyle.VANILLA

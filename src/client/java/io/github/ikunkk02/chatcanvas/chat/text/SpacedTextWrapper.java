@@ -1,9 +1,9 @@
 package io.github.ikunkk02.chatcanvas.chat.text;
 
 import com.ibm.icu.text.BreakIterator;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Style;
+import net.minecraft.client.gui.Font;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.network.chat.Style;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -15,22 +15,22 @@ public final class SpacedTextWrapper {
 	private SpacedTextWrapper() {
 	}
 
-	public static List<OrderedText> wrap(
-			TextRenderer renderer, List<OrderedText> logicalLines, int width, double spacing) {
-		List<OrderedText> result = new ArrayList<>();
-		for (OrderedText line : logicalLines) {
+	public static List<FormattedCharSequence> wrap(
+			Font renderer, List<FormattedCharSequence> logicalLines, int width, double spacing) {
+		List<FormattedCharSequence> result = new ArrayList<>();
+		for (FormattedCharSequence line : logicalLines) {
 			wrapLine(renderer, line, Math.max(1, width), spacing, result);
 		}
-		return result.isEmpty() ? List.of(OrderedText.EMPTY) : List.copyOf(result);
+		return result.isEmpty() ? List.of(FormattedCharSequence.EMPTY) : List.copyOf(result);
 	}
 
 	private static void wrapLine(
-			TextRenderer renderer, OrderedText text, int width, double spacing,
-			List<OrderedText> output) {
+			Font renderer, FormattedCharSequence text, int width, double spacing,
+			List<FormattedCharSequence> output) {
 		List<Atom> atoms = collect(renderer, text);
 		List<Cluster> clusters = clusters(atoms);
 		if (clusters.isEmpty()) {
-			output.add(OrderedText.EMPTY);
+			output.add(FormattedCharSequence.EMPTY);
 			return;
 		}
 		Set<Integer> preferredBreaks = lineBreaks(atoms);
@@ -109,20 +109,20 @@ public final class SpacedTextWrapper {
 		return result;
 	}
 
-	private static List<Atom> collect(TextRenderer renderer, OrderedText text) {
+	private static List<Atom> collect(Font renderer, FormattedCharSequence text) {
 		List<Atom> atoms = new ArrayList<>();
 		text.accept((index, style, codePoint) -> {
 			Style safe = style == null ? Style.EMPTY : style;
 			atoms.add(new Atom(
 					codePoint,
 					safe,
-					renderer.getTextHandler().getWidth(OrderedText.styled(codePoint, safe))));
+					renderer.width(FormattedCharSequence.codepoint(codePoint, safe))));
 			return true;
 		});
 		return atoms;
 	}
 
-	private static OrderedText asOrderedText(List<Atom> atoms) {
+	private static FormattedCharSequence asOrderedText(List<Atom> atoms) {
 		return visitor -> {
 			int utf16 = 0;
 			for (Atom atom : atoms) {

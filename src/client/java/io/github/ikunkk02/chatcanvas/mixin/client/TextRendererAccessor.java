@@ -1,13 +1,9 @@
 package io.github.ikunkk02.chatcanvas.mixin.client;
 
-import net.minecraft.client.font.FontStorage;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.gui.Font;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.gen.Invoker;
 
-@Mixin(TextRenderer.class)
+/** Retained as a named hook for integrations; 26.1 exposes no FontStorage accessor. */
+@Mixin(Font.class)
 public interface TextRendererAccessor {
-	@Invoker("getFontStorage")
-	FontStorage chat_canvas$getFontStorage(Identifier id);
 }

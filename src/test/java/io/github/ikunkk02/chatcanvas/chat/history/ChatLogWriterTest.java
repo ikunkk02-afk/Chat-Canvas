@@ -15,7 +15,7 @@ import java.util.UUID;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasChannel;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessage;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessageSource;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -105,7 +105,7 @@ class ChatLogWriterTest {
         ChatCanvasMessage msg = new ChatCanvasMessage(
                 UUID.randomUUID(), ChatCanvasChannel.PLAYER_CHAT,
                 ChatCanvasMessageSource.PLAYER,
-                null, Text.literal("Tester"), Text.literal(text),
+                null, Component.literal("Tester"), Component.literal(text),
                 System.currentTimeMillis(), false, false);
         return StoredChatMessage.from(msg, ZoneId.of("UTC"));
     }

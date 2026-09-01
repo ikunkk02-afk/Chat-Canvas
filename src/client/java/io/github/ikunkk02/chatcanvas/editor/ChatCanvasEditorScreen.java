@@ -14,23 +14,25 @@ import io.github.ikunkk02.chatcanvas.ui.PreviewChatWidget;
 import io.github.ikunkk02.chatcanvas.ui.SingleLineLabelComponent;
 import io.github.ikunkk02.chatcanvas.ui.UiLayoutMetrics;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
-import io.wispforest.owo.ui.component.ButtonComponent;
-import io.wispforest.owo.ui.container.Containers;
+import io.github.ikunkk02.chatcanvas.ui.ButtonComponent;
+import io.wispforest.owo.ui.container.UIContainers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.core.HorizontalAlignment;
 import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.OwoUIAdapter;
-import io.wispforest.owo.ui.core.Component;
+import io.wispforest.owo.ui.core.UIComponent;
 import io.wispforest.owo.ui.core.Color;
 import io.wispforest.owo.ui.core.Positioning;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.VerticalAlignment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
@@ -51,7 +53,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	private ModernColorPickerPopup colorPickerPopup;
 
 	public ChatCanvasEditorScreen(@Nullable Screen parent) {
-		super(Text.translatable("chat_canvas.editor.title"));
+		super(Component.translatable("chat_canvas.editor.title"));
 		this.parent = parent;
 	}
 
@@ -61,7 +63,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 			session = new EditorSession(ChatCanvasConfig.instance().settings(), width, height);
 		}
 		ModernUiTheme.setStyle(ChatCanvasConfig.instance().editorUiStyle());
-		return OwoUIAdapter.create(this, Containers::verticalFlow);
+		return OwoUIAdapter.create(this, UIContainers::verticalFlow);
 	}
 
 	@Override
@@ -71,11 +73,9 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 		preview = new PreviewChatWidget(session, width, height,
 				this::onGeometryChanged, this::commitCurrent);
-		preview.zIndex(10);
 		root.child(preview);
 		commandPreview = new PreviewChatWidget(session, EditorChannel.COMMAND_SYSTEM,
 				width, height, this::onGeometryChanged, this::commitCurrent);
-		commandPreview.zIndex(11);
 		root.child(commandPreview);
 
 		settingsPanel = new AnimatedSettingsPanel(session, width, height,
@@ -95,35 +95,34 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		boolean compact = UiLayoutMetrics.layoutMode(width, height)
 				== UiLayoutMetrics.LayoutMode.COMPACT;
 		int barWidth = compact ? 454 : UiLayoutMetrics.TOOLBAR_PREFERRED_WIDTH;
-		FlowLayout bar = Containers.horizontalFlow(
+		FlowLayout bar = UIContainers.horizontalFlow(
 				Sizing.fixed(barWidth), Sizing.fixed(UiLayoutMetrics.TOOLBAR_HEIGHT));
 		bar.padding(Insets.of(5).withLeft(16));
 		bar.gap(6);
 		bar.surface(ModernUiTheme.PANEL_SURFACE);
 		bar.horizontalAlignment(HorizontalAlignment.RIGHT);
 		bar.verticalAlignment(VerticalAlignment.CENTER);
-		bar.zIndex(30);
 
 		if (!compact) {
 			bar.child(new SingleLineLabelComponent(
-					Text.translatable("chat_canvas.editor.title")
-							.formatted(Formatting.WHITE, Formatting.BOLD),
+					Component.translatable("chat_canvas.editor.title")
+							.withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD),
 					0xFFFFFFFF, 120, 12));
 		}
 		ButtonComponent playerButton = ModernUiTheme.button(
-				Text.translatable("chat_canvas.editor.channel.player"),
+				Component.translatable("chat_canvas.editor.channel.player"),
 				button -> selectChannel(EditorChannel.PLAYER_CHAT));
 		playerButton.sizing(Sizing.fixed(76), Sizing.fixed(22));
 		ButtonComponent commandButton = ModernUiTheme.button(
-				Text.translatable("chat_canvas.editor.channel.command"),
+				Component.translatable("chat_canvas.editor.channel.command"),
 				button -> selectChannel(EditorChannel.COMMAND_SYSTEM));
 		commandButton.sizing(Sizing.fixed(88), Sizing.fixed(22));
 		bar.child(playerButton);
 		bar.child(commandButton);
 
 		ButtonComponent styleButton = ModernUiTheme.button(
-				Text.translatable("chat_canvas.ui_theme").append(Text.literal(": "))
-						.append(Text.translatable(ModernUiTheme.currentStyle() == EditorUiStyle.CHAT_CANVAS
+				Component.translatable("chat_canvas.ui_theme").append(Component.literal(": "))
+						.append(Component.translatable(ModernUiTheme.currentStyle() == EditorUiStyle.CHAT_CANVAS
 								? "chat_canvas.ui_theme.chat_canvas"
 								: "chat_canvas.ui_theme.vanilla")),
 				button -> onSwitchTheme());
@@ -131,18 +130,17 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		this.themeButton = styleButton;
 		bar.child(styleButton);
 
-		undoButton = ModernUiTheme.button(Text.translatable("chat_canvas.action.undo"), button -> undo());
+		undoButton = ModernUiTheme.button(Component.translatable("chat_canvas.action.undo"), button -> undo());
 		undoButton.sizing(Sizing.fixed(52), Sizing.fixed(22));
-		redoButton = ModernUiTheme.button(Text.translatable("chat_canvas.action.redo"), button -> redo());
+		redoButton = ModernUiTheme.button(Component.translatable("chat_canvas.action.redo"), button -> redo());
 		redoButton.sizing(Sizing.fixed(52), Sizing.fixed(22));
 		bar.child(undoButton);
 		bar.child(redoButton);
-		ScrollContainer<FlowLayout> viewport = Containers.horizontalScroll(
+		ScrollContainer<FlowLayout> viewport = UIContainers.horizontalScroll(
 				Sizing.fixed(metrics.width()), Sizing.fixed(metrics.height()), bar);
 		viewport.positioning(Positioning.absolute(metrics.x(), metrics.y()));
 		viewport.scrollbarThiccness(1);
 		viewport.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(ModernUiTheme.SCROLLBAR)));
-		viewport.zIndex(30);
 		return viewport;
 	}
 
@@ -160,15 +158,15 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		// Update the theme button text to reflect the new theme.
 		if (themeButton != null) {
 			themeButton.setMessage(
-					Text.translatable("chat_canvas.ui_theme").append(Text.literal(": "))
-							.append(Text.translatable(next == EditorUiStyle.CHAT_CANVAS
+					Component.translatable("chat_canvas.ui_theme").append(Component.literal(": "))
+							.append(Component.translatable(next == EditorUiStyle.CHAT_CANVAS
 									? "chat_canvas.ui_theme.chat_canvas"
 									: "chat_canvas.ui_theme.vanilla")));
 		}
 	}
 
 	@Override
-	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+	public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
 		double deltaSeconds = animationClock.tick();
 		if (settingsPanel != null) {
 			settingsPanel.update(deltaSeconds);
@@ -178,51 +176,53 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 			preview.syncFromSession();
 		}
 		if (commandPreview != null) commandPreview.syncFromSession();
-		renderBackground(context, mouseX, mouseY, delta);
 		PreviewChatWidget selectedPreview = selectedPreview();
 		if (selectedPreview != null) {
 			AlignmentGuideRenderer.render(context, width, height, session.layout(), selectedPreview);
 		}
-		super.render(context, mouseX, mouseY, delta);
+		super.extractRenderState(context, mouseX, mouseY, delta);
 	}
 
 	@Override
-	public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-		if (client != null && client.world == null) {
-			renderPanoramaBackground(context, delta);
+	public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+		if (minecraft != null && minecraft.level == null) {
+			extractPanorama(context, delta);
 		}
 		context.fill(0, 0, width, height, ModernUiTheme.SCREEN_OVERLAY);
 	}
 
 	@Override
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+	public boolean keyPressed(KeyEvent event) {
 		if (colorPickerPopup != null) {
-			if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+			if (event.isEscape()) {
 				colorPickerPopup.cancel();
 				return true;
 			}
-			super.keyPressed(keyCode, scanCode, modifiers);
+			super.keyPressed(event);
 			return true;
 		}
-		if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_Z) {
+		if (event.hasControlDown() && event.key() == GLFW.GLFW_KEY_Z) {
 			undo();
 			return true;
 		}
-		if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_Y) {
+		if (event.hasControlDown() && event.key() == GLFW.GLFW_KEY_Y) {
 			redo();
 			return true;
 		}
-		return super.keyPressed(keyCode, scanCode, modifiers);
+		return super.keyPressed(event);
 	}
 
 	@Override
-	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+		double mouseX = event.x();
+		double mouseY = event.y();
+		int button = event.button();
 		if (colorPickerPopup != null) {
 			if (!colorPickerPopup.containsScreen(mouseX, mouseY)) {
 				colorPickerPopup.cancel();
 				return true;
 			}
-			super.mouseClicked(mouseX, mouseY, button);
+			super.mouseClicked(event, doubleClick);
 			return true;
 		}
 		NumericScrubber scrubber = settingsPanel == null
@@ -231,7 +231,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		if (scrubber != null) {
 			if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
 				return pointerCapture.begin(scrubber, mouseX, mouseY, button,
-						Screen.hasShiftDown(), Screen.hasControlDown());
+						Minecraft.getInstance().hasShiftDown(), Minecraft.getInstance().hasControlDown());
 			}
 			if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
 				return scrubber.restoreDefault();
@@ -241,38 +241,44 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && commandPreviewCanReceive(mouseX, mouseY)) {
 			selectChannel(EditorChannel.COMMAND_SYSTEM);
 			return pointerCapture.begin(commandPreview, mouseX, mouseY, button,
-					Screen.hasShiftDown(), Screen.hasControlDown());
+					Minecraft.getInstance().hasShiftDown(), Minecraft.getInstance().hasControlDown());
 		}
 		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && previewCanReceive(mouseX, mouseY)) {
 			selectChannel(EditorChannel.PLAYER_CHAT);
 			return pointerCapture.begin(preview, mouseX, mouseY, button,
-					Screen.hasShiftDown(), Screen.hasControlDown());
+					Minecraft.getInstance().hasShiftDown(), Minecraft.getInstance().hasControlDown());
 		}
-		return super.mouseClicked(mouseX, mouseY, button);
+		return super.mouseClicked(event, doubleClick);
 	}
 
 	@Override
-	public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+	public boolean mouseDragged(MouseButtonEvent event, double deltaX, double deltaY) {
+		double mouseX = event.x();
+		double mouseY = event.y();
+		int button = event.button();
 		if (colorPickerPopup != null) {
-			super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+			super.mouseDragged(event, deltaX, deltaY);
 			return true;
 		}
 		if (pointerCapture.active()) {
 			return pointerCapture.drag(mouseX, mouseY, button);
 		}
-		return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+		return super.mouseDragged(event, deltaX, deltaY);
 	}
 
 	@Override
-	public boolean mouseReleased(double mouseX, double mouseY, int button) {
+	public boolean mouseReleased(MouseButtonEvent event) {
+		double mouseX = event.x();
+		double mouseY = event.y();
+		int button = event.button();
 		if (colorPickerPopup != null) {
-			super.mouseReleased(mouseX, mouseY, button);
+			super.mouseReleased(event);
 			return true;
 		}
 		if (pointerCapture.active()) {
 			return pointerCapture.release(mouseX, mouseY, button);
 		}
-		return super.mouseReleased(mouseX, mouseY, button);
+		return super.mouseReleased(event);
 	}
 
 	@Override
@@ -292,7 +298,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	@Override
 	public void tick() {
 		super.tick();
-		if (client != null && !client.isWindowFocused()) {
+		if (minecraft != null && !minecraft.isWindowActive()) {
 			pointerCapture.cancel();
 		}
 	}
@@ -301,20 +307,20 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		if (preview == null || uiAdapter == null || !preview.containsInteraction(mouseX, mouseY)) {
 			return false;
 		}
-		Component top = uiAdapter.rootComponent.childAt((int) Math.floor(mouseX), (int) Math.floor(mouseY));
+		UIComponent top = uiAdapter.rootComponent.childAt((int) Math.floor(mouseX), (int) Math.floor(mouseY));
 		return top == preview || top == uiAdapter.rootComponent;
 	}
 
 	private boolean commandPreviewCanReceive(double mouseX, double mouseY) {
 		if (commandPreview == null || uiAdapter == null
 				|| !commandPreview.containsInteraction(mouseX, mouseY)) return false;
-		Component top = uiAdapter.rootComponent.childAt(
+		UIComponent top = uiAdapter.rootComponent.childAt(
 				(int) Math.floor(mouseX), (int) Math.floor(mouseY));
 		return top == commandPreview || top == uiAdapter.rootComponent;
 	}
 
 	@Override
-	public void resize(MinecraftClient client, int width, int height) {
+	public void resize(int width, int height) {
 		pointerCapture.cancel();
 		if (colorPickerPopup != null) {
 			colorPickerPopup.cancel();
@@ -322,7 +328,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 		if (session != null) {
 			session.resizeViewport(width, height);
 		}
-		super.resize(client, width, height);
+		super.resize(width, height);
 		if (preview != null) {
 			preview.resizeViewport(width, height);
 		}
@@ -340,7 +346,7 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	}
 
 	@Override
-	public void close() {
+	public void onClose() {
 		pointerCapture.cancel();
 		if (colorPickerPopup != null) {
 			colorPickerPopup.cancel();
@@ -371,9 +377,6 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 
 	private void selectChannel(EditorChannel channel) {
 		session.select(channel);
-		if (preview != null) preview.zIndex(channel == EditorChannel.PLAYER_CHAT ? 12 : 10);
-		if (commandPreview != null) commandPreview.zIndex(
-				channel == EditorChannel.COMMAND_SYSTEM ? 12 : 11);
 		onGeometryChanged();
 	}
 
@@ -424,8 +427,8 @@ public final class ChatCanvasEditorScreen extends BaseOwoScreen<FlowLayout> {
 	}
 
 	private void returnToParent() {
-		if (client != null) {
-			client.setScreen(parent);
+		if (minecraft != null) {
+			minecraft.setScreen(parent);
 		}
 	}
 

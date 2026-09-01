@@ -26,19 +26,19 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
-import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.resource.ResourceManager;
-import net.minecraft.resource.ResourceType;
-import net.minecraft.util.Identifier;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
+import net.fabricmc.fabric.api.resource.v1.reloader.SimpleReloadListener;
+import net.minecraft.client.KeyMapping;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public final class ChatCanvasClient implements ClientModInitializer {
-	private static KeyBinding openEditor;
-	private static KeyBinding voiceInput;
+	private static KeyMapping openEditor;
+	private static KeyMapping voiceInput;
+	private static final KeyMapping.Category KEY_CATEGORY = KeyMapping.Category.register(ChatCanvas.id("key_category"));
 
 	@Override
 	public void onInitializeClient() {
@@ -72,58 +72,61 @@ public final class ChatCanvasClient implements ClientModInitializer {
 				});
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
 				VoiceInputManager.instance().warmSelectedModel());
-		openEditor = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+		openEditor = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 				"key.chat_canvas.open_editor",
-				InputUtil.Type.KEYSYM,
+				InputConstants.Type.KEYSYM,
 				GLFW.GLFW_KEY_K,
-				"key.category.chat_canvas"
+				KEY_CATEGORY
 		));
-		voiceInput = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+		voiceInput = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 				"key.chat_canvas.voice_input",
-				InputUtil.Type.KEYSYM,
+				InputConstants.Type.KEYSYM,
 				GLFW.GLFW_KEY_V,
-				"key.category.chat_canvas"
+				KEY_CATEGORY
 		));
-		ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES)
-				.registerReloadListener(new SimpleSynchronousResourceReloadListener() {
-					@Override
-					public Identifier getFabricId() {
-						return Identifier.of(ChatCanvas.MOD_ID, "chat_text_metrics");
-					}
+		ResourceLoader.get(PackType.CLIENT_RESOURCES)
+				.registerReloadListener(ChatCanvas.id("chat_text_metrics"),
+						new SimpleReloadListener<Void>() {
+							@Override
+							protected Void prepare(
+									net.minecraft.server.packs.resources.PreparableReloadListener.SharedState state) {
+								return null;
+							}
 
-					@Override
-					public void reload(ResourceManager manager) {
+							@Override
+							protected void apply(Void ignored,
+									net.minecraft.server.packs.resources.PreparableReloadListener.SharedState state) {
 						ChatLineWidthCache.clear();
 						GlyphAdvanceCache.onFontResourcesReloaded();
 						EmojiFontSupport.onFontResourcesReloaded();
 						ChatLayoutRuntime.onFontResourcesReloaded();
 						DualChatHudRenderer.instance().invalidateLayouts();
 					}
-				});
+						});
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			ChatLayoutRuntime.tick(client);
 			CommandToolRuntime.manager().tick(System.currentTimeMillis());
 			EmojiRuntime.tick(client);
-			if (client.currentScreen instanceof ChatCanvasInputScreenBridge bridge) {
+			if (client.screen instanceof ChatCanvasInputScreenBridge bridge) {
 				bridge.chat_canvas$voiceTick();
 			} else if (VoiceInputManager.instance().isBusy()) {
 				VoiceInputManager.instance().cancel();
 			}
-			if (client.currentScreen instanceof net.minecraft.client.gui.screen.ChatScreen chatScreen) {
+			if (client.screen instanceof net.minecraft.client.gui.screens.ChatScreen chatScreen) {
 				PlayerNameDoubleClickHandler.instance().tick(chatScreen);
 			} else {
 				PlayerNameDoubleClickHandler.instance().reset();
 			}
-			while (openEditor.wasPressed()) {
-				if (!(client.currentScreen instanceof ChatCanvasEditorScreen)) {
-					client.setScreen(EditorScreenFactory.create(client.currentScreen));
+			while (openEditor.consumeClick()) {
+				if (!(client.screen instanceof ChatCanvasEditorScreen)) {
+					client.setScreen(EditorScreenFactory.create(client.screen));
 				}
 			}
 		});
 	}
 
-	public static KeyBinding voiceInputKey() {
+	public static KeyMapping voiceInputKey() {
 		return voiceInput;
 	}
 }

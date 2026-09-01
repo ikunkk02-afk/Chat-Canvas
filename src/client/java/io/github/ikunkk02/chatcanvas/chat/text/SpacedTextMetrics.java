@@ -1,8 +1,8 @@
 package io.github.ikunkk02.chatcanvas.chat.text;
 
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Style;
+import net.minecraft.client.gui.Font;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.network.chat.Style;
 
 public final class SpacedTextMetrics {
 	private static final double EPSILON = 0.00001;
@@ -10,18 +10,18 @@ public final class SpacedTextMetrics {
 	private SpacedTextMetrics() {
 	}
 
-	public static int width(TextRenderer renderer, OrderedText text, double spacing) {
-		if (Math.abs(spacing) < EPSILON) return renderer.getWidth(text);
+	public static int width(Font renderer, FormattedCharSequence text, double spacing) {
+		if (Math.abs(spacing) < EPSILON) return renderer.width(text);
 		return GlyphAdvanceCache.layout(renderer, text, spacing).roundedWidth();
 	}
 
-	public static int width(TextRenderer renderer, String text, double spacing) {
-		if (Math.abs(spacing) < EPSILON) return renderer.getWidth(text);
-		return width(renderer, OrderedText.styledForwardsVisitedString(text, Style.EMPTY), spacing);
+	public static int width(Font renderer, String text, double spacing) {
+		if (Math.abs(spacing) < EPSILON) return renderer.width(text);
+		return width(renderer, FormattedCharSequence.forward(text, Style.EMPTY), spacing);
 	}
 
 	public static double xAtCodePoint(
-			TextRenderer renderer, OrderedText text, double spacing, int codePointIndex) {
+			Font renderer, FormattedCharSequence text, double spacing, int codePointIndex) {
 		GlyphAdvanceCache.GlyphRun run = GlyphAdvanceCache.layout(renderer, text, spacing);
 		int clamped = Math.max(0, Math.min(codePointIndex, run.glyphs().size()));
 		return clamped == run.glyphs().size()
@@ -30,27 +30,27 @@ public final class SpacedTextMetrics {
 	}
 
 	public static double xAtUtf16(
-			TextRenderer renderer, String text, double spacing, int utf16Index) {
+			Font renderer, String text, double spacing, int utf16Index) {
 		int clamped = UnicodeTextNavigator.floorGraphemeBoundary(
 				text, Math.max(0, Math.min(utf16Index, text.length())));
 		int codePoints = text.codePointCount(0, clamped);
 		return xAtCodePoint(
 				renderer,
-				OrderedText.styledForwardsVisitedString(text, Style.EMPTY),
+				FormattedCharSequence.forward(text, Style.EMPTY),
 				spacing,
 				codePoints);
 	}
 
 	public static String trimToWidth(
-			TextRenderer renderer, String text, int maxWidth, double spacing) {
+			Font renderer, String text, int maxWidth, double spacing) {
 		if (maxWidth <= 0 || text.isEmpty()) return "";
 		if (Math.abs(spacing) < EPSILON) {
-			String candidate = renderer.trimToWidth(text, maxWidth);
+			String candidate = renderer.plainSubstrByWidth(text, maxWidth);
 			return text.substring(0, UnicodeTextNavigator.floorGraphemeBoundary(
 					text, candidate.length()));
 		}
 		GlyphAdvanceCache.GlyphRun run = GlyphAdvanceCache.layout(
-				renderer, OrderedText.styledForwardsVisitedString(text, Style.EMPTY), spacing);
+				renderer, FormattedCharSequence.forward(text, Style.EMPTY), spacing);
 		int utf16End = 0;
 		for (GlyphAdvanceCache.Glyph glyph : run.glyphs()) {
 			double right = glyph.x() + glyph.advance();
@@ -62,7 +62,7 @@ public final class SpacedTextMetrics {
 	}
 
 	public static int firstVisibleIndex(
-			TextRenderer renderer, String text, int cursor, int maxWidth, double spacing) {
+			Font renderer, String text, int cursor, int maxWidth, double spacing) {
 		int safeCursor = UnicodeTextNavigator.floorGraphemeBoundary(
 				text, Math.max(0, Math.min(cursor, text.length())));
 		int start = safeCursor;

@@ -2,13 +2,11 @@ package io.github.ikunkk02.chatcanvas.ui;
 
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
 import io.github.ikunkk02.chatcanvas.editor.EditorUiStyle;
-import io.wispforest.owo.ui.component.ButtonComponent;
-import io.wispforest.owo.ui.component.Components;
-import io.wispforest.owo.ui.core.OwoUIDrawContext;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Surface;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
 
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -74,7 +72,7 @@ public final class ModernUiTheme {
     public static final Surface FIXED_PANEL_SURFACE = (context, component) ->
             drawFixedPanel(context, component.x(), component.y(), component.width(), component.height(), true);
 
-    private static void drawVanillaPanel(DrawContext context, int x, int y, int w, int h) {
+    private static void drawVanillaPanel(GuiGraphicsExtractor context, int x, int y, int w, int h) {
         context.fill(x, y, x + w, y + h, 0xC8000000);
         context.fill(x, y, x + w, y + 1, 0xFF555555);
         context.fill(x, y + h - 1, x + w, y + h, 0xFF555555);
@@ -84,17 +82,17 @@ public final class ModernUiTheme {
 
     /* ── button factory ──────────────────────────────────────── */
 
-    private static final Map<ButtonComponent, Long> PRESSED_AT = new WeakHashMap<>();
+    private static final Map<io.wispforest.owo.ui.component.ButtonComponent, Long> PRESSED_AT = new WeakHashMap<>();
 
     private ModernUiTheme() {}
 
     /**
      * Create a themed button. For transparent hit targets and colour swatches
      * that should never draw a solid background, prefer
-     * {@link #transparentButton(Text, Consumer)}.
+     * {@link #transparentButton(Component, Consumer)}.
      */
-    public static ButtonComponent button(Text text, Consumer<ButtonComponent> action) {
-        ButtonComponent button = Components.button(text, clicked -> {
+    public static ButtonComponent button(Component text, Consumer<ButtonComponent> action) {
+        ButtonComponent button = ButtonComponent.create(text, clicked -> {
             PRESSED_AT.put(clicked, System.nanoTime());
             action.accept(clicked);
         });
@@ -104,16 +102,16 @@ public final class ModernUiTheme {
     }
 
     /** Create a button that never draws a solid background in either theme. */
-    public static ButtonComponent transparentButton(Text text, Consumer<ButtonComponent> action) {
-        ButtonComponent button = Components.button(text, action);
+    public static ButtonComponent transparentButton(Component text, Consumer<ButtonComponent> action) {
+        ButtonComponent button = ButtonComponent.create(text, action);
         button.renderer(ModernUiTheme::drawTransparentButton);
         button.textShadow(false);
         return button;
     }
 
     /** Create a neutral chat-overlay button independent of the editor theme preference. */
-    public static ButtonComponent fixedButton(Text text, Consumer<ButtonComponent> action) {
-        ButtonComponent button = Components.button(text, clicked -> {
+    public static ButtonComponent fixedButton(Component text, Consumer<ButtonComponent> action) {
+        ButtonComponent button = ButtonComponent.create(text, clicked -> {
             PRESSED_AT.put(clicked, System.nanoTime());
             action.accept(clicked);
         });
@@ -122,7 +120,7 @@ public final class ModernUiTheme {
         return button;
     }
 
-    private static void drawButton(OwoUIDrawContext context, ButtonComponent button, float delta) {
+    private static void drawButton(OwoUIGraphics context, io.wispforest.owo.ui.component.ButtonComponent button, float delta) {
         if (currentStyle == EditorUiStyle.VANILLA) {
             drawVanillaButton(context, button);
         } else {
@@ -130,7 +128,7 @@ public final class ModernUiTheme {
         }
     }
 
-    private static void drawTransparentButton(OwoUIDrawContext context, ButtonComponent button, float delta) {
+    private static void drawTransparentButton(OwoUIGraphics context, io.wispforest.owo.ui.component.ButtonComponent button, float delta) {
         // In vanilla theme, draw no background (prevents gray rectangle from oversized hit targets).
         // In modern theme, draw the normal modern background.
         if (currentStyle == EditorUiStyle.VANILLA) {
@@ -140,11 +138,11 @@ public final class ModernUiTheme {
         drawModernButton(context, button);
     }
 
-    private static void drawModernButton(OwoUIDrawContext context, ButtonComponent button) {
+    private static void drawModernButton(OwoUIGraphics context, io.wispforest.owo.ui.component.ButtonComponent button) {
         drawNeutralButton(context, button);
     }
 
-    private static void drawNeutralButton(OwoUIDrawContext context, ButtonComponent button) {
+    private static void drawNeutralButton(OwoUIGraphics context, io.wispforest.owo.ui.component.ButtonComponent button) {
         int color = !button.active()
                 ? CONTROL_DISABLED
                 : button.isHovered() ? CONTROL_HOVER : CONTROL_BACKGROUND;
@@ -158,7 +156,7 @@ public final class ModernUiTheme {
                 button.active() ? PANEL_BORDER : DIVIDER);
     }
 
-    private static void drawVanillaButton(OwoUIDrawContext context, ButtonComponent button) {
+    private static void drawVanillaButton(OwoUIGraphics context, io.wispforest.owo.ui.component.ButtonComponent button) {
         int w = button.getWidth();
         int h = button.getHeight();
         int x = button.getX();
@@ -169,17 +167,17 @@ public final class ModernUiTheme {
         // Defensive: if the button is abnormally large, log and skip background fill.
         if (w > MAX_REASONABLE_BUTTON_WIDTH || h > MAX_REASONABLE_BUTTON_HEIGHT) {
             if (VANILLA_THEME_RENDER_DEBUG) {
-                net.minecraft.client.MinecraftClient client =
-                        net.minecraft.client.MinecraftClient.getInstance();
+                net.minecraft.client.Minecraft client =
+                        net.minecraft.client.Minecraft.getInstance();
                 String text = "";
                 try { text = button.getMessage().getString(); } catch (Exception ignored) {}
                 ChatCanvas.LOGGER.warn(
                         "[ChatCanvas Vanilla UI] Oversized component: text='{}' class={} bounds={},{},{},{} " +
                         "screen={}x{} guiScale={}",
                         text, button.getClass().getSimpleName(), x, y, w, h,
-                        client != null ? client.getWindow().getFramebufferWidth() : "?",
-                        client != null ? client.getWindow().getFramebufferHeight() : "?",
-                        client != null ? client.getWindow().getScaleFactor() : "?");
+						client != null ? client.getWindow().getWidth() : "?",
+						client != null ? client.getWindow().getHeight() : "?",
+						client != null ? client.getWindow().getGuiScale() : "?");
             }
             return; // Skip drawing — oversized button background would cover the preview.
         }
@@ -202,11 +200,11 @@ public final class ModernUiTheme {
 
     /* ── shared draw utilities ───────────────────────────────── */
 
-    public static void shadow(DrawContext context, int x, int y, int width, int height) {
+    public static void shadow(GuiGraphicsExtractor context, int x, int y, int width, int height) {
         roundedRect(context, x + 1, y + 2, width, height, 2, SHADOW);
     }
 
-    public static void drawFixedPanel(DrawContext context, int x, int y,
+    public static void drawFixedPanel(GuiGraphicsExtractor context, int x, int y,
                                       int width, int height, boolean withShadow) {
         if (width <= 0 || height <= 0) return;
         if (withShadow) shadow(context, x, y, width, height);
@@ -214,7 +212,7 @@ public final class ModernUiTheme {
         border(context, x, y, width, height, PANEL_BORDER);
     }
 
-    public static void drawFixedControl(DrawContext context, int x, int y,
+    public static void drawFixedControl(GuiGraphicsExtractor context, int x, int y,
                                         int width, int height,
                                         boolean hovered, boolean selected, boolean enabled) {
         int background = !enabled ? CONTROL_DISABLED
@@ -225,7 +223,7 @@ public final class ModernUiTheme {
                 selected ? ACCENT : enabled ? PANEL_BORDER : DIVIDER);
     }
 
-    public static void drawFixedTab(DrawContext context, int x, int y,
+    public static void drawFixedTab(GuiGraphicsExtractor context, int x, int y,
                                     int width, int height,
                                     boolean hovered, boolean selected, boolean enabled) {
         int background = !enabled ? CONTROL_DISABLED
@@ -239,16 +237,16 @@ public final class ModernUiTheme {
         }
     }
 
-    public static String fitText(TextRenderer renderer, Text text, int maxWidth) {
+    public static String fitText(Font renderer, Component text, int maxWidth) {
         String value = text == null ? "" : text.getString();
 		if (maxWidth <= 0) return "";
-		if (renderer.getWidth(value) <= maxWidth) return value;
+		if (renderer.width(value) <= maxWidth) return value;
         String ellipsis = "…";
-        int contentWidth = Math.max(0, maxWidth - renderer.getWidth(ellipsis));
-        return renderer.trimToWidth(value, contentWidth) + ellipsis;
+		int contentWidth = Math.max(0, maxWidth - renderer.width(ellipsis));
+		return renderer.plainSubstrByWidth(value, contentWidth) + ellipsis;
     }
 
-    public static void roundedRect(DrawContext context, int x, int y,
+    public static void roundedRect(GuiGraphicsExtractor context, int x, int y,
                                     int width, int height, int radius, int color) {
         if (width <= 0 || height <= 0) return;
         int r = Math.max(0, Math.min(radius, Math.min(width, height) / 2));
@@ -261,7 +259,7 @@ public final class ModernUiTheme {
         }
     }
 
-    public static void border(DrawContext context, int x, int y,
+    public static void border(GuiGraphicsExtractor context, int x, int y,
                                int width, int height, int color) {
         if (width <= 1 || height <= 1) return;
         context.fill(x + 1, y, x + width - 1, y + 1, color);

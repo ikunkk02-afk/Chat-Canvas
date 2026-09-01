@@ -1,9 +1,9 @@
 package io.github.ikunkk02.chatcanvas.chat.layout;
 
 import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextWrapper;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.hud.ChatHudLine;
-import net.minecraft.text.OrderedText;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.multiplayer.chat.GuiMessage;
+import net.minecraft.util.FormattedCharSequence;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 /**
- * Bounded cache for the styled line layout owned by vanilla {@code ChatHud}.
+ * Bounded cache for the styled line layout owned by vanilla {@code ChatComponent}.
  * The source message is compared by identity so two equal messages remain two
  * independently cached entries.
  */
@@ -20,7 +20,7 @@ public final class ChatTextLayoutEngine {
 	public static final int MAX_ENTRIES = 1_024;
 	private static final ChatTextLayoutEngine INSTANCE = new ChatTextLayoutEngine();
 
-	private final LinkedHashMap<Key, List<OrderedText>> cache =
+	private final LinkedHashMap<Key, List<FormattedCharSequence>> cache =
 			new LinkedHashMap<>(128, 0.75f, true);
 	private long epoch;
 	private long hits;
@@ -33,23 +33,23 @@ public final class ChatTextLayoutEngine {
 		return INSTANCE;
 	}
 
-	public synchronized List<OrderedText> wrap(
-			ChatHudLine message,
-			TextRenderer renderer,
+	public synchronized List<FormattedCharSequence> wrap(
+			GuiMessage message,
+			Font renderer,
 			int glyphWidth,
 			double characterSpacing,
 			double fontScale,
-			Supplier<List<OrderedText>> logicalLines) {
+			Supplier<List<FormattedCharSequence>> logicalLines) {
 		Key key = new Key(message, glyphWidth,
 				Double.doubleToLongBits(characterSpacing),
 				Double.doubleToLongBits(fontScale), epoch);
-		List<OrderedText> cached = cache.get(key);
+		List<FormattedCharSequence> cached = cache.get(key);
 		if (cached != null) {
 			hits++;
 			return cached;
 		}
 		misses++;
-		List<OrderedText> wrapped = SpacedTextWrapper.wrap(
+		List<FormattedCharSequence> wrapped = SpacedTextWrapper.wrap(
 				renderer, logicalLines.get(), glyphWidth, characterSpacing);
 		cache.put(key, wrapped);
 		trim();
@@ -77,7 +77,7 @@ public final class ChatTextLayoutEngine {
 	}
 
 	private void trim() {
-		Iterator<Map.Entry<Key, List<OrderedText>>> iterator = cache.entrySet().iterator();
+		Iterator<Map.Entry<Key, List<FormattedCharSequence>>> iterator = cache.entrySet().iterator();
 		while (cache.size() > MAX_ENTRIES && iterator.hasNext()) {
 			iterator.next();
 			iterator.remove();
@@ -85,7 +85,7 @@ public final class ChatTextLayoutEngine {
 	}
 
 	private static final class Key {
-		private final ChatHudLine message;
+		private final GuiMessage message;
 		private final int width;
 		private final long spacingBits;
 		private final long scaleBits;
@@ -93,7 +93,7 @@ public final class ChatTextLayoutEngine {
 		private final int hash;
 
 		private Key(
-				ChatHudLine message, int width, long spacingBits,
+				GuiMessage message, int width, long spacingBits,
 				long scaleBits, long epoch) {
 			this.message = message;
 			this.width = width;

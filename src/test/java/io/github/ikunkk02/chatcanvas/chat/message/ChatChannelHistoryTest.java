@@ -1,6 +1,6 @@
 package io.github.ikunkk02.chatcanvas.chat.message;
 
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -41,6 +41,6 @@ class ChatChannelHistoryTest {
 	private static ChatCanvasMessage message(UUID id, String text, long time) {
 		return new ChatCanvasMessage(id, ChatCanvasChannel.PLAYER_CHAT,
 				ChatCanvasMessageSource.PLAYER, null, null,
-				Text.literal(text), time, false, false);
+				Component.literal(text), time, false, false);
 	}
 }

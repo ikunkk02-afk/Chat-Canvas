@@ -7,8 +7,8 @@ import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessage;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessageSource;
 import io.github.ikunkk02.chatcanvas.config.ChatLogConfig;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
 import java.awt.Desktop;
 import java.io.IOException;
@@ -257,7 +257,7 @@ public final class LocalChatLogService implements ChatLogService {
                 // route error to chat
                 io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessageIngress
                         .instance().reportError(
-                        Text.translatable(key), throwable);
+                        Component.translatable(key), throwable);
             } catch (Exception ignored) { }
         }
     }

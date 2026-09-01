@@ -1,7 +1,7 @@
 package io.github.ikunkk02.chatcanvas.voice;
 
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import net.minecraft.util.Util;
 
 import java.nio.file.Files;
@@ -396,7 +396,7 @@ final class VoiceInputController {
 		try {
 			var directory = models.modelsDirectory().toAbsolutePath().normalize();
 			Files.createDirectories(directory);
-			Util.getOperatingSystem().open(directory);
+			Util.getPlatform().openUri(directory.toUri());
 			ChatCanvas.LOGGER.info("Opened voice model directory: {}", directory);
 		} catch (Throwable throwable) {
 			ChatCanvas.LOGGER.warn("Unable to open the voice model directory", throwable);
@@ -491,7 +491,7 @@ final class VoiceInputController {
 	}
 
 	private static void onClient(Runnable runnable) {
-		MinecraftClient client = MinecraftClient.getInstance();
+		Minecraft client = Minecraft.getInstance();
 		if (client != null) client.execute(runnable); else runnable.run();
 	}
 

@@ -3,8 +3,8 @@ package io.github.ikunkk02.chatcanvas.chat.emoji;
 import io.github.ikunkk02.chatcanvas.ChatCanvas;
 import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessageIngress;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
 import java.nio.file.Path;
 
@@ -39,12 +39,12 @@ public final class EmojiRuntime {
 		return recent;
 	}
 
-	public static void tick(MinecraftClient client) {
+	public static void tick(Minecraft client) {
 		if (!pendingCorruptNotice || client == null
-				|| client.player == null || client.inGameHud == null) return;
+				|| client.player == null || client.gui == null) return;
 		pendingCorruptNotice = false;
 		ChatCanvasMessageIngress.instance().reportError(
-				Text.translatable("chat_canvas.emoji.recent_corrupt"), null);
+				Component.translatable("chat_canvas.emoji.recent_corrupt"), null);
 	}
 
 	public static void flush() {

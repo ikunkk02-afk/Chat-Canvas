@@ -1,7 +1,7 @@
 package io.github.ikunkk02.chatcanvas.chat.style;
 
 import io.github.ikunkk02.chatcanvas.config.MentionConfig;
-import net.minecraft.text.OrderedText;
+import net.minecraft.util.FormattedCharSequence;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,8 +13,8 @@ public final class StyledRangePipeline {
 
 	private final MentionStyleProvider mentionStyles = new MentionStyleProvider();
 
-	public OrderedText apply(
-			OrderedText original,
+	public FormattedCharSequence apply(
+			FormattedCharSequence original,
 			TextRange playerNameRange,
 			OptionalInt playerColor,
 			List<TextRange> mentionRanges,

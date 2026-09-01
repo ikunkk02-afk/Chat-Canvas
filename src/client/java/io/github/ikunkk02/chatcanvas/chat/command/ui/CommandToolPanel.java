@@ -12,19 +12,20 @@ import io.github.ikunkk02.chatcanvas.chat.command.DangerousCommandDetector;
 import io.github.ikunkk02.chatcanvas.chat.command.FavoriteCommandEntry;
 import io.github.ikunkk02.chatcanvas.chat.command.SensitiveCommandDetector;
 import io.github.ikunkk02.chatcanvas.chat.interaction.ChatFieldActions;
+import io.github.ikunkk02.chatcanvas.client.MinecraftGuiCompat;
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.config.CommandClipboardConfig;
 import io.github.ikunkk02.chatcanvas.config.CommandInsertMode;
 import io.github.ikunkk02.chatcanvas.ui.ModernUiTheme;
 import io.github.ikunkk02.chatcanvas.ui.UiLayoutMetrics;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ChatInputSuggestor;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.CommandSuggestions;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -41,9 +42,9 @@ public final class CommandToolPanel {
 
 	private final CommandToolManager manager = CommandToolRuntime.manager();
 	private ChatScreen owner;
-	private TextFieldWidget searchField;
-	private TextFieldWidget nameField;
-	private TextFieldWidget favoriteCommandField;
+	private EditBox searchField;
+	private EditBox nameField;
+	private EditBox favoriteCommandField;
 	private CommandToolTab tab = CommandToolTab.RECENT;
 	private ClipboardCommandParseResult clipboard =
 			new ClipboardCommandParseResult(List.of(), false, false);
@@ -74,7 +75,7 @@ public final class CommandToolPanel {
 	private CommandToolTab cachedTab;
 	private List<Row> cachedRows = List.of();
 
-	public void init(ChatScreen screen, TextFieldWidget commandField) {
+	public void init(ChatScreen screen, EditBox commandField) {
 		owner = screen;
 		ACTIVE.put(screen, this);
 		UiLayoutMetrics.CommandPanel metrics = UiLayoutMetrics.commandPanel(
@@ -83,17 +84,17 @@ public final class CommandToolPanel {
 		panelWidth = metrics.width();
 		panelHeight = metrics.height();
 		visibleRows = metrics.visibleRows();
-		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
-		searchField = new TextFieldWidget(renderer, 0, 0, panelWidth - 46, 18,
-				Text.translatable("chat_canvas.command.search"));
-		searchField.setPlaceholder(Text.translatable("chat_canvas.command.search"));
+		Font renderer = Minecraft.getInstance().font;
+		searchField = new EditBox(renderer, 0, 0, panelWidth - 46, 18,
+				Component.translatable("chat_canvas.command.search"));
+		searchField.setHint(Component.translatable("chat_canvas.command.search"));
 		searchField.setMaxLength(128);
-		nameField = new TextFieldWidget(renderer, 0, 0, panelWidth - 32, 18,
-				Text.translatable("chat_canvas.command.name"));
-		nameField.setPlaceholder(Text.translatable("chat_canvas.command.name"));
-		favoriteCommandField = new TextFieldWidget(renderer, 0, 0, panelWidth - 32, 18,
-				Text.translatable("chat_canvas.command.command"));
-		favoriteCommandField.setPlaceholder(Text.translatable(
+		nameField = new EditBox(renderer, 0, 0, panelWidth - 32, 18,
+				Component.translatable("chat_canvas.command.name"));
+		nameField.setHint(Component.translatable("chat_canvas.command.name"));
+		favoriteCommandField = new EditBox(renderer, 0, 0, panelWidth - 32, 18,
+				Component.translatable("chat_canvas.command.command"));
+		favoriteCommandField.setHint(Component.translatable(
 				"chat_canvas.command.command"));
 		favoriteCommandField.setMaxLength(CommandTextSanitizer.MAX_COMMAND_LENGTH);
 		int rightSpace = screen.width - commandField.getX() - commandField.getWidth();
@@ -141,8 +142,8 @@ public final class CommandToolPanel {
 
 	public boolean mouseClicked(
 			ChatScreen screen,
-			TextFieldWidget commandField,
-			ChatInputSuggestor suggestor,
+			EditBox commandField,
+			CommandSuggestions suggestor,
 			double mouseX,
 			double mouseY,
 			int button
@@ -175,7 +176,7 @@ public final class CommandToolPanel {
 				return true;
 			}
 		}
-		if (searchField.mouseClicked(mouseX, mouseY, button)) {
+		if (searchField.mouseClicked(MinecraftGuiCompat.mouseEvent(mouseX, mouseY, button, 0), false)) {
 			setSearchFocused(true);
 			listFocused = false;
 			return true;
@@ -183,16 +184,16 @@ public final class CommandToolPanel {
 		if (hit(mouseX, mouseY, px + panelWidth - 32, y + 43, 24, 18)) {
 			if (tab == CommandToolTab.CLIPBOARD) refreshClipboard();
 			else {
-				searchField.setText("");
+				searchField.setValue("");
 				invalidateRows();
 			}
 			return true;
 		}
 		if (hit(mouseX, mouseY, px + 8, y + 66, toolbarPrimaryWidth(), 18)) {
 			if (tab == CommandToolTab.FAVORITES) openFavoriteDialog(
-					null, commandField.getText());
+					null, commandField.getValue());
 			else if (tab == CommandToolTab.RECENT) {
-				openFavoriteDialog(null, commandField.getText());
+				openFavoriteDialog(null, commandField.getValue());
 			} else refreshClipboard();
 			return true;
 		}
@@ -213,7 +214,7 @@ public final class CommandToolPanel {
 		Row row = rows.get(rowIndex);
 		int right = px + panelWidth - 8;
 		if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
-			MinecraftClient.getInstance().keyboard.setClipboard(row.command());
+			Minecraft.getInstance().keyboardHandler.setClipboard(row.command());
 		} else if (tab == CommandToolTab.FAVORITES && mouseX >= right - 18) {
 			pendingId = row.id();
 			dialog = Dialog.CONFIRM_DELETE_FAVORITE;
@@ -224,17 +225,17 @@ public final class CommandToolPanel {
 			favorite(row.id()).ifPresent(entry -> openFavoriteDialog(
 					entry, entry.command()));
 		} else if (tab == CommandToolTab.FAVORITES && mouseX >= right - 58) {
-			if (searchField.getText().isEmpty()) draggingFavorite = row.id();
+			if (searchField.getValue().isEmpty()) draggingFavorite = row.id();
 		} else if (tab == CommandToolTab.FAVORITES && mouseX >= right - 78) {
-			MinecraftClient.getInstance().keyboard.setClipboard(row.command());
+			Minecraft.getInstance().keyboardHandler.setClipboard(row.command());
 		} else if (tab == CommandToolTab.RECENT && mouseX >= right - 38) {
 			openFavoriteDialog(null, row.command());
 		} else if (tab == CommandToolTab.RECENT && mouseX >= right - 58) {
-			MinecraftClient.getInstance().keyboard.setClipboard(row.command());
+			Minecraft.getInstance().keyboardHandler.setClipboard(row.command());
 		} else if (tab == CommandToolTab.CLIPBOARD && mouseX >= right - 20) {
-			MinecraftClient.getInstance().keyboard.setClipboard(row.command());
+			Minecraft.getInstance().keyboardHandler.setClipboard(row.command());
 		} else {
-			insert(commandField, suggestor, row.command(), Screen.hasShiftDown());
+			insert(commandField, suggestor, row.command(), Minecraft.getInstance().hasShiftDown());
 		}
 		return true;
 	}
@@ -289,9 +290,9 @@ public final class CommandToolPanel {
 
 	public boolean keyPressed(
 			int keyCode, int scanCode, int modifiers,
-			TextFieldWidget commandField, ChatInputSuggestor suggestor) {
+			EditBox commandField, CommandSuggestions suggestor) {
 		if (!open) {
-			if (keyCode == GLFW.GLFW_KEY_F && Screen.hasControlDown()) {
+			if (keyCode == GLFW.GLFW_KEY_F && Minecraft.getInstance().hasControlDown()) {
 				open = true;
 				setSearchFocused(true);
 				return true;
@@ -316,18 +317,18 @@ public final class CommandToolPanel {
 					return true;
 				}
 				return focusedDialogField().keyPressed(
-						keyCode, scanCode, modifiers);
+						MinecraftGuiCompat.keyEvent(keyCode, scanCode, modifiers));
 			}
 			return true;
 		}
 		if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-			if (!searchField.getText().isEmpty()) {
-				searchField.setText("");
+			if (!searchField.getValue().isEmpty()) {
+				searchField.setValue("");
 				invalidateRows();
 			} else close();
 			return true;
 		}
-		if (keyCode == GLFW.GLFW_KEY_F && Screen.hasControlDown()) {
+		if (keyCode == GLFW.GLFW_KEY_F && Minecraft.getInstance().hasControlDown()) {
 			setSearchFocused(true);
 			listFocused = false;
 			return true;
@@ -339,7 +340,7 @@ public final class CommandToolPanel {
 				listFocused = true;
 				return true;
 			}
-			return searchField.keyPressed(keyCode, scanCode, modifiers);
+			return searchField.keyPressed(MinecraftGuiCompat.keyEvent(keyCode, scanCode, modifiers));
 		}
 		if (!listFocused) return false;
 		if (keyCode == GLFW.GLFW_KEY_TAB
@@ -367,7 +368,7 @@ public final class CommandToolPanel {
 			if (!rows.isEmpty()) {
 				insert(commandField, suggestor,
 						rows.get(Math.min(selected, rows.size() - 1)).command(),
-						Screen.hasShiftDown());
+						Minecraft.getInstance().hasShiftDown());
 			}
 			return true;
 		}
@@ -387,10 +388,10 @@ public final class CommandToolPanel {
 	public boolean charTyped(char character, int modifiers) {
 		if (dialog == Dialog.ADD_FAVORITE
 				|| dialog == Dialog.EDIT_FAVORITE) {
-			return focusedDialogField().charTyped(character, modifiers);
+			return focusedDialogField().charTyped(MinecraftGuiCompat.characterEvent(character));
 		}
 		return open && searchField.isFocused()
-				&& searchField.charTyped(character, modifiers);
+				&& searchField.charTyped(MinecraftGuiCompat.characterEvent(character));
 	}
 
 	public void removed() {
@@ -403,7 +404,7 @@ public final class CommandToolPanel {
 	}
 
 	public void render(
-			ChatScreen screen, TextFieldWidget commandField, DrawContext context,
+			ChatScreen screen, EditBox commandField, GuiGraphicsExtractor context,
 			int mouseX, int mouseY, float delta) {
 		CommandClipboardConfig config = ChatCanvasConfig.instance().commandClipboard();
 		if (!config.enabled()) return;
@@ -415,9 +416,9 @@ public final class CommandToolPanel {
 			int bx = buttonX(screen, commandField);
 			fillButton(context, bx, commandField.getY(), 54, 14,
 					mouseX, mouseY, false);
-			context.drawCenteredTextWithShadow(
-					MinecraftClient.getInstance().textRenderer,
-					Text.translatable("chat_canvas.command.tools"),
+			context.centeredText(
+					Minecraft.getInstance().font,
+					Component.translatable("chat_canvas.command.tools"),
 					bx + 27, commandField.getY() + 3, ModernUiTheme.TEXT_PRIMARY);
 		}
 		if (openProgress <= 0.01f) return;
@@ -425,10 +426,10 @@ public final class CommandToolPanel {
 		visualX = x + Math.round((1.0f - openProgress)
 				* (x < screen.width / 2 ? -24 : 24));
 		int px = visualX;
-		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+		Font renderer = Minecraft.getInstance().font;
 		ModernUiTheme.drawFixedPanel(context, px, y, panelWidth, panelHeight, true);
-		context.drawTextWithShadow(renderer,
-				Text.translatable("chat_canvas.command.tools"),
+		context.text(renderer,
+				Component.translatable("chat_canvas.command.tools"),
 				px + 8, y + 5, ModernUiTheme.TEXT_PRIMARY);
 		if (dialog != Dialog.NONE) {
 			renderDialog(context, renderer, mouseX, mouseY, delta);
@@ -438,17 +439,17 @@ public final class CommandToolPanel {
 		searchField.setX(px + 8);
 		searchField.setY(y + 43);
 		searchField.setWidth(panelWidth - 46);
-		searchField.render(context, mouseX, mouseY, delta);
+		searchField.extractWidgetRenderState(context, mouseX, mouseY, delta);
 		fillButton(context, px + panelWidth - 32, y + 43, 24, 18,
 				mouseX, mouseY, false);
-		context.drawCenteredTextWithShadow(renderer,
-				Text.literal(tab == CommandToolTab.CLIPBOARD ? "↻" : "×"),
+		context.centeredText(renderer,
+				Component.literal(tab == CommandToolTab.CLIPBOARD ? "↻" : "×"),
 				px + panelWidth - 20, y + 48, ModernUiTheme.TEXT_PRIMARY);
 		renderToolbar(context, renderer, px, mouseX, mouseY);
 		List<Row> rows = rows();
 		if (rows.isEmpty()) {
-			context.drawCenteredTextWithShadow(renderer,
-					Text.translatable(emptyStateKey()), px + panelWidth / 2,
+			context.centeredText(renderer,
+					Component.translatable(emptyStateKey()), px + panelWidth / 2,
 					y + 88 + visibleRows * ROW_HEIGHT / 2,
 					ModernUiTheme.TEXT_SECONDARY);
 		} else {
@@ -460,16 +461,16 @@ public final class CommandToolPanel {
 			}
 		}
 		if (statusKey != null) {
-			context.drawTextWithShadow(renderer, Text.translatable(statusKey),
+			context.text(renderer, Component.translatable(statusKey),
 					px + 8, y + panelHeight - 14, ModernUiTheme.WARNING);
 		} else if (tab == CommandToolTab.CLIPBOARD && clipboard.multipleLines()) {
-			context.drawTextWithShadow(renderer,
-					Text.translatable("chat_canvas.command.clipboard.multiple"),
+			context.text(renderer,
+					Component.translatable("chat_canvas.command.clipboard.multiple"),
 					px + 8, y + panelHeight - 14, ModernUiTheme.WARNING);
 		}
 	}
 
-	private void renderTabs(DrawContext context, TextRenderer renderer, int px,
+	private void renderTabs(GuiGraphicsExtractor context, Font renderer, int px,
 			int mouseX, int mouseY) {
 		String[] keys = {
 				"chat_canvas.command.tab.recent",
@@ -483,16 +484,16 @@ public final class CommandToolPanel {
 			fillButton(context, tabX, y + 20, tabWidth, 18,
 					mouseX, mouseY, active);
 			String fitted = ModernUiTheme.fitText(renderer,
-					Text.translatable(keys[i]), Math.max(1, tabWidth - 6));
-			context.drawCenteredTextWithShadow(renderer,
-					Text.literal(fitted), tabX + tabWidth / 2, y + 25,
+					Component.translatable(keys[i]), Math.max(1, tabWidth - 6));
+			context.centeredText(renderer,
+					Component.literal(fitted), tabX + tabWidth / 2, y + 25,
 					ModernUiTheme.TEXT_PRIMARY);
 			if (active) context.fill(tabX + 3, y + 36,
 					tabX + tabWidth - 3, y + 38, ModernUiTheme.ACCENT);
 		}
 	}
 
-	private void renderToolbar(DrawContext context, TextRenderer renderer, int px,
+	private void renderToolbar(GuiGraphicsExtractor context, Font renderer, int px,
 			int mouseX, int mouseY) {
 		int primaryWidth = toolbarPrimaryWidth();
 		fillButton(context, px + 8, y + 66, primaryWidth, 18,
@@ -502,8 +503,8 @@ public final class CommandToolPanel {
 			case CLIPBOARD -> "chat_canvas.command.clipboard.refresh";
 		};
 		String fittedPrimary = ModernUiTheme.fitText(renderer,
-				Text.translatable(primary), Math.max(1, primaryWidth - 6));
-		context.drawCenteredTextWithShadow(renderer, Text.literal(fittedPrimary),
+				Component.translatable(primary), Math.max(1, primaryWidth - 6));
+		context.centeredText(renderer, Component.literal(fittedPrimary),
 				px + 8 + primaryWidth / 2, y + 71, ModernUiTheme.TEXT_PRIMARY);
 		if (tab == CommandToolTab.RECENT) {
 			int secondaryX = toolbarSecondaryX(px);
@@ -511,16 +512,16 @@ public final class CommandToolPanel {
 			fillButton(context, secondaryX, y + 66, secondaryWidth, 18,
 					mouseX, mouseY, false);
 			String fittedSecondary = ModernUiTheme.fitText(renderer,
-					Text.translatable("chat_canvas.command.clear_all"),
+					Component.translatable("chat_canvas.command.clear_all"),
 					Math.max(1, secondaryWidth - 6));
-			context.drawCenteredTextWithShadow(renderer,
-					Text.literal(fittedSecondary), secondaryX + secondaryWidth / 2,
+			context.centeredText(renderer,
+					Component.literal(fittedSecondary), secondaryX + secondaryWidth / 2,
 					y + 71, ModernUiTheme.DANGER);
 		}
 	}
 
 	private void renderRow(
-			DrawContext context, TextRenderer renderer, Row row, int index,
+			GuiGraphicsExtractor context, Font renderer, Row row, int index,
 			int rowY, int mouseX, int mouseY) {
 		int px = visualX;
 		boolean hover = hit(mouseX, mouseY, px + 8, rowY,
@@ -528,12 +529,12 @@ public final class CommandToolPanel {
 		boolean active = listFocused && index == selected;
 		ModernUiTheme.drawFixedControl(context, px + 8, rowY,
 				panelWidth - 16, ROW_HEIGHT - 2, hover, active, true);
-		context.drawTextWithShadow(renderer,
-				Text.literal(shorten(row.title(), 30)), px + 12, rowY + 3,
+		context.text(renderer,
+				Component.literal(shorten(row.title(), 30)), px + 12, rowY + 3,
 				ModernUiTheme.TEXT_PRIMARY);
 		int commandColor = row.dangerous() ? ModernUiTheme.WARNING : ModernUiTheme.TEXT_SECONDARY;
-		context.drawTextWithShadow(renderer,
-				Text.literal((row.dangerous() ? "⚠ " : "")
+		context.text(renderer,
+				Component.literal((row.dangerous() ? "⚠ " : "")
 						+ shorten(row.command(), 34)),
 				px + 12, rowY + 16, commandColor);
 		String actions = switch (tab) {
@@ -542,21 +543,21 @@ public final class CommandToolPanel {
 			case CLIPBOARD -> "C";
 		};
 		if (!actions.isEmpty()) {
-			context.drawTextWithShadow(renderer, Text.literal(actions),
-					px + panelWidth - renderer.getWidth(actions) - 12,
+			context.text(renderer, Component.literal(actions),
+					px + panelWidth - renderer.width(actions) - 12,
 					rowY + 7, ModernUiTheme.ACCENT);
 		}
-		if (hover && renderer.getWidth(row.command()) > panelWidth - 34) {
-			context.drawTooltip(renderer, Text.literal(row.command()), mouseX, mouseY);
+		if (hover && renderer.width(row.command()) > panelWidth - 34) {
+			context.setTooltipForNextFrame(renderer, Component.literal(row.command()), mouseX, mouseY);
 		} else if (hover && row.dangerous()) {
-			context.drawTooltip(renderer,
-					Text.translatable("chat_canvas.command.dangerous"),
+			context.setTooltipForNextFrame(renderer,
+					Component.translatable("chat_canvas.command.dangerous"),
 					mouseX, mouseY);
 		}
 	}
 
 	private void renderDialog(
-			DrawContext context, TextRenderer renderer,
+			GuiGraphicsExtractor context, Font renderer,
 			int mouseX, int mouseY, float delta) {
 		int px = visualX;
 		int dx = px + 8;
@@ -566,7 +567,7 @@ public final class CommandToolPanel {
 				ModernUiTheme.PANEL_BACKGROUND);
 		ModernUiTheme.drawFixedPanel(context, dx, dy, dialogWidth,
 				panelHeight - 30, false);
-		context.drawTextWithShadow(renderer, Text.translatable(dialog.titleKey),
+		context.text(renderer, Component.translatable(dialog.titleKey),
 				dx + 8, dy + 8, ModernUiTheme.TEXT_PRIMARY);
 		if (dialog == Dialog.ADD_FAVORITE
 				|| dialog == Dialog.EDIT_FAVORITE) {
@@ -576,17 +577,17 @@ public final class CommandToolPanel {
 			favoriteCommandField.setX(dx + 8);
 			favoriteCommandField.setY(dy + 76);
 			favoriteCommandField.setWidth(dialogWidth - 16);
-			context.drawTextWithShadow(renderer,
-					Text.translatable("chat_canvas.command.name"),
+			context.text(renderer,
+					Component.translatable("chat_canvas.command.name"),
 					dx + 8, dy + 23, ModernUiTheme.TEXT_SECONDARY);
-			context.drawTextWithShadow(renderer,
-					Text.translatable("chat_canvas.command.command"),
+			context.text(renderer,
+					Component.translatable("chat_canvas.command.command"),
 					dx + 8, dy + 65, ModernUiTheme.TEXT_SECONDARY);
-			nameField.render(context, mouseX, mouseY, delta);
-			favoriteCommandField.render(context, mouseX, mouseY, delta);
+			nameField.extractWidgetRenderState(context, mouseX, mouseY, delta);
+			favoriteCommandField.extractWidgetRenderState(context, mouseX, mouseY, delta);
 		} else {
-			context.drawTextWrapped(renderer,
-					Text.translatable(dialog == Dialog.CONFIRM_SENSITIVE
+			context.textWithWordWrap(renderer,
+					Component.translatable(dialog == Dialog.CONFIRM_SENSITIVE
 							? "chat_canvas.command.plaintext_warning"
 							: "chat_canvas.command.cannot_restore"),
 					dx + 8, dy + 34, dialogWidth - 16, ModernUiTheme.DANGER);
@@ -598,10 +599,10 @@ public final class CommandToolPanel {
 				mouseX, mouseY, false);
 		fillButton(context, confirmX, y + panelHeight - 32, buttonWidth, 18,
 				mouseX, mouseY, true);
-		context.drawCenteredTextWithShadow(renderer, Text.translatable("gui.cancel"),
+		context.centeredText(renderer, Component.translatable("gui.cancel"),
 				cancelX + buttonWidth / 2, y + panelHeight - 27,
 				ModernUiTheme.TEXT_PRIMARY);
-		context.drawCenteredTextWithShadow(renderer, Text.translatable("gui.ok"),
+		context.centeredText(renderer, Component.translatable("gui.ok"),
 				confirmX + buttonWidth / 2, y + panelHeight - 27,
 				ModernUiTheme.TEXT_PRIMARY);
 	}
@@ -612,11 +613,11 @@ public final class CommandToolPanel {
 		int dy = y + 22;
 		if (dialog == Dialog.ADD_FAVORITE
 				|| dialog == Dialog.EDIT_FAVORITE) {
-			if (nameField.mouseClicked(mouseX, mouseY, button)) {
+			if (nameField.mouseClicked(MinecraftGuiCompat.mouseEvent(mouseX, mouseY, button, 0), false)) {
 				focusDialogField(nameField);
 				return true;
 			}
-			if (favoriteCommandField.mouseClicked(mouseX, mouseY, button)) {
+			if (favoriteCommandField.mouseClicked(MinecraftGuiCompat.mouseEvent(mouseX, mouseY, button, 0), false)) {
 				focusDialogField(favoriteCommandField);
 				return true;
 			}
@@ -662,9 +663,9 @@ public final class CommandToolPanel {
 			return;
 		}
 		pendingId = entry == null ? null : entry.entryId();
-		nameField.setText(entry == null
+		nameField.setValue(entry == null
 				? CommandTextSanitizer.commandName(command) : entry.name());
-		favoriteCommandField.setText(entry == null ? command : entry.command());
+		favoriteCommandField.setValue(entry == null ? command : entry.command());
 		focusDialogField(nameField);
 		dialog = entry == null ? Dialog.ADD_FAVORITE : Dialog.EDIT_FAVORITE;
 	}
@@ -675,17 +676,17 @@ public final class CommandToolPanel {
 		if (!sensitiveConfirmed
 				&& ChatCanvasConfig.instance().commandClipboard().sensitiveWarning()
 				&& SensitiveCommandDetector.isSensitive(
-						favoriteCommandField.getText())) {
+						favoriteCommandField.getValue())) {
 			pendingFavoriteDialog = operation;
 			dialog = Dialog.CONFIRM_SENSITIVE;
 			return;
 		}
 		CommandToolManager.MutationResult result =
 				operation == Dialog.EDIT_FAVORITE
-						? manager.editFavorite(pendingId, nameField.getText(),
-								favoriteCommandField.getText(), now)
-						: manager.addFavorite(nameField.getText(),
-								favoriteCommandField.getText(), now);
+						? manager.editFavorite(pendingId, nameField.getValue(),
+								favoriteCommandField.getValue(), now)
+						: manager.addFavorite(nameField.getValue(),
+								favoriteCommandField.getValue(), now);
 		statusKey = switch (result) {
 			case INVALID -> "chat_canvas.command.not_command";
 			case LIMIT_REACHED -> "chat_canvas.command.limit";
@@ -704,12 +705,12 @@ public final class CommandToolPanel {
 		favoriteCommandField.setFocused(false);
 	}
 
-	private TextFieldWidget focusedDialogField() {
+	private EditBox focusedDialogField() {
 		return favoriteCommandField.isFocused()
 				? favoriteCommandField : nameField;
 	}
 
-	private void focusDialogField(TextFieldWidget selected) {
+	private void focusDialogField(EditBox selected) {
 		nameField.setFocused(selected == nameField);
 		favoriteCommandField.setFocused(selected == favoriteCommandField);
 	}
@@ -728,7 +729,7 @@ public final class CommandToolPanel {
 
 	private void refreshClipboard() {
 		try {
-			String text = MinecraftClient.getInstance().keyboard.getClipboard();
+			String text = Minecraft.getInstance().keyboardHandler.getClipboard();
 			clipboard = ClipboardCommandParser.parse(text);
 			clipboardLoaded = true;
 			statusKey = null;
@@ -743,7 +744,7 @@ public final class CommandToolPanel {
 	}
 
 	private void insert(
-			TextFieldWidget field, ChatInputSuggestor suggestor,
+			EditBox field, CommandSuggestions suggestor,
 			String command, boolean opposite) {
 		CommandInsertMode mode =
 				ChatCanvasConfig.instance().commandClipboard().insertMode();
@@ -755,7 +756,7 @@ public final class CommandToolPanel {
 	}
 
 	private List<Row> rows() {
-		String query = searchField == null ? "" : searchField.getText();
+		String query = searchField == null ? "" : searchField.getValue();
 		long revision = manager.revision();
 		if (cachedTab == tab && cachedRevision == revision
 				&& cachedQuery.equals(query)) return cachedRows;
@@ -780,7 +781,7 @@ public final class CommandToolPanel {
 					String title = CommandTextSanitizer.commandName(
 							candidate.command());
 					if (!candidate.hadLeadingSlash()) {
-						title = Text.translatable(
+						title = Component.translatable(
 								"chat_canvas.command.clipboard.as_command",
 								title).getString();
 					}
@@ -815,7 +816,7 @@ public final class CommandToolPanel {
 	}
 
 	private String emptyStateKey() {
-		if (!searchField.getText().isEmpty()) {
+		if (!searchField.getValue().isEmpty()) {
 			return "chat_canvas.command.search.empty";
 		}
 		return switch (tab) {
@@ -825,7 +826,7 @@ public final class CommandToolPanel {
 		};
 	}
 
-	private int buttonX(ChatScreen screen, TextFieldWidget field) {
+	private int buttonX(ChatScreen screen, EditBox field) {
 		int right = field.getX() + field.getWidth() + 4;
 		if (right + 54 <= screen.width - 2) return right;
 		return Math.max(2, field.getX() - 58);
@@ -849,7 +850,7 @@ public final class CommandToolPanel {
 	}
 
 	private static void fillButton(
-			DrawContext context, int x, int y,
+			GuiGraphicsExtractor context, int x, int y,
 			int width, int height, int mouseX, int mouseY, boolean active) {
 		ModernUiTheme.drawFixedControl(context, x, y, width, height,
 				hit(mouseX, mouseY, x, y, width, height), active, true);

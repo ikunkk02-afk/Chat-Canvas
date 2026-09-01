@@ -1,7 +1,7 @@
 package io.github.ikunkk02.chatcanvas.chat.notification;
 
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatIdentity;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
@@ -9,7 +9,7 @@ import java.util.UUID;
 public record MentionNotificationEvent(
 		UUID messageId,
 		@Nullable PlayerChatIdentity sender,
-		Text originalMessage,
+		Component originalMessage,
 		String plainPreview,
 		long receivedAtMs
 ) {

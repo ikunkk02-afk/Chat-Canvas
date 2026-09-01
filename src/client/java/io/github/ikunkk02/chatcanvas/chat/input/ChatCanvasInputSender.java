@@ -1,36 +1,36 @@
 package io.github.ikunkk02.chatcanvas.chat.input;
 
 import io.github.ikunkk02.chatcanvas.chat.text.UnicodeTextNavigator;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ChatScreen;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ChatScreen;
 
 public final class ChatCanvasInputSender {
 	private ChatCanvasInputSender() {
 	}
 
 	public static boolean sendPlayerChat(
-			MinecraftClient client, ChatScreen screen, String input) {
-		String message = screen.normalize(
+			Minecraft client, ChatScreen screen, String input) {
+		String message = screen.normalizeChatMessage(
 				UnicodeTextNavigator.truncateAtGraphemeBoundary(input, 256));
 		if (message.isEmpty() || message.startsWith("/") || client.player == null) {
 			return false;
 		}
-		client.inGameHud.getChatHud().addToMessageHistory(message);
-		client.player.networkHandler.sendChatMessage(message);
+		client.gui.getChat().addRecentChat(message);
+		client.getConnection().sendChat(message);
 		return true;
 	}
 
 	public static boolean executeCommand(
-			MinecraftClient client, ChatScreen screen, String input) {
-		String normalized = screen.normalize(
+			Minecraft client, ChatScreen screen, String input) {
+		String normalized = screen.normalizeChatMessage(
 				UnicodeTextNavigator.truncateAtGraphemeBoundary(input, 256));
 		if (client.player == null) return false;
 		String command = normalized.startsWith("/")
 				? normalized.substring(1) : normalized;
 		if (command.isBlank()) return false;
 		String historyEntry = "/" + command;
-		client.inGameHud.getChatHud().addToMessageHistory(historyEntry);
-		client.player.networkHandler.sendChatCommand(command);
+		client.gui.getChat().addRecentChat(historyEntry);
+		client.getConnection().sendCommand(command);
 		return true;
 	}
 }

@@ -1,7 +1,7 @@
 package io.github.ikunkk02.chatcanvas.chat.notification;
 
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 
 /**
  * Development-only escape hatch for exercising the complete mention delivery
@@ -14,8 +14,8 @@ public final class MentionDebugPolicy {
 
 	private MentionDebugPolicy() {}
 
-	public static boolean allowsSelfMention(MinecraftClient client) {
-		if (client == null || !client.isInSingleplayer()) return false;
+	public static boolean allowsSelfMention(Minecraft client) {
+		if (client == null || !client.isSingleplayer()) return false;
 		return FabricLoader.getInstance().isDevelopmentEnvironment()
 				|| Boolean.getBoolean(SELF_MENTION_PROPERTY);
 	}

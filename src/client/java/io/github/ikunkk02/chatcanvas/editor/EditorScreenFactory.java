@@ -1,7 +1,7 @@
 package io.github.ikunkk02.chatcanvas.editor;
 
 import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screens.Screen;
 import org.jetbrains.annotations.Nullable;
 
 /**

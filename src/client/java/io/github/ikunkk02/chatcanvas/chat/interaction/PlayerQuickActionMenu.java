@@ -6,14 +6,14 @@ import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
 import io.github.ikunkk02.chatcanvas.mixin.client.ChatInputSuggestorAccessor;
 import io.github.ikunkk02.chatcanvas.mixin.client.SuggestionWindowAccessor;
 import io.github.ikunkk02.chatcanvas.ui.ModernUiTheme;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ChatInputSuggestor;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.util.math.Rect2i;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.CommandSuggestions;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.renderer.Rect2i;
+import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.Optional;
@@ -29,7 +29,7 @@ public final class PlayerQuickActionMenu {
 	private ChatFieldActions.InputSnapshot replacedInput;
 
 	public boolean mouseClicked(
-			ChatScreen screen, TextFieldWidget field, ChatInputSuggestor suggestor,
+			ChatScreen screen, EditBox field, CommandSuggestions suggestor,
 			double mouseX, double mouseY, int button) {
 		if (owner == screen && target != null) {
 			if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && contains(mouseX, mouseY)) {
@@ -56,13 +56,13 @@ public final class PlayerQuickActionMenu {
 	}
 
 	public boolean keyPressed(
-			ChatScreen screen, TextFieldWidget field, ChatInputSuggestor suggestor,
+			ChatScreen screen, EditBox field, CommandSuggestions suggestor,
 			int keyCode) {
 		if (owner == screen && target != null && keyCode == GLFW.GLFW_KEY_ESCAPE) {
 			closeMenu();
 			return true;
 		}
-		if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_Z && replacedInput != null) {
+		if (Minecraft.getInstance().hasControlDown() && keyCode == GLFW.GLFW_KEY_Z && replacedInput != null) {
 			ChatFieldActions.restore(field, suggestor, replacedInput);
 			replacedInput = null;
 			return true;
@@ -70,7 +70,7 @@ public final class PlayerQuickActionMenu {
 		return false;
 	}
 
-	public void render(ChatScreen screen, DrawContext context, int mouseX, int mouseY) {
+	public void render(ChatScreen screen, GuiGraphicsExtractor context, int mouseX, int mouseY) {
 		if (owner != screen || target == null) return;
 		ModernUiTheme.drawFixedPanel(context, x, y, WIDTH, HEIGHT, true);
 		for (int row = 0; row < 3; row++) {
@@ -80,9 +80,9 @@ public final class PlayerQuickActionMenu {
 				context.fill(x + 1, rowY + 1, x + WIDTH - 1,
 						rowY + ROW_HEIGHT - 1, ModernUiTheme.CONTROL_HOVER);
 			}
-			context.drawText(
-					MinecraftClient.getInstance().textRenderer,
-					Text.translatable(switch (row) {
+			context.text(
+					Minecraft.getInstance().font,
+					Component.translatable(switch (row) {
 						case 0 -> "chat_canvas.quick_action.mention";
 						case 1 -> "chat_canvas.quick_action.private_message";
 						default -> "chat_canvas.quick_action.copy_name";
@@ -98,7 +98,7 @@ public final class PlayerQuickActionMenu {
 		}
 	}
 
-	private void activate(int row, TextFieldWidget field, ChatInputSuggestor suggestor) {
+	private void activate(int row, EditBox field, CommandSuggestions suggestor) {
 		if (target == null) return;
 		switch (row) {
 			case 0 -> ChatFieldActions.insertMention(field, suggestor, target.playerName());
@@ -108,13 +108,13 @@ public final class PlayerQuickActionMenu {
 					PrivateMessageTemplate.apply(
 							ChatCanvasConfig.instance().mention().privateMessageTemplate(),
 							target.playerName()));
-			case 2 -> MinecraftClient.getInstance().keyboard.setClipboard(target.playerName());
+			case 2 -> Minecraft.getInstance().keyboardHandler.setClipboard(target.playerName());
 			default -> {
 			}
 		}
 	}
 
-	private void position(ChatScreen screen, ChatInputSuggestor suggestor, int mouseX, int mouseY) {
+	private void position(ChatScreen screen, CommandSuggestions suggestor, int mouseX, int mouseY) {
 		int maxX = Math.max(2, screen.width - WIDTH - 2);
 		int maxY = Math.max(2, screen.height - HEIGHT - 2);
 		int[][] candidates = {
@@ -147,8 +147,8 @@ public final class PlayerQuickActionMenu {
 		target = null;
 	}
 
-	private static Optional<Rect2i> suggestionArea(ChatInputSuggestor suggestor) {
-		ChatInputSuggestor.SuggestionWindow window =
+	private static Optional<Rect2i> suggestionArea(CommandSuggestions suggestor) {
+		CommandSuggestions.SuggestionsList window =
 				((ChatInputSuggestorAccessor) suggestor).chat_canvas$window();
 		return window == null
 				? Optional.empty()

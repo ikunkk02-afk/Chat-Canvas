@@ -1,7 +1,7 @@
 package io.github.ikunkk02.chatcanvas.chat.identity;
 
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -15,9 +15,9 @@ class PlayerIdentityResolverTest {
 
 	@Test
 	void standardResolverUsesAuthoritativeSenderComponentAndExcludesPrefix() {
-		Text sender = Text.literal("[VIP] ")
-				.append(Text.literal("Steve").formatted(Formatting.BOLD));
-		Text message = Text.literal("<").append(sender).append(Text.literal("> hello Steve"));
+		Component sender = Component.literal("[VIP] ")
+				.append(Component.literal("Steve").withStyle(ChatFormatting.BOLD));
+		Component message = Component.literal("<").append(sender).append(Component.literal("> hello Steve"));
 		ChatMessageMetadata metadata = PlayerIdentityResolver.resolveStandard(
 				message, sender, STEVE_UUID, "Steve").orElseThrow();
 		assertEquals(message.getString().indexOf("Steve"), metadata.nameStart());
@@ -31,7 +31,7 @@ class PlayerIdentityResolverTest {
 		PlayerChatIdentity steve = new PlayerChatIdentity(STEVE_UUID, "Steve", true);
 		PlayerChatIdentity steve123 = new PlayerChatIdentity(UUID.randomUUID(), "Steve123", true);
 		ChatMessageMetadata metadata = PluginChatFallbackResolver.resolve(
-				Text.literal("[VIP] Steve123: hello"), List.of(steve, steve123)).orElseThrow();
+				Component.literal("[VIP] Steve123: hello"), List.of(steve, steve123)).orElseThrow();
 		assertEquals("Steve123", metadata.sender().playerName());
 	}
 
@@ -39,18 +39,18 @@ class PlayerIdentityResolverTest {
 	void pluginResolverRejectsDeathsAnnouncementsAndAmbiguity() {
 		PlayerChatIdentity steve = new PlayerChatIdentity(STEVE_UUID, "Steve", true);
 		assertTrue(PluginChatFallbackResolver.resolve(
-				Text.translatable("death.attack.generic", Text.literal("Steve")),
+				Component.translatable("death.attack.generic", Component.literal("Steve")),
 				List.of(steve)).isEmpty());
 		assertTrue(PluginChatFallbackResolver.resolve(
-				Text.literal("Steve was slain by Alex"), List.of(steve)).isEmpty());
+				Component.literal("Steve was slain by Alex"), List.of(steve)).isEmpty());
 		assertTrue(PluginChatFallbackResolver.resolve(
-				Text.literal("Advertisement for Steve"), List.of(steve)).isEmpty());
+				Component.literal("Advertisement for Steve"), List.of(steve)).isEmpty());
 	}
 
 	@Test
 	void boundaryDoesNotMatchSteveInsideSteve123() {
 		PlayerChatIdentity steve = new PlayerChatIdentity(STEVE_UUID, "Steve", true);
 		assertTrue(PluginChatFallbackResolver.resolve(
-				Text.literal("Steve123: hello"), List.of(steve)).isEmpty());
+				Component.literal("Steve123: hello"), List.of(steve)).isEmpty());
 	}
 }

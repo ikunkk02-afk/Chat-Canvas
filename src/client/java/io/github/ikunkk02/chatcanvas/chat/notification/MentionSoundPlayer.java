@@ -2,10 +2,10 @@ package io.github.ikunkk02.chatcanvas.chat.notification;
 
 import io.github.ikunkk02.chatcanvas.config.MentionConfig;
 import io.github.ikunkk02.chatcanvas.config.MentionSound;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.sound.PositionedSoundInstance;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.sound.SoundEvents;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
 
 public final class MentionSoundPlayer {
 	public void playConfigured(MentionConfig config) {
@@ -19,18 +19,18 @@ public final class MentionSoundPlayer {
 	private void play(MentionConfig source, boolean test) {
 		MentionConfig config = source == null ? MentionConfig.DEFAULT : source.sanitized();
 		if (!test && !config.soundEnabled()) return;
-		MinecraftClient client = MinecraftClient.getInstance();
+		Minecraft client = Minecraft.getInstance();
 		if (client == null || config.soundVolume() <= 0.0) return;
 		SoundEvent sound = resolve(config.sound());
-		client.getSoundManager().play(PositionedSoundInstance.master(
+		client.getSoundManager().play(SimpleSoundInstance.forUI(
 				sound, (float) config.soundPitch(), (float) config.soundVolume()));
 	}
 
 	private static SoundEvent resolve(MentionSound sound) {
 		return switch (sound == null ? MentionSound.EXPERIENCE_ORB : sound) {
-			case EXPERIENCE_ORB -> SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP;
-			case NOTE_PLING -> SoundEvents.BLOCK_NOTE_BLOCK_PLING.value();
-			case AMETHYST -> SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME;
+			case EXPERIENCE_ORB -> SoundEvents.EXPERIENCE_ORB_PICKUP;
+			case NOTE_PLING -> SoundEvents.NOTE_BLOCK_PLING.value();
+			case AMETHYST -> SoundEvents.AMETHYST_BLOCK_CHIME;
 			case BUTTON_CLICK -> SoundEvents.UI_BUTTON_CLICK.value();
 		};
 	}

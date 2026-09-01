@@ -1,8 +1,8 @@
 package io.github.ikunkk02.chatcanvas.chat.identity;
 
 import io.github.ikunkk02.chatcanvas.chat.style.TextIndexing;
-import net.minecraft.text.Text;
-import net.minecraft.text.TranslatableTextContent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -18,11 +18,11 @@ public final class PluginChatFallbackResolver {
 	}
 
 	public static Optional<ChatMessageMetadata> resolve(
-			Text message, Collection<PlayerChatIdentity> onlinePlayers) {
+			Component message, Collection<PlayerChatIdentity> onlinePlayers) {
 		if (message == null || onlinePlayers == null || onlinePlayers.isEmpty()) {
 			return Optional.empty();
 		}
-		if (message.getContent() instanceof TranslatableTextContent) {
+		if (message.getContents() instanceof TranslatableContents) {
 			return Optional.empty();
 		}
 

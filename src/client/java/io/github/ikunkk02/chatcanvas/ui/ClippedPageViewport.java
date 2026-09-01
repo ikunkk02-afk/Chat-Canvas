@@ -1,9 +1,9 @@
 package io.github.ikunkk02.chatcanvas.ui;
 
 import io.wispforest.owo.ui.container.FlowLayout;
-import io.wispforest.owo.ui.core.Component;
-import io.wispforest.owo.ui.core.OwoUIDrawContext;
-import io.wispforest.owo.ui.core.ParentComponent;
+import io.wispforest.owo.ui.core.UIComponent;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
+import io.wispforest.owo.ui.core.ParentUIComponent;
 import io.wispforest.owo.ui.core.Sizing;
 
 import java.util.ArrayList;
@@ -35,7 +35,7 @@ public final class ClippedPageViewport extends FlowLayout {
      */
     public static final boolean DEBUG_BOUNDARIES = false;
 
-    private final List<Component> pages = new ArrayList<>();
+    private final List<UIComponent> pages = new ArrayList<>();
     private int activePage = 0;
     private int transitionPage = -1;
 
@@ -51,16 +51,16 @@ public final class ClippedPageViewport extends FlowLayout {
      * first).  Only the page at {@link #activePage} (and optionally the
      * page at {@link #transitionPage}) is rendered each frame.
      */
-    public void addPage(Component page) {
+    public void addPage(UIComponent page) {
         pages.add(page);
         super.child(page);
     }
 
     /** Replace all pages. */
-    public void setPages(List<Component> newPages) {
+    public void setPages(List<UIComponent> newPages) {
         pages.clear();
         this.clearChildren();
-        for (Component page : newPages) {
+        for (UIComponent page : newPages) {
             addPage(page);
         }
     }
@@ -93,7 +93,7 @@ public final class ClippedPageViewport extends FlowLayout {
     // ── draw ─────────────────────────────────────────────────────
 
     @Override
-    public void draw(OwoUIDrawContext context, int mouseX, int mouseY,
+    public void draw(OwoUIGraphics context, int mouseX, int mouseY,
                      float partialTicks, float delta) {
         if (this.width <= 0 || this.height <= 0) return;
 
@@ -113,7 +113,7 @@ public final class ClippedPageViewport extends FlowLayout {
         try {
             for (int i = 0; i < pages.size(); i++) {
                 if (i != activePage && i != transitionPage) continue;
-                Component page = pages.get(i);
+                UIComponent page = pages.get(i);
                 if (page == null) continue;
 
                 // ── debug: active (green) / transition (yellow) ──
@@ -147,21 +147,21 @@ public final class ClippedPageViewport extends FlowLayout {
      * pages never become the target of a mouse event.
      */
     @Override
-    public Component childAt(int x, int y) {
+    public UIComponent childAt(int x, int y) {
         // Outside the viewport — not our concern.
         if (!this.isInBoundingBox(x, y)) return null;
 
         // During a page transition, block all interaction.
         if (transitionPage >= 0) return null;
 
-        Component active = pages.get(activePage);
+        UIComponent active = pages.get(activePage);
         if (active == null) return null;
 
         // Let the active page's own component tree resolve the
         // deepest interactable child.  Works for FlowLayout,
         // StackLayout, ScrollContainer, and any ParentComponent.
-        if (active instanceof ParentComponent parent) {
-            Component deepest = parent.childAt(x, y);
+        if (active instanceof ParentUIComponent parent) {
+            UIComponent deepest = parent.childAt(x, y);
             if (deepest != null) return deepest;
         }
 
@@ -179,7 +179,7 @@ public final class ClippedPageViewport extends FlowLayout {
     }
 
     private static void drawDebugBoundary(
-            OwoUIDrawContext context, int x1, int y1, int x2, int y2,
+            OwoUIGraphics context, int x1, int y1, int x2, int y2,
             int color) {
         // top edge
         context.fill(x1, y1, x2, y1 + 1, color);

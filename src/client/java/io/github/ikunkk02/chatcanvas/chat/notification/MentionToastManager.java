@@ -1,27 +1,27 @@
 package io.github.ikunkk02.chatcanvas.chat.notification;
 
 import io.github.ikunkk02.chatcanvas.config.MentionConfig;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.toast.SystemToast;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.components.toasts.SystemToast;
+import net.minecraft.network.chat.Component;
 
 public final class MentionToastManager {
-	private static final SystemToast.Type TYPE = new SystemToast.Type(5_000L);
+	private static final SystemToast.SystemToastId TYPE = new SystemToast.SystemToastId(5_000L);
 
 	public void show(MentionNotificationEvent event, MentionConfig config) {
-		MinecraftClient client = MinecraftClient.getInstance();
+		Minecraft client = Minecraft.getInstance();
 		if (!config.toastEnabled()) return;
-		if (!config.toastWhenChatOpen() && client.currentScreen instanceof ChatScreen) return;
+		if (!config.toastWhenChatOpen() && client.screen instanceof ChatScreen) return;
 		String sender = event.sender() == null || event.sender().playerName().isBlank()
-				? Text.translatable("chat_canvas.notification.unknown_sender").getString()
+				? Component.translatable("chat_canvas.notification.unknown_sender").getString()
 				: event.sender().playerName();
 		String preview = truncate(event.plainPreview(), config.toastMessageLength());
 		SystemToast.add(
 				client.getToastManager(),
 				TYPE,
-				Text.translatable("chat_canvas.notification.mentioned"),
-				Text.translatable("chat_canvas.notification.preview", sender, preview));
+				Component.translatable("chat_canvas.notification.mentioned"),
+				Component.translatable("chat_canvas.notification.preview", sender, preview));
 	}
 
 	static String truncate(String value, int maxCodePoints) {

@@ -1,19 +1,20 @@
 package io.github.ikunkk02.chatcanvas.chat.emoji;
 
 import io.github.ikunkk02.chatcanvas.ui.ModernUiTheme;
-import io.wispforest.owo.ui.base.BaseComponent;
+import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
-import io.wispforest.owo.ui.core.OwoUIDrawContext;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 import java.util.function.Consumer;
 
-public final class VirtualizedEmojiGrid extends BaseComponent {
+public final class VirtualizedEmojiGrid extends BaseUIComponent {
 	private static final int CELL_WIDTH = 28;
 	private static final int CELL_HEIGHT = 23;
 
@@ -77,7 +78,10 @@ public final class VirtualizedEmojiGrid extends BaseComponent {
 	}
 
 	@Override
-	public boolean onMouseDown(double mouseX, double mouseY, int button) {
+	public boolean onMouseDown(MouseButtonEvent event, boolean doubleClick) {
+		double mouseX = event.x();
+		double mouseY = event.y();
+		int button = event.button();
 		if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT
 				|| !containsLocal(mouseX, mouseY)) return false;
 		int index = indexAt(mouseX, mouseY);
@@ -98,21 +102,21 @@ public final class VirtualizedEmojiGrid extends BaseComponent {
 
 	@Override
 	public void draw(
-			OwoUIDrawContext context, int mouseX, int mouseY,
+			OwoUIGraphics context, int mouseX, int mouseY,
 			float partialTicks, float delta) {
 		context.fill(x(), y(), x() + width(), y() + height(),
 				ModernUiTheme.CONTROL_BACKGROUND);
 		hoveredEntry = null;
 		if (entries.isEmpty()) {
-			Text empty = Text.translatable(emptyMessageKey);
-			context.drawCenteredTextWithShadow(
-					MinecraftClient.getInstance().textRenderer,
+			Component empty = Component.translatable(emptyMessageKey);
+			context.centeredText(
+					Minecraft.getInstance().font,
 					empty, x() + width() / 2,
 					y() + Math.max(2, height() / 2 - 4), ModernUiTheme.TEXT_SECONDARY);
 			return;
 		}
 		context.enableScissor(x(), y(), x() + width(), y() + height());
-		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+		Font renderer = Minecraft.getInstance().font;
 		int columns = columns();
 		int start = scrollRow * columns;
 		int visibleRows = Math.max(1, (height() + CELL_HEIGHT - 1) / CELL_HEIGHT);
@@ -130,16 +134,16 @@ public final class VirtualizedEmojiGrid extends BaseComponent {
 						ModernUiTheme.CONTROL_HOVER);
 			}
 			if (index == selected) {
-				context.drawBorder(cellX, cellY,
+				context.outline(cellX, cellY,
 						CELL_WIDTH, CELL_HEIGHT, ModernUiTheme.ACCENT);
 				context.fill(cellX + 3, cellY + CELL_HEIGHT - 3,
 						cellX + CELL_WIDTH - 3, cellY + CELL_HEIGHT - 1,
 						ModernUiTheme.ACCENT);
 			}
 			String emoji = entries.get(index).unicode();
-			context.drawTextWithShadow(renderer, emoji,
-					cellX + (CELL_WIDTH - renderer.getWidth(emoji)) / 2,
-					cellY + (CELL_HEIGHT - renderer.fontHeight) / 2,
+			context.text(renderer, emoji,
+					cellX + (CELL_WIDTH - renderer.width(emoji)) / 2,
+					cellY + (CELL_HEIGHT - renderer.lineHeight) / 2,
 					ModernUiTheme.TEXT_PRIMARY);
 		}
 		context.disableScissor();

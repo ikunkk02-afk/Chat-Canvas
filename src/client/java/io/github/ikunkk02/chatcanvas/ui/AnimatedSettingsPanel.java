@@ -29,11 +29,10 @@ import io.github.ikunkk02.chatcanvas.chat.identity.PlayerChatIdentity;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameColorProvider;
 import io.github.ikunkk02.chatcanvas.chat.identity.PlayerRosterTracker;
 import io.github.ikunkk02.chatcanvas.editor.EditorSession;
-import io.wispforest.owo.ui.component.ButtonComponent;
-import io.wispforest.owo.ui.component.Components;
+import io.wispforest.owo.ui.component.UIComponents;
 import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.component.TextBoxComponent;
-import io.wispforest.owo.ui.container.Containers;
+import io.wispforest.owo.ui.container.UIContainers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.container.StackLayout;
@@ -43,10 +42,10 @@ import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.Positioning;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.VerticalAlignment;
-import net.minecraft.text.Text;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.util.Formatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.ChatFormatting;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -188,15 +187,14 @@ public final class AnimatedSettingsPanel {
 		this.categorySpring = new SpringValue(0.0, MotionPreset.CATEGORY_SLIDE);
 		this.component = buildComponent();
 		this.component.positioning(Positioning.absolute((int) Math.round(initialX), editorMetrics.top()));
-		this.component.zIndex(20);
 		setPageButtonsActive(true);
 		syncFromSession();
 
 		if (DEBUG_CLIP) {
-			MinecraftClient client = MinecraftClient.getInstance();
-			int fbWidth = client.getWindow().getFramebufferWidth();
-			int fbHeight = client.getWindow().getFramebufferHeight();
-			double scale = client.getWindow().getScaleFactor();
+			Minecraft client = Minecraft.getInstance();
+			int fbWidth = client.getWindow().getWidth();
+			int fbHeight = client.getWindow().getHeight();
+			double scale = client.getWindow().getGuiScale();
 			ChatCanvas.LOGGER.info(
 				"[ChatCanvas DEBUG] panel={}x{} atX={} viewport={}x{} guiScale={} framebuffer={}x{} activePage=LAYOUT",
 				panelWidth, panelHeight, (int) Math.round(targetX()),
@@ -206,16 +204,16 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private FlowLayout buildComponent() {
-		FlowLayout panel = Containers.verticalFlow(Sizing.fixed(panelWidth), Sizing.fixed(panelHeight));
+		FlowLayout panel = UIContainers.verticalFlow(Sizing.fixed(panelWidth), Sizing.fixed(panelHeight));
 		panel.padding(Insets.of(editorMetrics.padding()));
 		panel.gap(editorMetrics.gap());
 		panel.surface(ModernUiTheme.PANEL_SURFACE);
 
-		panel.child(Components.label(Text.translatable("chat_canvas.settings.title")
-				.formatted(Formatting.WHITE, Formatting.BOLD)));
+		panel.child(UIComponents.label(Component.translatable("chat_canvas.settings.title")
+				.withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD)));
 		if (editorMetrics.showSubtitle()) {
-			panel.child(Components.label(Text.translatable("chat_canvas.settings.subtitle")
-					.formatted(Formatting.GRAY)));
+			panel.child(UIComponents.label(Component.translatable("chat_canvas.settings.subtitle")
+					.withStyle(ChatFormatting.GRAY)));
 		}
 		panel.child(categoryTabs());
 
@@ -258,7 +256,7 @@ public final class AnimatedSettingsPanel {
 		panel.child(pageHost);
 		pageHost.setActivePage(Category.LAYOUT.ordinal());
 
-		FlowLayout actions = Containers.horizontalFlow(
+		FlowLayout actions = UIContainers.horizontalFlow(
 				Sizing.fill(100), Sizing.fixed(editorMetrics.footerHeight()));
 		actions.padding(Insets.top(4));
 		actions.gap(6);
@@ -280,10 +278,10 @@ public final class AnimatedSettingsPanel {
 					ModernUiTheme.CONTROL_BACKGROUND
 			);
 		});
-		ButtonComponent cancel = ModernUiTheme.button(Text.translatable("chat_canvas.action.cancel"),
+		ButtonComponent cancel = ModernUiTheme.button(Component.translatable("chat_canvas.action.cancel"),
 				button -> cancelAction.run());
 		cancel.sizing(Sizing.fixed(72), Sizing.fixed(22));
-		ButtonComponent save = ModernUiTheme.button(Text.translatable("chat_canvas.action.save"),
+		ButtonComponent save = ModernUiTheme.button(Component.translatable("chat_canvas.action.save"),
 				button -> saveAction.run());
 		save.sizing(Sizing.fixed(72), Sizing.fixed(22));
 		actions.child(cancel);
@@ -293,7 +291,7 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private FlowLayout categoryTabs() {
-		FlowLayout grid = Containers.verticalFlow(
+		FlowLayout grid = UIContainers.verticalFlow(
 				Sizing.fill(100), Sizing.fixed(CATEGORY_HEIGHT));
 		grid.gap(CATEGORY_GAP);
 		grid.allowOverflow(false);
@@ -303,20 +301,20 @@ public final class AnimatedSettingsPanel {
 				(availableWidth - CATEGORY_GAP * (CATEGORY_COLUMNS - 1)) / CATEGORY_COLUMNS);
 		Category[] categories = Category.values();
 		for (int rowIndex = 0; rowIndex < CATEGORY_ROWS; rowIndex++) {
-			FlowLayout row = Containers.horizontalFlow(
+			FlowLayout row = UIContainers.horizontalFlow(
 					Sizing.fill(100), Sizing.fixed(CATEGORY_ROW_HEIGHT));
 			row.gap(CATEGORY_GAP);
 			for (int column = 0; column < CATEGORY_COLUMNS; column++) {
 				int categoryIndex = rowIndex * CATEGORY_COLUMNS + column;
 				if (categoryIndex >= categories.length) break;
 				Category category = categories[categoryIndex];
-				Text fullText = Text.translatable(category.translationKey);
-				Text tabText = Text.translatable(category.tabTranslationKey);
+				Component fullText = Component.translatable(category.translationKey);
+				Component tabText = Component.translatable(category.tabTranslationKey);
 				String fitted = ModernUiTheme.fitText(
-						MinecraftClient.getInstance().textRenderer,
+						Minecraft.getInstance().font,
 						tabText, Math.max(1, tabWidth - 6));
 				ButtonComponent button = ModernUiTheme.transparentButton(
-						Text.literal(fitted), clicked -> switchCategory(category));
+						Component.literal(fitted), clicked -> switchCategory(category));
 				button.renderer((context, component, delta) ->
 						ModernUiTheme.drawFixedTab(
 								context,
@@ -334,15 +332,15 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private FlowLayout buildLayoutBody() {
-		FlowLayout body = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		FlowLayout body = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
 		body.padding(Insets.bottom(8));
 		body.gap(7);
 		body.child(sectionLabel("chat_canvas.category.layout"));
-		body.child(Components.label(Text.translatable("chat_canvas.preview.state")
-				.formatted(Formatting.GRAY)));
+		body.child(UIComponents.label(Component.translatable("chat_canvas.preview.state")
+				.withStyle(ChatFormatting.GRAY)));
 		body.child(previewStateRow());
-		body.child(Components.label(Text.translatable("chat_canvas.player_layout.mode")
-				.formatted(Formatting.GRAY)));
+		body.child(UIComponents.label(Component.translatable("chat_canvas.player_layout.mode")
+				.withStyle(ChatFormatting.GRAY)));
 		body.child(playerLayoutSelector());
 		SplitMessageRatioScrubberComponent splitRatio =
 				new SplitMessageRatioScrubberComponent(
@@ -358,7 +356,7 @@ public final class AnimatedSettingsPanel {
 		body.child(layoutScrubber(NumericScrubberComponent.Property.HEIGHT, "chat_canvas.option.height"));
 
 		ButtonComponent defaults = ModernUiTheme.button(
-				Text.translatable("chat_canvas.action.restore_defaults"),
+				Component.translatable("chat_canvas.action.restore_defaults"),
 				button -> {
 					session.restoreLayoutDefaults();
 					syncFromSession();
@@ -373,15 +371,15 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private StackLayout playerLayoutSelector() {
-		StackLayout stack = Containers.stack(Sizing.fill(100), Sizing.fixed(24));
+		StackLayout stack = UIContainers.stack(Sizing.fill(100), Sizing.fixed(24));
 		stack.child(new SelectionIndicatorComponent(
 				() -> session.playerChatLayoutMode().ordinal(),
 				PlayerChatLayoutMode.values().length));
-		FlowLayout buttons = Containers.horizontalFlow(
+		FlowLayout buttons = UIContainers.horizontalFlow(
 				Sizing.fill(100), Sizing.fill(100));
-		classicLayoutButton = transparentButton(Text.empty(),
+		classicLayoutButton = transparentButton(Component.empty(),
 				clicked -> selectPlayerLayout(PlayerChatLayoutMode.CLASSIC));
-		splitLayoutButton = transparentButton(Text.empty(),
+		splitLayoutButton = transparentButton(Component.empty(),
 				clicked -> selectPlayerLayout(PlayerChatLayoutMode.SPLIT_ALIGNMENT));
 		classicLayoutButton.sizing(Sizing.fill(50), Sizing.fill(100));
 		splitLayoutButton.sizing(Sizing.fill(50), Sizing.fill(100));
@@ -406,7 +404,7 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private FlowLayout buildMentionBody() {
-		FlowLayout body = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		FlowLayout body = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
 		body.padding(Insets.bottom(8));
 		body.gap(7);
 		body.child(sectionLabel("chat_canvas.category.mention"));
@@ -431,7 +429,7 @@ public final class AnimatedSettingsPanel {
 				config -> config.withHighlightEnabled(!config.highlightEnabled()));
 		body.child(mentionHighlightButton);
 
-		mentionColorButton = ModernUiTheme.button(Text.empty(), clicked -> {
+		mentionColorButton = ModernUiTheme.button(Component.empty(), clicked -> {
 			MentionConfig before = session.mention();
 			colorPickerLauncher.open(clicked, new ModernColorPickerPopup.Request(
 					before.highlightColor(),
@@ -488,7 +486,7 @@ public final class AnimatedSettingsPanel {
 				"chat_canvas.mention.sound_enabled",
 				config -> config.withSoundEnabled(!config.soundEnabled()));
 		body.child(mentionSoundEnabledButton);
-		mentionSoundTypeButton = ModernUiTheme.button(Text.empty(), clicked -> {
+		mentionSoundTypeButton = ModernUiTheme.button(Component.empty(), clicked -> {
 			MentionConfig before = session.mention();
 			MentionSound[] values = MentionSound.values();
 			session.setMention(before.withSound(
@@ -505,7 +503,7 @@ public final class AnimatedSettingsPanel {
 		body.child(mentionScrubber(MentionNumericScrubberComponent.Property.SOUND_PITCH,
 				"chat_canvas.mention.sound_pitch"));
 		ButtonComponent testSound = ModernUiTheme.button(
-				Text.translatable("chat_canvas.mention.test_sound"),
+				Component.translatable("chat_canvas.mention.test_sound"),
 				clicked -> MentionNotificationController.instance().testSound(session.mention()));
 		testSound.sizing(Sizing.fill(100), Sizing.fixed(22));
 		registerPageButton(Category.MENTION, testSound);
@@ -528,7 +526,7 @@ public final class AnimatedSettingsPanel {
 				"chat_canvas.mention.flash_enabled",
 				config -> config.withFlashEnabled(!config.flashEnabled()));
 		body.child(mentionFlashEnabledButton);
-		mentionFlashColorButton = ModernUiTheme.button(Text.empty(), clicked -> {
+		mentionFlashColorButton = ModernUiTheme.button(Component.empty(), clicked -> {
 			MentionConfig before = session.mention();
 			colorPickerLauncher.open(clicked, new ModernColorPickerPopup.Request(
 					before.flashColor(),
@@ -569,8 +567,8 @@ public final class AnimatedSettingsPanel {
 				"chat_canvas.mention.quick_actions",
 				config -> config.withPlayerQuickActionsEnabled(!config.playerQuickActionsEnabled()));
 		body.child(mentionQuickActionsButton);
-		body.child(Components.label(settingLabel("chat_canvas.mention.private_template")));
-		mentionPrivateTemplateBox = Components.textBox(Sizing.fill(100));
+		body.child(UIComponents.label(settingLabel("chat_canvas.mention.private_template")));
+		mentionPrivateTemplateBox = UIComponents.textBox(Sizing.fill(100));
 		mentionPrivateTemplateBox.text(session.mention().privateMessageTemplate());
 		mentionPrivateTemplateBox.onChanged().subscribe(value -> {
 			MentionConfig before = session.mention();
@@ -580,10 +578,10 @@ public final class AnimatedSettingsPanel {
 				committed.run();
 			}
 		});
-		body.child(mentionPrivateTemplateBox);
+		body.child(UIComponents.wrapVanillaWidget(mentionPrivateTemplateBox));
 
 		ButtonComponent defaults = ModernUiTheme.button(
-				Text.translatable("chat_canvas.mention.restore_defaults"), button -> {
+				Component.translatable("chat_canvas.mention.restore_defaults"), button -> {
 					MentionConfig before = session.mention();
 					session.restoreMentionDefaults();
 					if (!before.equals(session.mention())) {
@@ -599,7 +597,7 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private FlowLayout buildCommandBody() {
-		FlowLayout body = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		FlowLayout body = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
 		body.padding(Insets.bottom(8));
 		body.gap(7);
 		body.child(sectionLabel("chat_canvas.category.command"));
@@ -608,7 +606,7 @@ public final class AnimatedSettingsPanel {
 				config -> config.withEnabled(!config.enabled()));
 		commandPanelButton = commandToggle("chat_canvas.command.show_button",
 				config -> config.withShowPanelButton(!config.showPanelButton()));
-		commandInsertModeButton = ModernUiTheme.button(Text.empty(), clicked -> {
+		commandInsertModeButton = ModernUiTheme.button(Component.empty(), clicked -> {
 			CommandClipboardConfig config = session.commandClipboard();
 			session.setCommandClipboard(config.withInsertMode(config.insertMode().opposite()));
 			session.commit();
@@ -627,7 +625,7 @@ public final class AnimatedSettingsPanel {
 				"chat_canvas.command.clear_recent_disconnect",
 				config -> config.withClearRecentOnDisconnect(
 						!config.clearRecentOnDisconnect()));
-		commandMaxRecentButton = ModernUiTheme.button(Text.empty(), clicked -> {
+		commandMaxRecentButton = ModernUiTheme.button(Component.empty(), clicked -> {
 			CommandClipboardConfig config = session.commandClipboard();
 			int next = config.maxRecentCommands() >=
 					CommandClipboardConfig.MAX_RECENT_COMMANDS
@@ -652,18 +650,18 @@ public final class AnimatedSettingsPanel {
 		registerScrubber(Category.COMMAND, maxCommands);
 		body.child(maxCommands);
 		ButtonComponent manage = ModernUiTheme.button(
-				Text.translatable("chat_canvas.command.manage"), clicked -> {
-					MinecraftClient client = MinecraftClient.getInstance();
+				Component.translatable("chat_canvas.command.manage"), clicked -> {
+					Minecraft client = Minecraft.getInstance();
 					if (client.player == null) return;
 					ChatCanvasConfig.instance().save(session.settings());
 					CommandToolPanel.requestOpenNextChatScreen();
-					client.setScreen(new ChatScreen("/"));
+					client.setScreen(new ChatScreen("/", true));
 				});
 		manage.sizing(Sizing.fill(100), Sizing.fixed(22));
 		registerPageButton(Category.COMMAND, manage);
 		body.child(manage);
 		ButtonComponent defaults = ModernUiTheme.button(
-				Text.translatable("chat_canvas.command.restore_defaults"), clicked -> {
+				Component.translatable("chat_canvas.command.restore_defaults"), clicked -> {
 					session.restoreCommandClipboardDefaults();
 					committed.run();
 					syncFromSession();
@@ -676,7 +674,7 @@ public final class AnimatedSettingsPanel {
 
 	private ButtonComponent commandToggle(
 			String key, java.util.function.UnaryOperator<CommandClipboardConfig> toggle) {
-		ButtonComponent button = ModernUiTheme.button(Text.empty(), clicked -> {
+		ButtonComponent button = ModernUiTheme.button(Component.empty(), clicked -> {
 			CommandClipboardConfig before = session.commandClipboard();
 			session.setCommandClipboard(toggle.apply(before));
 			if (!before.equals(session.commandClipboard())) {
@@ -691,7 +689,7 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private FlowLayout buildVoiceBody() {
-		FlowLayout body = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		FlowLayout body = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
 		body.padding(Insets.bottom(8));
 		body.gap(7);
 		body.child(sectionLabel("chat_canvas.category.voice"));
@@ -749,10 +747,10 @@ public final class AnimatedSettingsPanel {
 						? 0 : settings.inferenceThreads() + 1)));
 		ButtonComponent binding = voiceButton(clicked -> {});
 		binding.active(false);
-		binding.setMessage(Text.translatable("chat_canvas.voice.keybinding"));
+		binding.setMessage(Component.translatable("chat_canvas.voice.keybinding"));
 		ButtonComponent insertMode = voiceButton(clicked -> {});
 		insertMode.active(false);
-		insertMode.setMessage(Text.translatable("chat_canvas.voice.insert_mode"));
+		insertMode.setMessage(Component.translatable("chat_canvas.voice.insert_mode"));
 		voiceModelSelectButton = voiceButton(clicked -> {
 			VoiceInputManager manager = VoiceInputManager.instance();
 			var available = manager.models();
@@ -781,10 +779,10 @@ public final class AnimatedSettingsPanel {
 		});
 		ButtonComponent openModel = voiceButton(clicked ->
 				VoiceInputManager.instance().openModelsDirectory());
-		openModel.setMessage(Text.translatable("chat_canvas.voice.open_model_directory"));
+		openModel.setMessage(Component.translatable("chat_canvas.voice.open_model_directory"));
 		ButtonComponent releaseModel = voiceButton(clicked ->
 				VoiceInputManager.instance().releaseModel());
-		releaseModel.setMessage(Text.translatable("chat_canvas.voice.release_model"));
+		releaseModel.setMessage(Component.translatable("chat_canvas.voice.release_model"));
 		body.child(voiceEnabledButton);
 		body.child(voiceDeviceButton);
 		body.child(voiceTestButton);
@@ -808,7 +806,7 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private FlowLayout buildChatLogBody() {
-		FlowLayout body = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		FlowLayout body = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
 		body.padding(Insets.bottom(8));
 		body.gap(7);
 		body.child(sectionLabel("chat_canvas.category.chat_log"));
@@ -821,7 +819,7 @@ public final class AnimatedSettingsPanel {
 				config -> config.withSaveOtherPlayersMessages(!config.saveOtherPlayersMessages()));
 		chatLogCommandButton = chatLogToggle("chat_canvas.chat_log.save_command",
 				config -> config.withSaveCommandSystemMessages(!config.saveCommandSystemMessages()));
-		chatLogRetentionButton = ModernUiTheme.button(Text.empty(), clicked -> {
+		chatLogRetentionButton = ModernUiTheme.button(Component.empty(), clicked -> {
 			ChatLogConfig config = LocalChatLogService.instance().config();
 			int next = config.retentionDays() >= 365 ? 0
 					: config.retentionDays() >= 90 ? 365
@@ -832,7 +830,7 @@ public final class AnimatedSettingsPanel {
 		});
 		chatLogRetentionButton.sizing(Sizing.fill(100), Sizing.fixed(22));
 		registerPageButton(Category.CHAT_LOG, chatLogRetentionButton);
-		chatLogMaxSizeButton = ModernUiTheme.button(Text.empty(), clicked -> {
+		chatLogMaxSizeButton = ModernUiTheme.button(Component.empty(), clicked -> {
 			ChatLogConfig config = LocalChatLogService.instance().config();
 			long next = config.maxFileSizeBytes() >= 100L * 1024 * 1024L
 					? ChatLogConfig.MIN_FILE_SIZE_BYTES
@@ -848,12 +846,12 @@ public final class AnimatedSettingsPanel {
 		chatLogMaxSizeButton.sizing(Sizing.fill(100), Sizing.fixed(22));
 		registerPageButton(Category.CHAT_LOG, chatLogMaxSizeButton);
 		chatLogOpenDirButton = ModernUiTheme.button(
-				Text.translatable("chat_canvas.chat_log.open_dir"),
+				Component.translatable("chat_canvas.chat_log.open_dir"),
 				clicked -> LocalChatLogService.instance().openLogsDirectory());
 		chatLogOpenDirButton.sizing(Sizing.fill(100), Sizing.fixed(22));
 		registerPageButton(Category.CHAT_LOG, chatLogOpenDirButton);
 		chatLogFlushButton = ModernUiTheme.button(
-				Text.translatable("chat_canvas.chat_log.flush"),
+				Component.translatable("chat_canvas.chat_log.flush"),
 				clicked -> LocalChatLogService.instance().flush());
 		chatLogFlushButton.sizing(Sizing.fill(100), Sizing.fixed(22));
 		registerPageButton(Category.CHAT_LOG, chatLogFlushButton);
@@ -871,7 +869,7 @@ public final class AnimatedSettingsPanel {
 
 	private ButtonComponent chatLogToggle(
 			String key, java.util.function.UnaryOperator<ChatLogConfig> toggle) {
-		ButtonComponent button = ModernUiTheme.button(Text.empty(), clicked -> {
+		ButtonComponent button = ModernUiTheme.button(Component.empty(), clicked -> {
 			ChatLogConfig before = LocalChatLogService.instance().config();
 			updateChatLog(toggle.apply(before));
 		});
@@ -894,19 +892,19 @@ public final class AnimatedSettingsPanel {
 		setToggleMessage(chatLogCommandButton, "chat_canvas.chat_log.save_command", config.saveCommandSystemMessages());
 		if (chatLogRetentionButton != null) {
 			chatLogRetentionButton.setMessage(
-				Text.translatable("chat_canvas.chat_log.retention_days")
-					.append(Text.literal("  " + (config.retentionDays() == 0 ? "∞" : String.valueOf(config.retentionDays())))));
+				Component.translatable("chat_canvas.chat_log.retention_days")
+					.append(Component.literal("  " + (config.retentionDays() == 0 ? "∞" : String.valueOf(config.retentionDays())))));
 		}
 		if (chatLogMaxSizeButton != null) {
 			long mb = config.maxFileSizeBytes() / (1024 * 1024);
 			chatLogMaxSizeButton.setMessage(
-				Text.translatable("chat_canvas.chat_log.max_size_mb")
-					.append(Text.literal("  " + mb + " MB")));
+				Component.translatable("chat_canvas.chat_log.max_size_mb")
+					.append(Component.literal("  " + mb + " MB")));
 		}
 	}
 
 	private ButtonComponent voiceButton(Consumer<ButtonComponent> action) {
-		ButtonComponent button = ModernUiTheme.button(Text.empty(), action);
+		ButtonComponent button = ModernUiTheme.button(Component.empty(), action);
 		button.sizing(Sizing.fill(100), Sizing.fixed(22));
 		registerPageButton(Category.VOICE, button);
 		return button;
@@ -930,7 +928,7 @@ public final class AnimatedSettingsPanel {
 	private ButtonComponent mentionToggleButton(
 			String translationKey,
 			java.util.function.UnaryOperator<MentionConfig> toggle) {
-		ButtonComponent button = ModernUiTheme.button(Text.empty(), clicked -> {
+		ButtonComponent button = ModernUiTheme.button(Component.empty(), clicked -> {
 			MentionConfig before = session.mention();
 			session.setMention(toggle.apply(before));
 			if (!before.equals(session.mention())) {
@@ -947,12 +945,12 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private FlowLayout buildPlayerColorsBody() {
-		FlowLayout body = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		FlowLayout body = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
 		body.padding(Insets.bottom(8));
 		body.gap(7);
 		body.child(sectionLabel("chat_canvas.category.player_colors"));
 
-		playerColorsEnabledButton = ModernUiTheme.button(Text.empty(), button -> {
+		playerColorsEnabledButton = ModernUiTheme.button(Component.empty(), button -> {
 			PlayerColorConfig before = session.playerColors();
 			session.setPlayerColors(before.withEnabled(!before.enabled()));
 			session.commit();
@@ -964,12 +962,12 @@ public final class AnimatedSettingsPanel {
 		registerPageButton(Category.PLAYER_COLORS, playerColorsEnabledButton);
 		body.child(playerColorsEnabledButton);
 
-		body.child(Components.label(settingLabel("chat_canvas.player_colors.mode")));
-		FlowLayout modes = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
+		body.child(UIComponents.label(settingLabel("chat_canvas.player_colors.mode")));
+		FlowLayout modes = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
 		modes.gap(6);
-		playerAutomaticButton = ModernUiTheme.button(Text.empty(), button ->
+		playerAutomaticButton = ModernUiTheme.button(Component.empty(), button ->
 				setPlayerColorMode(PlayerColorMode.AUTOMATIC));
-		playerVanillaButton = ModernUiTheme.button(Text.empty(), button ->
+		playerVanillaButton = ModernUiTheme.button(Component.empty(), button ->
 				setPlayerColorMode(PlayerColorMode.VANILLA));
 		playerAutomaticButton.sizing(Sizing.fill(50), Sizing.fixed(22));
 		playerVanillaButton.sizing(Sizing.fill(50), Sizing.fixed(22));
@@ -980,17 +978,17 @@ public final class AnimatedSettingsPanel {
 		body.child(modes);
 
 		body.child(sectionLabel("chat_canvas.player_colors.palette"));
-		FlowLayout palette = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		FlowLayout palette = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
 		palette.gap(4);
 		FlowLayout paletteRow = null;
 		for (int index = 0; index < session.playerColors().palette().size(); index++) {
 			if (index % 6 == 0) {
-				paletteRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(22));
+				paletteRow = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(22));
 				paletteRow.gap(4);
 				palette.child(paletteRow);
 			}
 			final int paletteIndex = index;
-			ButtonComponent swatch = ModernUiTheme.button(Text.empty(),
+			ButtonComponent swatch = ModernUiTheme.button(Component.empty(),
 					button -> openPaletteColorPicker(button, paletteIndex));
 			swatch.sizing(Sizing.fixed(22), Sizing.fixed(22));
 			swatch.renderer((context, component, delta) -> {
@@ -1006,7 +1004,7 @@ public final class AnimatedSettingsPanel {
 		}
 		body.child(palette);
 		ButtonComponent restorePalette = ModernUiTheme.button(
-				Text.translatable("chat_canvas.player_colors.restore_palette"), button -> {
+				Component.translatable("chat_canvas.player_colors.restore_palette"), button -> {
 					PlayerColorConfig before = session.playerColors();
 					session.setPlayerColors(before.withDefaultPalette());
 					if (!before.equals(session.playerColors())) {
@@ -1021,19 +1019,19 @@ public final class AnimatedSettingsPanel {
 		body.child(restorePalette);
 
 		body.child(sectionLabel("chat_canvas.player_colors.online"));
-		TextBoxComponent search = Components.textBox(Sizing.fill(100));
-		search.setPlaceholder(Text.translatable("chat_canvas.player_colors.search"));
+		TextBoxComponent search = UIComponents.textBox(Sizing.fill(100));
+		search.setHint(Component.translatable("chat_canvas.player_colors.search"));
 		search.onChanged().subscribe(value -> {
 			playerSearch = value == null ? "" : value;
 			rebuildPlayerRows();
 		});
-		body.child(search);
-		playerListBody = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		body.child(UIComponents.wrapVanillaWidget(search));
+		playerListBody = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
 		playerListBody.gap(4);
 		body.child(playerListBody);
 		rebuildPlayerRows();
 
-		hitboxDebugButton = ModernUiTheme.button(Text.empty(), button -> {
+		hitboxDebugButton = ModernUiTheme.button(Component.empty(), button -> {
 			PlayerColorConfig before = session.playerColors();
 			session.setPlayerColors(before.withShowNameHitboxes(!before.showNameHitboxes()));
 			session.commit();
@@ -1046,7 +1044,7 @@ public final class AnimatedSettingsPanel {
 		body.child(hitboxDebugButton);
 
 		ButtonComponent defaults = ModernUiTheme.button(
-				Text.translatable("chat_canvas.player_colors.restore_defaults"), button -> {
+				Component.translatable("chat_canvas.player_colors.restore_defaults"), button -> {
 					PlayerColorConfig before = session.playerColors();
 					session.restorePlayerColorDefaults();
 					if (!before.equals(session.playerColors())) {
@@ -1062,12 +1060,12 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private FlowLayout buildBackgroundBody() {
-		FlowLayout body = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		FlowLayout body = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
 		body.padding(Insets.bottom(8));
 		body.gap(7);
 
 		body.child(sectionLabel("chat_canvas.background.message"));
-		body.child(Components.label(settingLabel("chat_canvas.background.mode")));
+		body.child(UIComponents.label(settingLabel("chat_canvas.background.mode")));
 		body.child(messageModeSelector());
 
 		messageColorButton = colorButton(
@@ -1095,7 +1093,7 @@ public final class AnimatedSettingsPanel {
 				BackgroundNumericScrubberComponent.Property.INPUT_OPACITY,
 				"chat_canvas.background.input_opacity"));
 
-		inputBorderButton = ModernUiTheme.button(Text.empty(), button -> {
+		inputBorderButton = ModernUiTheme.button(Component.empty(), button -> {
 			ChatBackgroundConfig before = session.background();
 			session.setBackground(before.withInputBorderEnabled(!before.inputBorderEnabled()));
 			session.commit();
@@ -1117,7 +1115,7 @@ public final class AnimatedSettingsPanel {
 				"chat_canvas.background.border_opacity"));
 
 		ButtonComponent defaults = ModernUiTheme.button(
-				Text.translatable("chat_canvas.action.restore_background_defaults"),
+				Component.translatable("chat_canvas.action.restore_background_defaults"),
 				button -> {
 					ChatBackgroundConfig before = session.background();
 					session.restoreBackgroundDefaults();
@@ -1134,7 +1132,7 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private FlowLayout buildTextBody() {
-		FlowLayout body = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+		FlowLayout body = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
 		body.padding(Insets.bottom(8));
 		body.gap(7);
 		body.child(sectionLabel("chat_canvas.category.text"));
@@ -1146,10 +1144,10 @@ public final class AnimatedSettingsPanel {
 				"chat_canvas.option.text_opacity"));
 		body.child(textScrubber(TextNumericScrubberComponent.Property.CHARACTER_SPACING,
 				"chat_canvas.option.character_spacing"));
-		body.child(Components.label(settingLabel("chat_canvas.option.text_alignment")));
+		body.child(UIComponents.label(settingLabel("chat_canvas.option.text_alignment")));
 		body.child(alignmentSelector());
 
-		shadowButton = ModernUiTheme.button(Text.empty(), button -> {
+		shadowButton = ModernUiTheme.button(Component.empty(), button -> {
 			ChatTextConfig before = session.text();
 			session.setText(new ChatTextConfig(
 					before.fontScale(), before.lineSpacing(), before.textOpacity(),
@@ -1164,7 +1162,7 @@ public final class AnimatedSettingsPanel {
 		body.child(shadowButton);
 
 		ButtonComponent defaults = ModernUiTheme.button(
-				Text.translatable("chat_canvas.action.restore_text_defaults"),
+				Component.translatable("chat_canvas.action.restore_text_defaults"),
 				button -> {
 					ChatTextConfig before = session.text();
 					session.restoreTextDefaults();
@@ -1181,24 +1179,24 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private CategoryPage buildPage(FlowLayout body) {
-		ScrollContainer<FlowLayout> scroll = Containers.verticalScroll(
+		ScrollContainer<FlowLayout> scroll = UIContainers.verticalScroll(
 				Sizing.fill(100), Sizing.fill(100), body);
 		scroll.scrollbarThiccness(2);
 		scroll.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(ModernUiTheme.SCROLLBAR)));
-		StackLayout stack = Containers.stack(Sizing.fill(100), Sizing.fill(100));
+		StackLayout stack = UIContainers.stack(Sizing.fill(100), Sizing.fill(100));
 		stack.allowOverflow(false);
 		stack.child(scroll);
 		return new CategoryPage(stack, scroll);
 	}
 
 	private FlowLayout previewStateRow() {
-		FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
+		FlowLayout row = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
 		row.gap(6);
-		openPreviewButton = ModernUiTheme.button(Text.empty(), button -> {
+		openPreviewButton = ModernUiTheme.button(Component.empty(), button -> {
 			previewStateChanged.accept(PreviewChatState.OPEN);
 			syncPreviewButtons();
 		});
-		closedPreviewButton = ModernUiTheme.button(Text.empty(), button -> {
+		closedPreviewButton = ModernUiTheme.button(Component.empty(), button -> {
 			previewStateChanged.accept(PreviewChatState.CLOSED);
 			syncPreviewButtons();
 		});
@@ -1213,13 +1211,13 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private StackLayout alignmentSelector() {
-		StackLayout stack = Containers.stack(Sizing.fill(100), Sizing.fixed(24));
+		StackLayout stack = UIContainers.stack(Sizing.fill(100), Sizing.fixed(24));
 		stack.child(new SelectionIndicatorComponent(
 				() -> session.text().alignment().ordinal(), ChatTextAlignment.values().length));
-		FlowLayout buttons = Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(100));
+		FlowLayout buttons = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fill(100));
 		for (ChatTextAlignment alignment : ChatTextAlignment.values()) {
 			ButtonComponent button = transparentButton(
-					Text.translatable(switch (alignment) {
+					Component.translatable(switch (alignment) {
 						case LEFT -> "chat_canvas.alignment.left";
 						case CENTER -> "chat_canvas.alignment.center";
 						case RIGHT -> "chat_canvas.alignment.right";
@@ -1234,14 +1232,14 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private StackLayout messageModeSelector() {
-		StackLayout stack = Containers.stack(Sizing.fill(100), Sizing.fixed(24));
+		StackLayout stack = UIContainers.stack(Sizing.fill(100), Sizing.fixed(24));
 		stack.child(new SelectionIndicatorComponent(
 				() -> session.background().messageMode().ordinal(),
 				MessageBackgroundMode.values().length));
-		FlowLayout buttons = Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(100));
+		FlowLayout buttons = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fill(100));
 		for (MessageBackgroundMode mode : MessageBackgroundMode.values()) {
 			ButtonComponent button = transparentButton(
-					Text.translatable(switch (mode) {
+					Component.translatable(switch (mode) {
 						case FOLLOW_TEXT -> "chat_canvas.background.mode.follow_text";
 						case FULL_WIDTH -> "chat_canvas.background.mode.full_width";
 						case HIDDEN -> "chat_canvas.background.mode.hidden";
@@ -1318,7 +1316,7 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private ButtonComponent colorButton(ColorTarget target, String translationKey, int defaultColor) {
-		ButtonComponent button = ModernUiTheme.button(Text.empty(), clicked -> {
+		ButtonComponent button = ModernUiTheme.button(Component.empty(), clicked -> {
 			int initialColor = target.read(session.background());
 			colorPickerLauncher.open(clicked, new ModernColorPickerPopup.Request(
 					initialColor,
@@ -1402,9 +1400,9 @@ public final class AnimatedSettingsPanel {
 		if (playerListBody == null) return;
 		playerListBody.clearChildren();
 		if (PlayerRosterTracker.usingPreviewPlayers()) {
-			playerListBody.child(Components.label(
-					Text.translatable("chat_canvas.player_colors.offline_hint")
-							.formatted(Formatting.GRAY)));
+			playerListBody.child(UIComponents.label(
+					Component.translatable("chat_canvas.player_colors.offline_hint")
+						.withStyle(ChatFormatting.GRAY)));
 		}
 		String query = playerSearch.trim().toLowerCase(Locale.ROOT);
 		for (PlayerChatIdentity player : PlayerRosterTracker.editorPlayers()) {
@@ -1419,10 +1417,10 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private FlowLayout playerRow(PlayerChatIdentity player) {
-		FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
+		FlowLayout row = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
 		row.gap(4);
 		row.verticalAlignment(VerticalAlignment.CENTER);
-		ButtonComponent color = ModernUiTheme.button(Text.empty(),
+		ButtonComponent color = ModernUiTheme.button(Component.empty(),
 				button -> openPlayerColorPicker(button, player));
 		color.sizing(Sizing.fixed(24), Sizing.fixed(20));
 		color.renderer((context, component, delta) -> {
@@ -1433,28 +1431,28 @@ public final class AnimatedSettingsPanel {
 			ModernUiTheme.border(context, component.getX(), component.getY(),
 					component.getWidth(), component.getHeight(), ModernUiTheme.PANEL_BORDER);
 		});
-		color.mouseDown().subscribe((mouseX, mouseY, button) -> {
-			if (button != 1) return false;
+			color.mouseDown().subscribe((event, doubled) -> {
+				if (event.button() != 1) return false;
 			restorePlayerAutomatic(player);
 			return true;
 		});
 		row.child(color);
 
-		var name = Components.label(Text.literal(player.playerName()).formatted(Formatting.WHITE));
+			var name = UIComponents.label(Component.literal(player.playerName()).withStyle(ChatFormatting.WHITE));
 		name.horizontalSizing(Sizing.fixed(112));
 		row.child(name);
 		boolean custom = session.playerColors().hasOverride(player.uuid(), player.playerName());
-		var state = Components.label(Text.translatable(custom
+		var state = UIComponents.label(Component.translatable(custom
 				? "chat_canvas.player_colors.custom"
-				: "chat_canvas.player_colors.automatic").formatted(
-				custom ? Formatting.GOLD : Formatting.GRAY));
+				: "chat_canvas.player_colors.automatic").withStyle(
+				custom ? ChatFormatting.GOLD : ChatFormatting.GRAY));
 		state.horizontalSizing(Sizing.fixed(46));
 		row.child(state);
 
 		ButtonComponent reset = ModernUiTheme.button(
-				Text.literal("↺"),
+				Component.literal("↺"),
 				button -> restorePlayerAutomatic(player));
-		reset.tooltip(Text.translatable("chat_canvas.player_colors.restore_automatic"));
+		reset.tooltip(Component.translatable("chat_canvas.player_colors.restore_automatic"));
 		reset.sizing(Sizing.fixed(24), Sizing.fixed(20));
 		reset.active(custom);
 		row.child(reset);
@@ -1507,11 +1505,11 @@ public final class AnimatedSettingsPanel {
 		return activeCategory.ordinal();
 	}
 
-	private static Text settingLabel(String key) {
+	private static Component settingLabel(String key) {
 		if (ModernUiTheme.currentStyle() == EditorUiStyle.VANILLA) {
-			return Text.translatable(key);
+			return Component.translatable(key);
 		}
-		return Text.translatable(key).styled(style -> style.withColor(
+		return Component.translatable(key).withStyle(style -> style.withColor(
 				ModernUiTheme.TEXT_SECONDARY & 0xFFFFFF));
 	}
 
@@ -1537,9 +1535,9 @@ public final class AnimatedSettingsPanel {
 		if (shadowButton != null) {
 			boolean shadow = session.text().shadow();
 			shadowButton.setMessage(
-					Text.translatable("chat_canvas.option.text_shadow")
-							.append(Text.literal("  "))
-							.append(Text.translatable(shadow
+					Component.translatable("chat_canvas.option.text_shadow")
+							.append(Component.literal("  "))
+							.append(Component.translatable(shadow
 									? "chat_canvas.state.on"
 									: "chat_canvas.state.off")));
 		}
@@ -1559,17 +1557,17 @@ public final class AnimatedSettingsPanel {
 		boolean player = session.selectedChannel()
 				== io.github.ikunkk02.chatcanvas.editor.EditorChannel.PLAYER_CHAT;
 		if (classicLayoutButton != null) {
-			classicLayoutButton.setMessage(Text.literal(
+			classicLayoutButton.setMessage(Component.literal(
 					session.playerChatLayoutMode() == PlayerChatLayoutMode.CLASSIC
 							? "● " : "○ ")
-					.append(Text.translatable("chat_canvas.player_layout.classic")));
+					.append(Component.translatable("chat_canvas.player_layout.classic")));
 			classicLayoutButton.active(player && !categoryTransitioning);
 		}
 		if (splitLayoutButton != null) {
-			splitLayoutButton.setMessage(Text.literal(
+			splitLayoutButton.setMessage(Component.literal(
 					session.playerChatLayoutMode() == PlayerChatLayoutMode.SPLIT_ALIGNMENT
 							? "● " : "○ ")
-					.append(Text.translatable("chat_canvas.player_layout.split")));
+					.append(Component.translatable("chat_canvas.player_layout.split")));
 			splitLayoutButton.active(player && !categoryTransitioning);
 		}
 	}
@@ -1587,15 +1585,15 @@ public final class AnimatedSettingsPanel {
 				"chat_canvas.command.clear_recent_disconnect",
 				config.clearRecentOnDisconnect());
 		if (commandMaxRecentButton != null) {
-			commandMaxRecentButton.setMessage(Text.translatable(
+			commandMaxRecentButton.setMessage(Component.translatable(
 					"chat_canvas.command.max_recent")
-					.append(Text.literal("  " + config.maxRecentCommands())));
+					.append(Component.literal("  " + config.maxRecentCommands())));
 		}
 		if (commandInsertModeButton != null) {
 			commandInsertModeButton.setMessage(
-					Text.translatable("chat_canvas.command.insert_mode")
-							.append(Text.literal("  "))
-							.append(Text.translatable(config.insertMode()
+					Component.translatable("chat_canvas.command.insert_mode")
+							.append(Component.literal("  "))
+							.append(Component.translatable(config.insertMode()
 									== CommandInsertMode.REPLACE_INPUT
 									? "chat_canvas.command.insert_replace"
 									: "chat_canvas.command.insert_cursor")));
@@ -1613,52 +1611,52 @@ public final class AnimatedSettingsPanel {
 		setToggleMessage(voicePunctuationButton, "chat_canvas.voice.add_punctuation",
 				settings.addFinalPunctuation());
 		if (voiceDurationButton != null) voiceDurationButton.setMessage(
-				Text.translatable("chat_canvas.voice.maximum_seconds")
-						.append(Text.literal("  " + settings.maximumSeconds())));
+				Component.translatable("chat_canvas.voice.maximum_seconds")
+						.append(Component.literal("  " + settings.maximumSeconds())));
 		if (voiceThresholdButton != null) voiceThresholdButton.setMessage(
-				Text.translatable("chat_canvas.voice.noise_threshold")
-						.append(Text.literal(String.format(Locale.ROOT, "  %.3f",
+				Component.translatable("chat_canvas.voice.noise_threshold")
+						.append(Component.literal(String.format(Locale.ROOT, "  %.3f",
 								settings.noiseThreshold()))));
 		if (voiceNoSpeechButton != null) voiceNoSpeechButton.setMessage(
-				Text.translatable("chat_canvas.voice.no_speech_timeout")
-						.append(Text.literal("  " + settings.noSpeechTimeoutMillis() + " ms")));
+				Component.translatable("chat_canvas.voice.no_speech_timeout")
+						.append(Component.literal("  " + settings.noSpeechTimeoutMillis() + " ms")));
 		if (voiceEndpointButton != null) voiceEndpointButton.setMessage(
-				Text.translatable("chat_canvas.voice.endpoint_silence")
-						.append(Text.literal("  " + settings.endpointSilenceMillis() + " ms")));
+				Component.translatable("chat_canvas.voice.endpoint_silence")
+						.append(Component.literal("  " + settings.endpointSilenceMillis() + " ms")));
 		if (voiceTailButton != null) voiceTailButton.setMessage(
-				Text.translatable("chat_canvas.voice.tail_padding")
-						.append(Text.literal("  " + settings.tailPaddingMillis() + " ms")));
+				Component.translatable("chat_canvas.voice.tail_padding")
+						.append(Component.literal("  " + settings.tailPaddingMillis() + " ms")));
 		if (voiceThreadsButton != null) {
 			String configured = settings.inferenceThreads() == 0
-					? Text.translatable("chat_canvas.voice.threads.auto").getString()
+					? Component.translatable("chat_canvas.voice.threads.auto").getString()
 					: Integer.toString(settings.inferenceThreads());
-			voiceThreadsButton.setMessage(Text.translatable("chat_canvas.voice.inference_threads")
-					.append(Text.literal("  " + configured + " (" + manager.effectiveInferenceThreads() + ")")));
+			voiceThreadsButton.setMessage(Component.translatable("chat_canvas.voice.inference_threads")
+					.append(Component.literal("  " + configured + " (" + manager.effectiveInferenceThreads() + ")")));
 		}
 		if (voiceDeviceButton != null) {
 			String name = manager.devices().stream()
 					.filter(device -> device.id().equals(settings.microphoneId()))
 					.map(device -> device.displayName()).findFirst()
-					.orElse(Text.translatable("chat_canvas.voice.device.default").getString());
-			voiceDeviceButton.setMessage(Text.translatable("chat_canvas.voice.device")
-					.append(Text.literal("  " + name)));
+					.orElse(Component.translatable("chat_canvas.voice.device.default").getString());
+			voiceDeviceButton.setMessage(Component.translatable("chat_canvas.voice.device")
+					.append(Component.literal("  " + name)));
 		}
 		if (voiceTestButton != null) {
 			String suffix = manager.isMicrophoneTesting()
 					? String.format(Locale.ROOT, "  %.0f%%",
 							Math.min(100.0, manager.microphoneTestLevel() * 800.0))
 					: "";
-			voiceTestButton.setMessage(Text.translatable(
+			voiceTestButton.setMessage(Component.translatable(
 					manager.isMicrophoneTesting()
 							? "chat_canvas.voice.test.stop"
-							: "chat_canvas.voice.test.start").append(Text.literal(suffix)));
+							: "chat_canvas.voice.test.start").append(Component.literal(suffix)));
 		}
 		VoiceModelDescriptor selectedModel = manager.selectedModel();
 		if (voiceModelSelectButton != null) {
-			Text modelName = selectedModel == null ? Text.translatable("chat_canvas.voice.model.none")
-					: Text.translatable(selectedModel.displayNameKey());
-			voiceModelSelectButton.setMessage(Text.translatable("chat_canvas.voice.current_model")
-					.append(Text.literal("  ")).append(modelName));
+			Component modelName = selectedModel == null ? Component.translatable("chat_canvas.voice.model.none")
+					: Component.translatable(selectedModel.displayNameKey());
+			voiceModelSelectButton.setMessage(Component.translatable("chat_canvas.voice.current_model")
+					.append(Component.literal("  ")).append(modelName));
 		}
 		if (voiceModelButton != null) {
 			boolean installed = selectedModel != null && manager.isModelInstalled(selectedModel.id());
@@ -1667,8 +1665,8 @@ public final class AnimatedSettingsPanel {
 					|| manager.state() == VoiceInputState.MODEL_INSTALLING
 					? "chat_canvas.voice.model.cancel_download"
 					: installed ? "chat_canvas.voice.model.installed" : "chat_canvas.voice.model.download";
-			voiceModelButton.setMessage(Text.translatable(key)
-					.append(Text.literal("  " + manager.state().name())));
+			voiceModelButton.setMessage(Component.translatable(key)
+					.append(Component.literal("  " + manager.state().name())));
 		}
 	}
 
@@ -1695,9 +1693,9 @@ public final class AnimatedSettingsPanel {
 		setToggleMessage(mentionQuickActionsButton, "chat_canvas.mention.quick_actions",
 				config.playerQuickActionsEnabled());
 		if (mentionSoundTypeButton != null) {
-			mentionSoundTypeButton.setMessage(Text.translatable("chat_canvas.mention.sound_type")
-					.append(Text.literal("  "))
-					.append(Text.translatable("chat_canvas.mention.sound."
+			mentionSoundTypeButton.setMessage(Component.translatable("chat_canvas.mention.sound_type")
+					.append(Component.literal("  "))
+					.append(Component.translatable("chat_canvas.mention.sound."
 							+ config.sound().name().toLowerCase(Locale.ROOT))));
 		}
 		if (mentionColorButton != null) {
@@ -1713,9 +1711,9 @@ public final class AnimatedSettingsPanel {
 	private static void setToggleMessage(
 			ButtonComponent button, String translationKey, boolean enabled) {
 		if (button == null) return;
-		button.setMessage(Text.translatable(translationKey)
-				.append(Text.literal("  "))
-				.append(Text.translatable(enabled
+		button.setMessage(Component.translatable(translationKey)
+				.append(Component.literal("  "))
+				.append(Component.translatable(enabled
 						? "chat_canvas.state.on"
 						: "chat_canvas.state.off")));
 	}
@@ -1724,27 +1722,27 @@ public final class AnimatedSettingsPanel {
 		PlayerColorConfig config = session.playerColors();
 		if (playerColorsEnabledButton != null) {
 			playerColorsEnabledButton.setMessage(
-					Text.translatable("chat_canvas.player_colors.enabled")
-							.append(Text.literal("  "))
-							.append(Text.translatable(config.enabled()
+					Component.translatable("chat_canvas.player_colors.enabled")
+							.append(Component.literal("  "))
+							.append(Component.translatable(config.enabled()
 									? "chat_canvas.state.on"
 									: "chat_canvas.state.off")));
 		}
 		if (playerAutomaticButton != null) {
-			playerAutomaticButton.setMessage(Text.literal(
+			playerAutomaticButton.setMessage(Component.literal(
 					config.mode() == PlayerColorMode.AUTOMATIC ? "● " : "○ ")
-					.append(Text.translatable("chat_canvas.player_colors.automatic")));
+					.append(Component.translatable("chat_canvas.player_colors.automatic")));
 		}
 		if (playerVanillaButton != null) {
-			playerVanillaButton.setMessage(Text.literal(
+			playerVanillaButton.setMessage(Component.literal(
 					config.mode() == PlayerColorMode.VANILLA ? "● " : "○ ")
-					.append(Text.translatable("chat_canvas.player_colors.vanilla")));
+					.append(Component.translatable("chat_canvas.player_colors.vanilla")));
 		}
 		if (hitboxDebugButton != null) {
 			hitboxDebugButton.setMessage(
-					Text.translatable("chat_canvas.player_colors.show_hitboxes")
-							.append(Text.literal("  "))
-							.append(Text.translatable(config.showNameHitboxes()
+					Component.translatable("chat_canvas.player_colors.show_hitboxes")
+							.append(Component.literal("  "))
+							.append(Component.translatable(config.showNameHitboxes()
 									? "chat_canvas.state.on"
 									: "chat_canvas.state.off")));
 		}
@@ -1765,26 +1763,26 @@ public final class AnimatedSettingsPanel {
 		}
 		if (inputBorderButton != null) {
 			inputBorderButton.setMessage(
-					Text.translatable("chat_canvas.background.input_border")
-							.append(Text.literal("  "))
-							.append(Text.translatable(session.background().inputBorderEnabled()
+					Component.translatable("chat_canvas.background.input_border")
+							.append(Component.literal("  "))
+							.append(Component.translatable(session.background().inputBorderEnabled()
 									? "chat_canvas.state.on"
 									: "chat_canvas.state.off")));
 		}
 	}
 
-	private static Text colorButtonText(String key, int color) {
-		return Text.translatable(key)
-				.append(Text.literal("  " + String.format(java.util.Locale.ROOT, "#%06X", color)));
+	private static Component colorButtonText(String key, int color) {
+		return Component.translatable(key)
+				.append(Component.literal("  " + String.format(java.util.Locale.ROOT, "#%06X", color)));
 	}
 
 	private void syncPreviewButtons() {
 		if (openPreviewButton == null || closedPreviewButton == null) return;
 		boolean open = previewState.get() == PreviewChatState.OPEN;
-		openPreviewButton.setMessage(Text.literal(open ? "● " : "○ ")
-				.append(Text.translatable("chat_canvas.preview.state.open")));
-		closedPreviewButton.setMessage(Text.literal(open ? "○ " : "● ")
-				.append(Text.translatable("chat_canvas.preview.state.closed")));
+		openPreviewButton.setMessage(Component.literal(open ? "● " : "○ ")
+				.append(Component.translatable("chat_canvas.preview.state.open")));
+		closedPreviewButton.setMessage(Component.literal(open ? "○ " : "● ")
+				.append(Component.translatable("chat_canvas.preview.state.closed")));
 	}
 
 	public void update(double deltaSeconds) {
@@ -1849,8 +1847,8 @@ public final class AnimatedSettingsPanel {
 
 	/** Descriptions may wrap; setting names, section titles and tabs never do. */
 	private LabelComponent descriptionLabel(String key) {
-		LabelComponent label = Components.label(
-				Text.translatable(key).formatted(Formatting.GRAY));
+		LabelComponent label = UIComponents.label(
+					Component.translatable(key).withStyle(ChatFormatting.GRAY));
 		label.horizontalSizing(Sizing.fill(100));
 		label.verticalSizing(Sizing.content());
 		label.maxWidth(pageWidth());
@@ -1925,10 +1923,10 @@ public final class AnimatedSettingsPanel {
 	}
 
 	private static io.wispforest.owo.ui.component.LabelComponent sectionLabel(String key) {
-		return Components.label(Text.translatable(key).formatted(Formatting.WHITE, Formatting.BOLD));
+			return UIComponents.label(Component.translatable(key).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD));
 	}
 
-	private static ButtonComponent transparentButton(Text text, Consumer<ButtonComponent> action) {
+	private static ButtonComponent transparentButton(Component text, Consumer<ButtonComponent> action) {
 		ButtonComponent button = ModernUiTheme.button(text, action);
 		button.renderer(ButtonComponent.Renderer.flat(
 				0x00000000, 0x333A3A3A, 0x00000000));

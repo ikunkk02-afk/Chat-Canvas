@@ -1,9 +1,12 @@
 package io.github.ikunkk02.chatcanvas.chat.message;
 
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.SharedConstants;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -18,14 +21,20 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ChatComponentInteractionPreservationTest {
+	@BeforeAll
+	static void bootstrapMinecraftRegistries() {
+		SharedConstants.tryDetectVersion();
+		Bootstrap.bootStrap();
+	}
+
 	@Test
 	void classificationAndHistoryKeepTheOriginalComponentTree() {
-		MutableText accept = Text.literal("[accept]").setStyle(interactiveStyle(
+		MutableComponent accept = Component.literal("[accept]").setStyle(interactiveStyle(
 				ClickEvent.Action.RUN_COMMAND, "/tpaccept"));
-		MutableText deny = Text.literal("[deny]").setStyle(interactiveStyle(
+		MutableComponent deny = Component.literal("[deny]").setStyle(interactiveStyle(
 				ClickEvent.Action.SUGGEST_COMMAND, "/tpdeny"));
-		MutableText original = Text.literal("PlayerB requests teleport ")
-				.styled(style -> style.withItalic(true))
+		MutableComponent original = Component.literal("PlayerB requests teleport ")
+				.withStyle(style -> style.withItalic(true))
 				.append(accept)
 				.append(" ")
 				.append(deny);
@@ -54,10 +63,10 @@ class ChatComponentInteractionPreservationTest {
 		Style denyStyle = interactiveStyle(
 				ClickEvent.Action.SUGGEST_COMMAND, "/tpdeny")
 				.withColor(0x55AAFF);
-		Text message = Text.literal("prefix ")
-				.append(Text.literal("[accept]").setStyle(acceptStyle))
+		Component message = Component.literal("prefix ")
+				.append(Component.literal("[accept]").setStyle(acceptStyle))
 				.append(" ")
-				.append(Text.literal("[deny]").setStyle(denyStyle));
+				.append(Component.literal("[deny]").setStyle(denyStyle));
 
 		List<StyledRun> runs = styledRuns(message);
 		Style prefix = styleFor(runs, "prefix ");
@@ -66,8 +75,8 @@ class ChatComponentInteractionPreservationTest {
 
 		assertNull(prefix.getClickEvent());
 		assertNull(prefix.getHoverEvent());
-		assertEquals(ClickEvent.Action.RUN_COMMAND, accept.getClickEvent().getAction());
-		assertEquals("/tpaccept", accept.getClickEvent().getValue());
+		assertEquals(ClickEvent.Action.RUN_COMMAND, accept.getClickEvent().action());
+		assertEquals("/tpaccept", ((ClickEvent.RunCommand) accept.getClickEvent()).command());
 		assertEquals("/tpaccept", accept.getInsertion());
 		assertSame(acceptStyle, accept);
 		assertTrue(accept.isBold());
@@ -76,26 +85,31 @@ class ChatComponentInteractionPreservationTest {
 		assertTrue(accept.isStrikethrough());
 		assertTrue(accept.isObfuscated());
 
-		assertEquals(ClickEvent.Action.SUGGEST_COMMAND, deny.getClickEvent().getAction());
-		assertEquals("/tpdeny", deny.getClickEvent().getValue());
+		assertEquals(ClickEvent.Action.SUGGEST_COMMAND, deny.getClickEvent().action());
+		assertEquals("/tpdeny", ((ClickEvent.SuggestCommand) deny.getClickEvent()).command());
 		assertSame(denyStyle, deny);
 		assertFalse(accept.equals(deny));
 	}
 
 	private static Style interactiveStyle(
 			ClickEvent.Action action, String value) {
+		ClickEvent event = switch (action) {
+			case RUN_COMMAND -> new ClickEvent.RunCommand(value);
+			case SUGGEST_COMMAND -> new ClickEvent.SuggestCommand(value);
+			default -> throw new IllegalArgumentException("Unsupported test click action: " + action);
+		};
 		return Style.EMPTY
-				.withClickEvent(new ClickEvent(action, value))
+				.withClickEvent(event)
 				.withInsertion(value)
 				.withColor(0x33DD88)
 				.withBold(true)
 				.withItalic(true)
-				.withUnderline(true)
+				.withUnderlined(true)
 				.withStrikethrough(true)
 				.withObfuscated(true);
 	}
 
-	private static List<StyledRun> styledRuns(Text text) {
+	private static List<StyledRun> styledRuns(Component text) {
 		List<StyledRun> runs = new ArrayList<>();
 		text.visit((style, value) -> {
 			runs.add(new StyledRun(value, style));
