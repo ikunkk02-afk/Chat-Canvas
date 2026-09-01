@@ -1,0 +1,588 @@
+package io.github.ikunkk02.chatcanvas.mixin.client;
+
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import com.llamalad7.mixinextras.sugar.Local;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatBackgroundBounds;
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatBackgroundMetrics;
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatLineMetrics;
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatLineWidthCache;
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatHudTransform;
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatLayoutRuntime;
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatTextLayout;
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatTextLayoutEngine;
+import io.github.ikunkk02.chatcanvas.chat.layout.ChatVerticalMetrics;
+import io.github.ikunkk02.chatcanvas.chat.message.ChatCanvasMessageIngress;
+import io.github.ikunkk02.chatcanvas.chat.render.ChatBackgroundDraw;
+import io.github.ikunkk02.chatcanvas.chat.render.DualChatHudRenderer;
+import io.github.ikunkk02.chatcanvas.chat.style.OrderedTextStyleOverlay;
+import io.github.ikunkk02.chatcanvas.chat.style.StyledRangePipeline;
+import io.github.ikunkk02.chatcanvas.chat.style.TextRange;
+import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextHitTester;
+import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextMetrics;
+import io.github.ikunkk02.chatcanvas.chat.text.SpacedTextRenderer;
+import io.github.ikunkk02.chatcanvas.chat.text.ChatHeadsCompat;
+import io.github.ikunkk02.chatcanvas.chat.identity.ChatMessageMetadataRegistry;
+import io.github.ikunkk02.chatcanvas.chat.identity.PlayerColorRuntime;
+import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameHitbox;
+import io.github.ikunkk02.chatcanvas.chat.identity.PlayerNameHitboxRegistry;
+import io.github.ikunkk02.chatcanvas.config.ChatBackgroundConfig;
+import io.github.ikunkk02.chatcanvas.config.ChatCanvasConfig;
+import io.github.ikunkk02.chatcanvas.config.ChatTextConfig;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
+import org.joml.Vector4f;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import net.minecraft.client.GuiMessage;
+import net.minecraft.client.GuiMessageTag;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.ChatComponent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FormattedText;
+import net.minecraft.network.chat.Style;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.util.Mth;
+
+@Mixin(ChatComponent.class)
+public abstract class ChatHudMixin {
+	@Unique
+	private static final double chat_canvas$VANILLA_TEXT_ORIGIN_X = 4.0;
+	@Shadow
+	private Minecraft minecraft;
+	@Shadow
+	private List<GuiMessage.Line> trimmedMessages;
+	@Shadow
+	private List<GuiMessage> allMessages;
+	@Shadow
+	public abstract int getWidth();
+	@Shadow
+	public abstract double getScale();
+	@Shadow
+	private double screenToChatX(double x) {
+		throw new AssertionError();
+	}
+	@Shadow
+	private double screenToChatY(double y) {
+		throw new AssertionError();
+	}
+	@Shadow
+	private int getMessageLineIndexAt(double chatLineX, double chatLineY) {
+		throw new AssertionError();
+	}
+
+	@Unique
+	private boolean chat_canvas$matrixPushed;
+	@Unique
+	private boolean chat_canvas$scissorEnabled;
+	@Unique
+	private ChatBackgroundConfig chat_canvas$frameBackground;
+	@Unique
+	private final Map<FormattedCharSequence, GuiMessage.Line> chat_canvas$lineLookup =
+			new IdentityHashMap<>();
+	@Unique
+	private final StyledRangePipeline chat_canvas$stylePipeline = new StyledRangePipeline();
+
+	@Inject(method = "render", at = @At("HEAD"), cancellable = true)
+	private void chat_canvas$pushLayoutTransform(GuiGraphics context, int currentTick,
+												 int mouseX, int mouseY, boolean focused,
+												 CallbackInfo ci) {
+		if (DualChatHudRenderer.instance().render(context, mouseX, mouseY, focused)) {
+			ci.cancel();
+			return;
+		}
+		if (!ChatCanvasConfig.instance().enabled()) return;
+		ChatHudTransform transform = ChatLayoutRuntime.currentTransform();
+		PlayerNameHitboxRegistry.beginFrame();
+		chat_canvas$frameBackground = ChatCanvasConfig.instance().background();
+		context.enableScissor(
+				transform.bounds().left(),
+				transform.bounds().messageTop(),
+				transform.bounds().right(),
+				transform.bounds().messageBottom()
+		);
+		chat_canvas$scissorEnabled = true;
+		context.pose().pushPose();
+		context.pose().translate((float) transform.offsetX(), (float) transform.offsetY(), 0.0f);
+		chat_canvas$matrixPushed = true;
+	}
+
+	@Inject(method = "render", at = @At("RETURN"))
+	private void chat_canvas$popLayoutTransform(GuiGraphics context, int currentTick,
+												int mouseX, int mouseY, boolean focused,
+												CallbackInfo ci) {
+		if (chat_canvas$matrixPushed) {
+			context.pose().popPose();
+			chat_canvas$matrixPushed = false;
+		}
+		if (chat_canvas$scissorEnabled) {
+			context.disableScissor();
+			chat_canvas$scissorEnabled = false;
+		}
+		chat_canvas$frameBackground = null;
+	}
+
+	@ModifyReturnValue(method = "getWidth", at = @At("RETURN"))
+	private int chat_canvas$useConfiguredWidth(int original) {
+		return ChatLayoutRuntime.currentTransform().configuredWidth();
+	}
+
+	@ModifyReturnValue(method = "getHeight", at = @At("RETURN"))
+	private int chat_canvas$useConfiguredHeight(int original) {
+		return ChatLayoutRuntime.currentTransform().configuredInternalHeight();
+	}
+
+	@ModifyReturnValue(method = "getLineHeight", at = @At("RETURN"))
+	private int chat_canvas$useConfiguredLineSpacing(int vanillaLineHeight) {
+		ChatTextConfig config = ChatCanvasConfig.instance().text();
+		return ChatTextLayout.internalLineHeight(
+				vanillaLineHeight, config.fontScale(), config.lineSpacing());
+	}
+
+	@WrapOperation(
+			method = "render",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/client/gui/GuiGraphics;fill(IIIII)V",
+					ordinal = 0
+			)
+	)
+	private void chat_canvas$drawCompactMessageBackground(GuiGraphics context,
+														 int x1, int y1, int x2, int y2, int color,
+														 Operation<Void> original,
+														 @Local GuiMessage.Line visible) {
+		ChatBackgroundConfig background = chat_canvas$background();
+		if (background.messageMode() == io.github.ikunkk02.chatcanvas.config.MessageBackgroundMode.HIDDEN) {
+			return;
+		}
+		ChatVerticalMetrics verticalMetrics = chat_canvas$verticalMetrics();
+		int textY = y2 + chat_canvas$vanillaTextOffset();
+		ChatLineMetrics lineMetrics = chat_canvas$metrics(visible);
+		double scale = Math.max(0.0001, getScale());
+		double messageLeft = -chat_canvas$VANILLA_TEXT_ORIGIN_X;
+		double messageRight = getWidth() / scale - chat_canvas$VANILLA_TEXT_ORIGIN_X;
+		ChatBackgroundBounds bounds = ChatBackgroundMetrics.messageBounds(
+				background.messageMode(),
+				messageLeft,
+				messageRight,
+				lineMetrics.drawX(),
+				lineMetrics.renderedWidth(),
+				textY,
+				textY + minecraft.font.lineHeight,
+				verticalMetrics.lineAdvance(),
+				background.horizontalPadding(),
+				background.verticalPadding(),
+				scale
+		);
+		int configuredColor = ChatBackgroundMetrics.composeBackgroundColor(
+				background.messageColor(),
+				background.messageOpacity(),
+				(color >>> 24) / 255.0
+		);
+		ChatBackgroundDraw.fill(context, bounds, configuredColor);
+	}
+
+	@WrapOperation(
+			method = "render",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/client/gui/GuiGraphics;fill(IIIII)V",
+					ordinal = 1
+			)
+	)
+	private void chat_canvas$drawCompactIndicatorBackground(GuiGraphics context,
+														   int x1, int y1, int x2, int y2, int color,
+														   Operation<Void> original) {
+		ChatVerticalMetrics metrics = chat_canvas$verticalMetrics();
+		int textY = y2 + chat_canvas$vanillaTextOffset();
+		original.call(
+				context,
+				x1,
+				(int) Math.floor(metrics.backgroundTop(textY)),
+				x2,
+				(int) Math.ceil(metrics.backgroundBottom(textY)),
+				color
+		);
+	}
+
+	@ModifyArg(
+			method = "addMessageToDisplayQueue",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/client/gui/components/ComponentRenderUtils;wrapComponents(Lnet/minecraft/network/chat/FormattedText;ILnet/minecraft/client/gui/Font;)Ljava/util/List;"
+			),
+			index = 1
+	)
+	private int chat_canvas$reserveBackgroundPaddingForWrapping(int originalWidth) {
+		ChatTextConfig text = ChatCanvasConfig.instance().text();
+		return ChatTextLayout.glyphWrapWidth(
+				getWidth(),
+				ChatCanvasConfig.instance().background().horizontalPadding(),
+				chat_canvas$glyphSafetyPixels(),
+				getScale(),
+				text.fontScale());
+	}
+
+	@WrapOperation(
+			method = "addMessageToDisplayQueue",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/client/gui/components/ComponentRenderUtils;wrapComponents(Lnet/minecraft/network/chat/FormattedText;ILnet/minecraft/client/gui/Font;)Ljava/util/List;"
+			)
+	)
+	private List<FormattedCharSequence> chat_canvas$bindVisiblePlayerNameRanges(
+			FormattedText text, int width, Font renderer,
+			Operation<List<FormattedCharSequence>> original,
+			@Local(argsOnly = true) GuiMessage message) {
+		ChatTextConfig config = ChatCanvasConfig.instance().text();
+		List<FormattedCharSequence> lines = ChatTextLayoutEngine.instance().wrap(
+				message, renderer, width, config.characterSpacing(), config.fontScale(),
+				() -> original.call(text, Integer.MAX_VALUE / 4, renderer));
+		ChatMessageMetadataRegistry.instance().registerVisibleLines(message, lines);
+		return lines;
+	}
+
+	@WrapOperation(
+			method = "render",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/client/gui/GuiGraphics;drawString(Lnet/minecraft/client/gui/Font;Lnet/minecraft/util/FormattedCharSequence;III)I"
+			)
+	)
+	private int chat_canvas$drawConfiguredChatLine(GuiGraphics context, Font renderer,
+												  FormattedCharSequence text, int x, int y, int color,
+												  Operation<Integer> original) {
+		ChatTextConfig config = ChatCanvasConfig.instance().text();
+		ChatLineMetrics metrics = chat_canvas$metrics(text);
+		double drawX = metrics.drawX();
+		int configuredColor = ChatTextLayout.multiplyAlpha(color, config.textOpacity());
+		FormattedCharSequence renderedText = text;
+		ChatMessageMetadataRegistry.VisibleMetadata metadata =
+				ChatMessageMetadataRegistry.instance().visibleMetadata(text);
+		if (metadata != null) {
+			var playerColor = metadata.sender() == null
+					? java.util.OptionalInt.empty()
+					: PlayerColorRuntime.provider().colorFor(metadata.sender());
+			renderedText = chat_canvas$stylePipeline.apply(
+					text,
+					metadata.playerNameRange(),
+					playerColor,
+					metadata.mentionRanges(),
+					ChatCanvasConfig.instance().mention());
+		}
+		context.pose().pushPose();
+		context.pose().translate((float) drawX, y, 0.0f);
+		float fontScale = (float) config.fontScale();
+		context.pose().scale(fontScale, fontScale, 1.0f);
+		int result = SpacedTextRenderer.draw(
+				context, renderer, renderedText, 0.0, 0, configuredColor,
+				config.shadow(), config.characterSpacing());
+		context.pose().popPose();
+		if (metadata != null && metadata.sender() != null && metadata.playerNameRange() != null) {
+			chat_canvas$recordPlayerNameHitbox(context, renderer, text, metadata, drawX, y);
+		}
+		return result;
+	}
+
+	@WrapOperation(
+			method = "render",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/client/gui/GuiGraphics;drawString(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;III)I"
+			)
+	)
+	private int chat_canvas$drawConfiguredQueueText(GuiGraphics context, Font renderer,
+													Component text, int x, int y, int color,
+													Operation<Integer> original) {
+		ChatTextConfig config = ChatCanvasConfig.instance().text();
+		int configuredColor = ChatTextLayout.multiplyAlpha(color, config.textOpacity());
+		context.pose().pushPose();
+		context.pose().translate(x, y, 0.0f);
+		float fontScale = (float) config.fontScale();
+		context.pose().scale(fontScale, fontScale, 1.0f);
+		int result = SpacedTextRenderer.draw(
+				context, renderer, text.getVisualOrderText(), 0.0, 0, configuredColor,
+				config.shadow(), config.characterSpacing());
+		context.pose().popPose();
+		return result;
+	}
+
+	@Inject(method = "getClickedComponentStyleAt", at = @At("HEAD"), cancellable = true)
+	private void chat_canvas$getAlignedTextStyle(double x, double y,
+												 CallbackInfoReturnable<Style> cir) {
+		if (DualChatHudRenderer.instance().active()) {
+			cir.setReturnValue(DualChatHudRenderer.instance().styleAt(x, y));
+			return;
+		}
+		double chatLineX = screenToChatX(x);
+		double chatLineY = screenToChatY(y);
+		int lineIndex = getMessageLineIndexAt(chatLineX, chatLineY);
+		if (lineIndex < 0 || lineIndex >= trimmedMessages.size()) {
+			cir.setReturnValue(null);
+			return;
+		}
+
+		GuiMessage.Line line = trimmedMessages.get(lineIndex);
+		ChatLineMetrics metrics = chat_canvas$metrics(line);
+		double visualLocalX = metrics.localX(chatLineX)
+				/ ChatCanvasConfig.instance().text().fontScale();
+		double spacing = ChatCanvasConfig.instance().text().characterSpacing();
+		double adjustedX = ChatHeadsCompat.textXAt(
+				minecraft.font, line.content(), spacing, line, visualLocalX);
+		if (Double.isNaN(adjustedX)) {
+			cir.setReturnValue(null);
+			return;
+		}
+		int localX = Mth.floor(adjustedX);
+		if (localX < 0 || localX > metrics.renderedWidth()) {
+			cir.setReturnValue(null);
+			return;
+		}
+		if (Math.abs(spacing) < 0.00001) {
+			cir.setReturnValue(minecraft.font.getSplitter()
+					.componentStyleAtWidth(line.content(), localX));
+		} else {
+			cir.setReturnValue(SpacedTextHitTester.styleAt(
+					minecraft.font, line.content(), spacing, localX));
+		}
+	}
+
+	@Inject(method = "getTagIconLeft", at = @At("HEAD"), cancellable = true)
+	private void chat_canvas$getAlignedIndicatorX(GuiMessage.Line line,
+												  CallbackInfoReturnable<Integer> cir) {
+		cir.setReturnValue((int) Math.round(chat_canvas$metrics(line).indicatorX()));
+	}
+
+	@Inject(method = "refreshTrimmedMessages", at = @At("HEAD"))
+	private void chat_canvas$clearLineMetrics(CallbackInfo ci) {
+		chat_canvas$lineLookup.clear();
+		ChatLineWidthCache.clear();
+		ChatMessageMetadataRegistry.instance().clearVisible();
+	}
+
+	@Inject(method = "clearMessages", at = @At("HEAD"))
+	private void chat_canvas$clearMessageMetadata(boolean clearHistory, CallbackInfo ci) {
+		chat_canvas$lineLookup.clear();
+		ChatLineWidthCache.clear();
+		ChatTextLayoutEngine.instance().clearWorld();
+		ChatMessageMetadataRegistry.instance().clearAll();
+		PlayerNameHitboxRegistry.clear();
+	}
+
+	@Inject(
+			method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/GuiMessageTag;)V",
+			at = @At("HEAD")
+	)
+	private void chat_canvas$captureMessage(
+			Component message, net.minecraft.network.chat.MessageSignature signature,
+			GuiMessageTag indicator, CallbackInfo ci) {
+		ChatCanvasMessageIngress.instance().acceptFromChatHud(message, signature);
+	}
+
+	@Inject(
+			method = "addMessageToQueue(Lnet/minecraft/client/GuiMessage;)V",
+			at = @At("RETURN")
+	)
+	private void chat_canvas$pruneMessageMetadata(GuiMessage message, CallbackInfo ci) {
+		ChatMessageMetadataRegistry.instance().retainMessages(allMessages);
+	}
+
+	@ModifyVariable(method = "screenToChatX", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+	private double chat_canvas$screenToChatX(double screenX) {
+		return ChatLayoutRuntime.currentTransform().screenToChatX(screenX);
+	}
+
+	@ModifyVariable(method = "screenToChatY", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+	private double chat_canvas$screenToChatY(double screenY) {
+		return ChatLayoutRuntime.currentTransform().screenToChatY(screenY);
+	}
+
+	@ModifyVariable(method = "handleChatQueueClicked", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+	private double chat_canvas$queueClickX(double screenX) {
+		return ChatLayoutRuntime.currentTransform().screenToChatX(screenX);
+	}
+
+	@ModifyVariable(method = "handleChatQueueClicked", at = @At("HEAD"), argsOnly = true, ordinal = 1)
+	private double chat_canvas$queueClickY(double screenY) {
+		return ChatLayoutRuntime.currentTransform().screenToChatY(screenY);
+	}
+
+	@Unique
+	private ChatLineMetrics chat_canvas$metrics(FormattedCharSequence text) {
+		if (chat_canvas$lineLookup.size() >= 256 && !chat_canvas$lineLookup.containsKey(text)) {
+			chat_canvas$lineLookup.clear();
+		}
+		GuiMessage.Line line = chat_canvas$lineLookup.get(text);
+		if (line == null) {
+			for (GuiMessage.Line candidate : trimmedMessages) {
+				if (candidate.content() == text) {
+					line = candidate;
+					chat_canvas$lineLookup.put(text, candidate);
+					break;
+				}
+			}
+		}
+		if (line == null) {
+			return ChatTextLayout.metricsWithin(
+					-1,
+					chat_canvas$visualWidth(text),
+					chat_canvas$contentLeft(),
+					chat_canvas$contentRight(),
+					0,
+					ChatCanvasConfig.instance().text().alignment(),
+					0.0,
+					1.0
+			);
+		}
+		return chat_canvas$metrics(line);
+	}
+
+	@Unique
+	private ChatLineMetrics chat_canvas$metrics(GuiMessage.Line line) {
+		int indicatorReservation = 0;
+		GuiMessageTag indicator = line.tag();
+		if (line.endOfEntry() && indicator != null && indicator.icon() != null) {
+			indicatorReservation = indicator.icon().width + 6;
+		}
+		return ChatTextLayout.metricsWithin(
+				-1,
+				chat_canvas$visualWidth(line.content())
+						+ chat_canvas$scaled(ChatHeadsCompat.extraWidth(line)),
+				chat_canvas$contentLeft(),
+				chat_canvas$contentRight(),
+				indicatorReservation,
+				ChatCanvasConfig.instance().text().alignment(),
+				0.0,
+				1.0
+		);
+	}
+
+	@Unique
+	private double chat_canvas$contentLeft() {
+		double scale = Math.max(0.0001, getScale());
+		return (chat_canvas$background().horizontalPadding()
+				+ chat_canvas$glyphSafetyPixels()) / scale
+				- chat_canvas$VANILLA_TEXT_ORIGIN_X;
+	}
+
+	@Unique
+	private double chat_canvas$contentRight() {
+		double scale = Math.max(0.0001, getScale());
+		double internalMessageWidth = getWidth() / scale;
+		double internalPadding = (chat_canvas$background().horizontalPadding()
+				+ chat_canvas$glyphSafetyPixels()) / scale;
+		return Math.max(chat_canvas$contentLeft(),
+				internalMessageWidth - internalPadding - chat_canvas$VANILLA_TEXT_ORIGIN_X);
+	}
+
+	@Unique
+	private ChatVerticalMetrics chat_canvas$verticalMetrics() {
+		ChatTextConfig config = ChatCanvasConfig.instance().text();
+		return ChatTextLayout.verticalMetrics(
+				minecraft.font.lineHeight,
+				minecraft.font.lineHeight,
+				config.fontScale(),
+				config.lineSpacing()
+		);
+	}
+
+	@Unique
+	private int chat_canvas$vanillaTextOffset() {
+		double spacing = minecraft.options.chatLineSpacing().get();
+		return (int) Math.round(-8.0 * (spacing + 1.0) + 4.0 * spacing);
+	}
+
+	@Unique
+	private ChatBackgroundConfig chat_canvas$background() {
+		return chat_canvas$frameBackground == null
+				? ChatCanvasConfig.instance().background()
+				: chat_canvas$frameBackground;
+	}
+
+	@Unique
+	private void chat_canvas$recordPlayerNameHitbox(
+			GuiGraphics context, Font renderer, FormattedCharSequence text,
+			ChatMessageMetadataRegistry.VisibleMetadata player, double drawX, int y) {
+		TextRange nameRange = player.playerNameRange();
+		double spacing = ChatCanvasConfig.instance().text().characterSpacing();
+		int prefixWidth;
+		int nameWidth;
+		if (Math.abs(spacing) < 0.00001) {
+			prefixWidth = renderer.width(OrderedTextStyleOverlay.selectRange(
+					text, new TextRange(0, nameRange.startCodePoint())));
+			nameWidth = renderer.width(OrderedTextStyleOverlay.selectRange(text, nameRange));
+		} else {
+			double startX = SpacedTextMetrics.xAtCodePoint(
+					renderer, text, spacing, nameRange.startCodePoint());
+			double endX = SpacedTextMetrics.xAtCodePoint(
+					renderer, text, spacing, nameRange.endCodePoint());
+			prefixWidth = (int) Math.round(startX);
+			nameWidth = Math.max(0, (int) Math.round(endX - startX));
+		}
+		if (nameWidth <= 0) return;
+		GuiMessage.Line line = chat_canvas$lineLookup.get(text);
+		if (line != null) {
+			prefixWidth += ChatHeadsCompat.widthBeforeCodePoint(
+					line, nameRange.startCodePoint());
+		}
+
+		Matrix4f matrix = context.pose().last().pose();
+		double fontScale = ChatCanvasConfig.instance().text().fontScale();
+		Vector4f topLeft = new Vector4f(
+				(float) (drawX + prefixWidth * fontScale), y, 0.0f, 1.0f).mul(matrix);
+		Vector4f bottomRight = new Vector4f(
+				(float) (drawX + (prefixWidth + nameWidth) * fontScale),
+				(float) (y + renderer.lineHeight * fontScale),
+				0.0f,
+				1.0f
+		).mul(matrix);
+		int messageIndex = line == null ? -1 : trimmedMessages.indexOf(line);
+		PlayerNameHitboxRegistry.add(new PlayerNameHitbox(
+				player.sender().uuid(),
+				player.sender().playerName(),
+				messageIndex,
+				Math.min(topLeft.x, bottomRight.x),
+				Math.min(topLeft.y, bottomRight.y),
+				Math.max(topLeft.x, bottomRight.x),
+				Math.max(topLeft.y, bottomRight.y)
+		));
+		if (ChatCanvasConfig.instance().playerColors().showNameHitboxes()) {
+			context.renderOutline(
+					(int) Math.floor(drawX + prefixWidth * fontScale), y,
+					(int) Math.ceil(nameWidth * fontScale),
+					(int) Math.ceil(renderer.lineHeight * fontScale), 0xFFE66B6B);
+		}
+	}
+
+	@Unique
+	private int chat_canvas$visualWidth(FormattedCharSequence text) {
+		return chat_canvas$scaled(ChatLineWidthCache.width(
+				minecraft.font, text,
+				ChatCanvasConfig.instance().text().characterSpacing()));
+	}
+
+	@Unique
+	private int chat_canvas$scaled(int baseWidth) {
+		return (int) Math.ceil(Math.max(0, baseWidth)
+				* ChatCanvasConfig.instance().text().fontScale());
+	}
+
+	@Unique
+	private int chat_canvas$glyphSafetyPixels() {
+		return ChatCanvasConfig.instance().text().shadow() ? 2 : 1;
+	}
+}

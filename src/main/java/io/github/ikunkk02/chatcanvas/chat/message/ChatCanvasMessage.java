@@ -1,0 +1,25 @@
+package io.github.ikunkk02.chatcanvas.chat.message;
+
+import org.jetbrains.annotations.Nullable;
+
+import java.util.UUID;
+import net.minecraft.network.chat.Component;
+
+public record ChatCanvasMessage(
+		UUID messageId,
+		ChatCanvasChannel channel,
+		ChatCanvasMessageSource source,
+		@Nullable UUID senderUuid,
+		@Nullable Component senderName,
+		Component content,
+		long receivedAt,
+		boolean selfMessage,
+		boolean mentionedCurrentPlayer
+) {
+	public ChatCanvasMessage {
+		if (messageId == null) throw new IllegalArgumentException("messageId");
+		if (channel == null) throw new IllegalArgumentException("channel");
+		if (source == null) source = ChatCanvasMessageSource.UNKNOWN;
+		if (content == null) throw new IllegalArgumentException("content");
+	}
+}
