@@ -1,0 +1,133 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'maven-publish'
+}
+
+version = project.version
+group = project.group
+
+repositories {
+	mavenCentral()
+	maven {
+		name = "JitPack"
+		url = "https://jitpack.io"
+	}
+	maven {
+		name = "WispForest"
+		url = "https://maven.wispforest.io/releases"
+	}
+	maven {
+		name = "Terraformers"
+		url = "https://maven.terraformersmc.com/releases"
+	}
+	ivy {
+		name = "SherpaOnnxRelease"
+		url = "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.4"
+		patternLayout {
+			artifact "[artifact]-[revision].[ext]"
+		}
+		metadataSources {
+			artifact()
+		}
+		content {
+			includeModule "com.k2fsa.sherpa.onnx", "sherpa-onnx-jvm"
+		}
+	}
+}
+
+loom {
+	splitEnvironmentSourceSets()
+
+	mods {
+		"chat_canvas" {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+	}
+}
+
+sourceSets {
+	test {
+		compileClasspath += sourceSets.client.output + configurations.clientCompileClasspath
+		runtimeClasspath += sourceSets.client.output + configurations.clientRuntimeClasspath
+	}
+}
+
+fabricApi {
+	configureDataGeneration {
+		client = true
+	}
+}
+
+dependencies {
+	// Minecraft, Fabric Loader, and Fabric API versions are pinned in gradle.properties.
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	implementation "io.wispforest:owo-lib:${project.owo_version}"
+	implementation("com.alphacephei:vosk:0.3.45") {
+		exclude group: "net.java.dev.jna", module: "jna"
+	}
+	include("com.alphacephei:vosk:0.3.45") {
+		transitive = false
+	}
+	implementation("com.k2fsa.sherpa.onnx:sherpa-onnx-jvm:1.13.4@jar")
+	include("com.k2fsa.sherpa.onnx:sherpa-onnx-jvm:1.13.4@jar") {
+		transitive = false
+	}
+
+	compileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+	if (providers.gradleProperty("withModMenu").map(String::toBoolean).getOrElse(false)) {
+		localRuntime "com.terraformersmc:modmenu:${project.modmenu_version}"
+	}
+
+	testImplementation platform("org.junit:junit-bom:${project.junit_version}")
+	testImplementation "org.junit.jupiter:junit-jupiter"
+	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+processResources {
+	def version = project.version
+	inputs.property "version", version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+}
+
+tasks.named("test") {
+	dependsOn(tasks.named("clientClasses"))
+	useJUnitPlatform()
+}
+
+java {
+	withSourcesJar()
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+	def projectName = project.name
+	inputs.property "projectName", projectName
+
+	from("LICENSE") {
+		rename { "${it}_$projectName" }
+	}
+}
+
+publishing {
+	publications {
+		create("mavenJava", MavenPublication) {
+			from components.java
+		}
+	}
+
+	repositories {
+		// Publishing is intentionally not configured for this local port.
+	}
+}

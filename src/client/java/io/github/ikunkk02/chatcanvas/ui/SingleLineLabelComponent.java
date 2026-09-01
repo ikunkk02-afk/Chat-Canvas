@@ -1,0 +1,39 @@
+package io.github.ikunkk02.chatcanvas.ui;
+
+import io.wispforest.owo.ui.base.BaseUIComponent;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
+import io.wispforest.owo.ui.core.Sizing;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
+
+/**
+ * A fixed-size label which is deliberately never word-wrapped.
+ *
+ * <p>Owo's {@code LabelComponent} wraps during inflation using its current
+ * width. Some modpack UI/font combinations inflate fixed labels before that
+ * width has been assigned, producing one glyph per line. Drawing the header
+ * title directly avoids that lifecycle dependency.</p>
+ */
+public final class SingleLineLabelComponent extends BaseUIComponent {
+	private final Component text;
+	private final int color;
+
+	public SingleLineLabelComponent(Component text, int color, int width, int height) {
+		this.text = text;
+		this.color = color;
+		this.sizing(Sizing.fixed(width), Sizing.fixed(height));
+	}
+
+	@Override
+	public void draw(OwoUIGraphics context, int mouseX, int mouseY,
+			float partialTicks, float delta) {
+		var renderer = Minecraft.getInstance().font;
+		Component visible = text;
+		if (renderer.width(text) > width()) {
+			visible = Component.literal(ModernUiTheme.fitText(renderer, text, width()))
+					.setStyle(text.getStyle());
+		}
+		int textY = y() + Math.max(0, (height() - renderer.lineHeight) / 2);
+		context.text(renderer, visible, x(), textY, color, false);
+	}
+}
